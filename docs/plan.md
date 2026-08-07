@@ -123,10 +123,10 @@ Note: the scaffold has `agents/landlord.py` + `agents/investor.py`; Phase 4 deci
 Mark phases done here; details and dates in commit history.
 
 - [x] Phase 0 — research infrastructure
-- [ ] Phase 1 — data landscape
-- [ ] Phase 2 — actor dossiers (0/7)
-- [ ] Phase 3 — policy evidence review
-- [ ] Phase 4 — model spec
-- [ ] Phase 5 — implementation
+- [x] Phase 1 — data landscape (`data-landscape.md`; raw downloads to `data/raw/` deferred)
+- [x] Phase 2 — actor dossiers (7/7)
+- [x] Phase 3 — policy evidence review (7/7 levers)
+- [x] Phase 4 — model spec
+- [x] Phase 5 — implementation (all 11 modules; 12 tests green)
 - [ ] Phase 6 — calibration & validation
 - [ ] Phase 7 — policy experiments

@@ -12,9 +12,9 @@ import numpy as np
 
 def make_rng(seed: int) -> np.random.Generator:
     """Return the single Generator for one run."""
-    raise NotImplementedError
+    return np.random.default_rng(seed)
 
 
 def spawn(rng: np.random.Generator, count: int) -> list[np.random.Generator]:
     """Split a parent Generator into independent child streams (one per agent group)."""
-    raise NotImplementedError
+    return list(rng.spawn(count))

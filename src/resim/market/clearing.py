@@ -1,44 +1,260 @@
 """Price formation — the single most consequential module in the model.
 
-Matches buyers to sellers and renters to landlords, and decides the transaction price.
+Mechanism (model-spec §5): sealed-bid per listing. Each buyer targets one random
+affordable listing in their zone; bids scatter around the ask; the highest bid at or
+above the reserve wins at that bid. Bidding wars emerge when several buyers land on
+one listing; sticky asks emerge because failed listings decay slowly.
 
-Mechanism to choose (document it in docs/model-spec.md before writing code):
-  - sealed-bid per listing: highest bid above reserve wins, price = bid or second bid
-  - random search and bilateral bargaining: price splits the surplus
-  - Walrasian tatonnement: single market price adjusts on excess demand
+Rentals: queue matching — applicants sorted by willingness, each takes the cheapest
+listing they accept; rent = posted ask (landlords post, tenants accept — the Spanish
+rental market is posted-price, not auction).
 
-Sealed-bid per listing is usually the best first choice for housing — it reproduces
-bidding wars and sticky asking prices without needing a global auctioneer.
+`settle` is the only writer of ownership/occupancy/balances.
 """
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 
-from ..agents.base import Intent
-from ..state import WorldState
+import numpy as np
+
+from ..agents.bank import loan_terms
+from ..agents.base import MakeOffer, RentApplication
+from ..config import ZoneType
+from ..state import HouseholdStatus, WorldState
+from .stock import LARGE_INVESTOR_ID, Tenure
+
+FOREIGN_ID = -5  # non-resident overlay buyer (holiday/investment purchase)
 
 
 @dataclass(frozen=True)
 class Trade:
-    """A matched, priced transaction, ready to be settled."""
+    """A matched, priced sale, ready to be settled."""
 
     unit_id: int
     buyer_id: int
     seller_id: int
     price: float
+    cash: bool = False
+    guaranteed: bool = False
 
 
-def clear_sales(state: WorldState, intents: list[Intent]) -> list[Trade]:
+@dataclass(frozen=True)
+class RentalMatch:
+    """A signed lease."""
+
+    unit_id: int
+    tenant_id: int
+    rent: float  # €/month
+    capped: bool = False
+
+
+def clear_sales(
+    state: WorldState, offers: list[MakeOffer], rng: np.random.Generator
+) -> list[Trade]:
     """Match sale listings against offers and set transaction prices."""
-    raise NotImplementedError
+    cfg = state.config
+    trades: list[Trade] = []
+    by_zone: dict[ZoneType, list[MakeOffer]] = defaultdict(list)
+    for o in offers:
+        by_zone[o.zone].append(o)
+
+    listings_by_zone: dict[ZoneType, list] = defaultdict(list)
+    for lst in state.sale_listings.values():
+        unit = state.stock.units[lst.unit_id]
+        listings_by_zone[unit.zone].append(lst)
+
+    for zone, zone_offers in by_zone.items():
+        listings = listings_by_zone.get(zone, [])
+        if not listings:
+            continue
+        # each buyer picks a random listing they can afford and bids around the ask
+        bids: dict[int, list[tuple[float, MakeOffer]]] = defaultdict(list)
+        order = rng.permutation(len(zone_offers))
+        for idx in order:
+            offer = zone_offers[int(idx)]
+            affordable = [lst for lst in listings if lst.ask <= offer.budget * 1.05]
+            if not affordable:
+                continue
+            lst = affordable[int(rng.integers(len(affordable)))]
+            bid = min(
+                offer.budget,
+                lst.ask * float(rng.normal(1.0, cfg.market.overbid_sigma)),
+            )
+            bids[lst.unit_id].append((bid, offer))
+
+        taken_buyers: set[int] = set()
+        for unit_id, unit_bids in bids.items():
+            lst = state.sale_listings[unit_id]
+            unit_bids = [(b, o) for b, o in unit_bids if o.agent_id not in taken_buyers]
+            if not unit_bids:
+                continue
+            best_bid, best_offer = max(unit_bids, key=lambda t: t[0])
+            if best_bid < lst.reserve:
+                continue
+            unit = state.stock.units[unit_id]
+            trades.append(
+                Trade(
+                    unit_id=unit_id,
+                    buyer_id=best_offer.agent_id,
+                    seller_id=unit.owner_id,
+                    price=best_bid,
+                    cash=best_offer.cash,
+                    guaranteed=best_offer.first_time and cfg.policy.guarantee_ltv_boost > 0.0,
+                )
+            )
+            taken_buyers.add(best_offer.agent_id)
+    return trades
 
 
-def clear_rentals(state: WorldState, intents: list[Intent]) -> list[Trade]:
-    """Match rental listings against tenant demand and set rents."""
-    raise NotImplementedError
+def clear_rentals(
+    state: WorldState, applications: list[RentApplication], rng: np.random.Generator
+) -> list[RentalMatch]:
+    """Match rental listings against tenant demand; rent = posted ask."""
+    matches: list[RentalMatch] = []
+    by_zone: dict[ZoneType, list[RentApplication]] = defaultdict(list)
+    for a in applications:
+        by_zone[a.zone].append(a)
+
+    listings_by_zone: dict[ZoneType, list] = defaultdict(list)
+    for lst in state.rent_listings.values():
+        unit = state.stock.units[lst.unit_id]
+        listings_by_zone[unit.zone].append(lst)
+
+    for zone, apps in by_zone.items():
+        listings = sorted(listings_by_zone.get(zone, []), key=lambda x: x.ask)
+        # queue by willingness: highest max_rent first (screening favours solvency)
+        apps = sorted(apps, key=lambda a: -a.max_rent)
+        used: set[int] = set()
+        for app in apps:
+            match = next(
+                (lst for lst in listings if lst.unit_id not in used and lst.ask <= app.max_rent),
+                None,
+            )
+            if match is None:
+                continue
+            used.add(match.unit_id)
+            matches.append(
+                RentalMatch(
+                    unit_id=match.unit_id,
+                    tenant_id=app.agent_id,
+                    rent=match.ask,
+                    capped=match.capped,
+                )
+            )
+    _ = rng  # matching is deterministic given the queues; rng kept for symmetry
+    return matches
 
 
-def settle(state: WorldState, trades: list[Trade]) -> None:
-    """Apply trades: ownership, occupancy, balances, mortgages. The only writer of that state."""
-    raise NotImplementedError
+def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -> None:
+    """Apply trades: ownership, occupancy, balances, mortgages. The only writer."""
+    cfg = state.config
+    for tr in trades:
+        unit = state.stock.units[tr.unit_id]
+        seller_id = unit.owner_id
+        state.sale_listings.pop(tr.unit_id, None)
+        state.rent_listings.pop(tr.unit_id, None)
+
+        # sitting tenant displaced by an investor exit sale (rotation shortcut)
+        if (
+            unit.tenure is Tenure.RENTED
+            and unit.occupant_id is not None
+            and unit.occupant_id != tr.buyer_id
+        ):
+            sitting = state.households.get(unit.occupant_id)
+            if sitting is not None:
+                sitting.status = HouseholdStatus.SEEKER
+                sitting.unit_id = None
+            unit.occupant_id = None
+            unit.tenure = Tenure.VACANT
+            unit.rent = 0.0
+
+        # seller side
+        if seller_id >= 0:
+            seller = state.households.get(seller_id)
+            if seller is not None:
+                proceeds = tr.price
+                if seller.unit_id == unit.id:  # owner-occupier sold their home
+                    proceeds -= seller.mortgage_balance
+                    seller.mortgage_balance = 0.0
+                    seller.mortgage_payment = 0.0
+                    seller.mortgage_ticks_left = 0
+                    seller.status = HouseholdStatus.SEEKER
+                    seller.unit_id = None
+                seller.wealth += max(0.0, proceeds)
+
+        # buyer side
+        if tr.buyer_id >= 0:
+            buyer = state.households[tr.buyer_id]
+            itp = state.macro.itp[unit.zone]
+            fees = cfg.market.buyer_fees
+            if tr.cash:
+                buyer.wealth = max(0.0, buyer.wealth - tr.price * (1 + itp + fees))
+            else:
+                principal, payment, n = loan_terms(
+                    tr.price,
+                    buyer,
+                    state.macro.mortgage_rate,
+                    cfg.credit,
+                    itp,
+                    fees,
+                    tr.guaranteed,
+                )
+                equity = tr.price - principal
+                buyer.wealth = max(0.0, buyer.wealth - equity - tr.price * (itp + fees))
+                buyer.mortgage_balance = principal
+                buyer.mortgage_payment = payment
+                buyer.mortgage_ticks_left = n
+                if tr.guaranteed:
+                    state.macro.guarantee_budget_left = max(
+                        0.0,
+                        state.macro.guarantee_budget_left
+                        - cfg.policy.guarantee_ltv_boost * tr.price,
+                    )
+            # vacate the buyer's rented unit
+            if buyer.unit_id is not None:
+                old = state.stock.units[buyer.unit_id]
+                if old.occupant_id == buyer.id:
+                    old.occupant_id = None
+                    if old.tenure is Tenure.RENTED:
+                        old.tenure = Tenure.VACANT
+                        old.vacant_since = state.tick
+                        old.rent = 0.0
+            buyer.status = HouseholdStatus.OWNER
+            buyer.unit_id = unit.id
+            unit.occupant_id = buyer.id
+            unit.tenure = Tenure.OWNER_OCCUPIED
+        elif tr.buyer_id == LARGE_INVESTOR_ID:
+            unit.occupant_id = None
+            unit.tenure = Tenure.VACANT
+            unit.vacant_since = state.tick
+        else:  # FOREIGN_ID — holiday/second home, leaves the residential market
+            unit.occupant_id = None
+            unit.tenure = Tenure.VACANT
+            unit.vacant_since = state.tick
+            unit.withheld = True
+
+        unit.owner_id = tr.buyer_id
+        unit.last_sale_price = tr.price
+        unit.rent = 0.0
+
+    for rm in rentals:
+        unit = state.stock.units[rm.unit_id]
+        tenant = state.households[rm.tenant_id]
+        state.rent_listings.pop(rm.unit_id, None)
+        # vacate the tenant's previous unit (rotation)
+        if tenant.unit_id is not None:
+            old = state.stock.units[tenant.unit_id]
+            if old.occupant_id == tenant.id:
+                old.occupant_id = None
+                if old.tenure is Tenure.RENTED:
+                    old.tenure = Tenure.VACANT
+                    old.vacant_since = state.tick
+                    old.rent = 0.0
+        unit.occupant_id = tenant.id
+        unit.tenure = Tenure.RENTED
+        unit.rent = rm.rent
+        unit.contract_start = state.tick
+        tenant.status = HouseholdStatus.TENANT
+        tenant.unit_id = unit.id

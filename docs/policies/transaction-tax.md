@@ -107,13 +107,13 @@ Proposed `scenario.Intervention` parameters (typed dataclass, per project conven
 ```python
 @dataclass(frozen=True)
 class ItpIntervention:
-    itp_rate_delta: float          # percentage points, e.g. +0.02 = +2pp; unit: fraction of price
-    zone_types: tuple[ZoneType, ...]        # ITP is CCAA-level: apply per zone type or all
-    applies_to: tuple[BuyerType, ...]       # {HOUSEHOLD_FTB, HOUSEHOLD_MOVER, SMALL_INVESTOR,
-                                            #  LARGE_HOLDER, FOREIGN_NON_EU} — Catalonia 2025
-                                            #  precedent: LARGE_HOLDER-only surcharge
-    reduced_rate_delta: float = 0.0         # separate lever for young/FTB reduced rates
-    announcement_lag_ticks: int = 0         # >0 reproduces anticipation spike (Fritzsche & Vandrei)
+    itp_rate_delta: float  # percentage points, e.g. +0.02 = +2pp; unit: fraction of price
+    zone_types: tuple[ZoneType, ...]  # ITP is CCAA-level: apply per zone type or all
+    applies_to: tuple[BuyerType, ...]  # {HOUSEHOLD_FTB, HOUSEHOLD_MOVER, SMALL_INVESTOR,
+    #  LARGE_HOLDER, FOREIGN_NON_EU} — Catalonia 2025
+    #  precedent: LARGE_HOLDER-only surcharge
+    reduced_rate_delta: float = 0.0  # separate lever for young/FTB reduced rates
+    announcement_lag_ticks: int = 0  # >0 reproduces anticipation spike (Fritzsche & Vandrei)
 ```
 
 Implementation notes:
