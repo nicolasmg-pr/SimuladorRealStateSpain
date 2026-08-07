@@ -3,19 +3,21 @@
 The authoritative description of what the simulation claims about the world.
 Write this before implementing. Code that disagrees with this file is a bug in one of them.
 
-Status: **empty scaffold** — every section below is an open decision.
+Status: **empty scaffold** — sections below are open decisions, except where fixed by
+[plan.md](plan.md): market = Spain; 3 zone types (tensioned metro / secondary city / rural)
+with migration; tick proposed = 1 quarter; every rule derives from the actor dossiers in
+`actors/` under the bias-control method in plan.md.
 
 ## 1. Question the model answers
 
-> Which interventions move real estate prices, in which direction, and how much?
-
-State precisely what counts as an answer: a signed effect, a magnitude, or only a ranking of policies.
+> Which interventions move Spanish real estate prices, in which direction, and how much —
+> reported as effect distributions over the disputed parameter ranges, per zone type.
 
 ## 2. Tick
 
-- What is one tick? (month / quarter / year)
-- How many ticks is a run?
-- What is the geographic scope? (one city / zones / a single market)
+- One tick = 1 quarter (proposed — matches Spanish data frequency; confirm in Phase 4).
+- Run length: 40–80 ticks.
+- Geographic scope: national Spain as 3 zone types with household migration between them.
 
 ## 3. Actors
 

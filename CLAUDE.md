@@ -1,9 +1,9 @@
 # Real Estate Simulator
 
-Agent-based simulation of a real estate market. Actors (households, investors, landlords,
-developers, bank, government) interact each tick; prices emerge from their transactions.
-Goal: test policy ideas and see what actually moves prices. Currently a scaffold — no model
-logic implemented.
+Agent-based simulation of the **Spanish** real estate market. Actors (households, investors,
+landlords, developers, bank, government) interact each tick; prices emerge from their
+transactions. Goal: test policy ideas (rent caps, taxes, zoning) and see what actually moves
+prices. Currently a scaffold — no model logic implemented. Roadmap: `docs/plan.md`.
 
 ## Stack
 
@@ -22,6 +22,8 @@ logic implemented.
 - Layout: src-layout — package in `src/resim/`, tests in `tests/`, docs in `docs/`. `uv sync --dev` is required before anything runs.
 - Config vs scenario: `config.py` = how the world works, `scenario.py` = what we do to it. Never mix.
 - Agents are read-only on state: `decide()` returns intents, the engine and `market/clearing.py` are the only writers.
+- Scope: Spain, 3 zone types (tensioned metro / secondary city / rural) with migration between them.
+- Bias control: every behavioural rule cites ≥2 independent sources (register in `docs/sources.md`); disputed estimates become parameter ranges, never resolved point values.
 
 ## Engineering standards
 
