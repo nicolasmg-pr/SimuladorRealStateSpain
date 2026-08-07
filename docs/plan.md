@@ -34,8 +34,8 @@ barely exist in housing — but a process where no single viewpoint can steer th
 
 ## Phase 0 — Research infrastructure (~half a day)
 
-- [ ] `sources.md`: register of every document used — source, institution, tier, viewpoint, URL, date fetched. No document informs the model without a row here.
-- [ ] Dossier template fixed (see `actors/` skeletons): Role & size → Balance sheet & constraints → Observed decision rules (with evidence) → Reaction to past shocks (case episodes) → Power & relations to other actors → Extracted parameters (value/range + sources) → Open questions.
+- [x] `sources.md`: register of every document used — source, institution, tier, viewpoint, URL, date fetched. No document informs the model without a row here.
+- [x] Dossier template fixed (see `actors/` skeletons): Role & size → Balance sheet & constraints → Observed decision rules (with evidence) → Reaction to past shocks (case episodes) → Power & relations to other actors → Extracted parameters (value/range + sources) → Open questions.
 
 ## Phase 1 — Map the data landscape (2–3 days)
 
@@ -122,7 +122,7 @@ Note: the scaffold has `agents/landlord.py` + `agents/investor.py`; Phase 4 deci
 
 Mark phases done here; details and dates in commit history.
 
-- [ ] Phase 0 — research infrastructure
+- [x] Phase 0 — research infrastructure
 - [ ] Phase 1 — data landscape
 - [ ] Phase 2 — actor dossiers (0/7)
 - [ ] Phase 3 — policy evidence review
