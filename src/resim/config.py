@@ -26,7 +26,7 @@ class StockConfig:
 
 @dataclass(frozen=True)
 class MarketConfig:
-    """Rules of exchange: search frictions, listing duration, transaction costs, price stickiness."""
+    """Rules of exchange: search frictions, listing duration, transaction costs, stickiness."""
 
     # TODO
 
