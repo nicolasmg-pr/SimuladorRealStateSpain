@@ -42,8 +42,9 @@ class ZoneState:
     """Per-zone market observables agents condition on."""
 
     price_index: float  # € per standard unit (quality 1)
-    rent_index: float  # €/month per standard unit, new-contract basis
+    rent_index: float  # €/month per standard unit, ASKING basis (idealista-like)
     reference_rent: float  # official reference index (SERPAVI-analogue), €/month
+    rent_transacted: float = 0.0  # €/month, median new-contract rent (SERPAVI-like)
     price_growth: list[float] = field(default_factory=list)  # trailing per-tick growth
     rent_growth: list[float] = field(default_factory=list)
     expected_price_growth: float = 0.0  # set each tick by the engine (step 3)

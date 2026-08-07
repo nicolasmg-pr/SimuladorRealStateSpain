@@ -80,6 +80,9 @@ class PopulationConfig:
     # € initial wealth of new households incl. family transfers (30–40% of FTBs get help,
     # household-owner §6) [guess]
     seeker_wealth_median: float = 15_000.0
+    # new households' income vs population median: <1 = young penalty (EFF <35: 32k vs
+    # 36.1k ⇒ ~0.89); boom scenarios with working-age migration use 1.0 [EFF2024 — medium]
+    formation_income_factor: float = 0.9
 
 
 @dataclass(frozen=True)
@@ -87,7 +90,7 @@ class StockConfig:
     """The initial housing stock: how many units, of what quality, where, owned by whom."""
 
     # dwellings incl. vacant, excl. 2nd homes [Censo-derived — guess]
-    units_per_household: float = 1.10
+    units_per_household: float = 1.07
     vacancy_rate: float = 0.07  # urban 6–9% [INE via investor-small §6 — medium]
     median_value: float = 170_000.0  # € national median main residence [EFF2024 — high]
     avg_size_m2: float = 80.0  # m² [Censo approx — guess]
@@ -112,9 +115,12 @@ class MarketConfig:
     price_index_smoothing: float = 0.3  # weight of tick median transaction in index update [guess]
     # notary/registry etc., fraction of price, on top of ITP [Fotocasa triangulated — high]
     buyer_fees: float = 0.02
-    # required gross yield over bond, range .03–.05 [investor-small §6 — guess]
-    landlord_required_spread: float = 0.04
-    # extra spread in low-income zones, range .01–.02 [BdE RBA gradient — medium]
+    # required gross yield over bond in the tensioned zone — observed spread there is
+    # ~2pp (yield 4.7–5.6 vs bond ~3); appreciation expectations substitute for yield
+    # [idealista/BdE RBA structure, investor-small §6 — medium]
+    landlord_required_spread: float = 0.02
+    # extra spread outside tensioned metros, range .01–.02: reproduces the observed
+    # 5.2 / 7.0 / 8.0 zone yield ladder [BdE RBA gradient — medium]
     landlord_zone_risk_premium: float = 0.015
     # Δln offered/Δln regulated rent; RANGE 0.0–2.0 — the three-Catalonia-studies parameter
     # [rent-cap §4 — high as range]

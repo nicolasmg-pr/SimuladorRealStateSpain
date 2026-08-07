@@ -16,6 +16,9 @@ from .market.stock import Tenure
 from .state import HouseholdStatus, WorldState
 
 SCALE = 2_000  # one model household ≈ 2,000 real households (model-spec §2)
+# BdE's price-to-income uses gross DISPOSABLE income per household; model incomes are
+# gross. Conversion factor ≈ 0.72 [BdE Síntesis basis — medium]
+DISPOSABLE_FACTOR = 0.72
 
 
 def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
@@ -55,20 +58,38 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["rent_burden_mean"] = float(np.mean(burdens)) if burdens else 0.0
     row["rent_overburden_share"] = float(np.mean([b > 0.40 for b in burdens])) if burdens else 0.0
 
+    zone_weights: dict[ZoneType, float] = {}
     for zone in ZoneType:
         zs = state.zones[zone]
         z = zone.value
+        zone_units = [u for u in all_units if u.zone is zone]
         row[f"price_{z}"] = zs.price_index
         row[f"rent_{z}"] = zs.rent_index
+        row[f"rent_transacted_{z}"] = zs.rent_transacted
         row[f"reference_rent_{z}"] = zs.reference_rent
         row[f"price_growth_{z}"] = zs.price_growth[-1] if zs.price_growth else 0.0
         row[f"rent_growth_{z}"] = zs.rent_growth[-1] if zs.rent_growth else 0.0
-        zone_incomes = [h.income for h in hhs if h.zone is zone]
-        zi = float(np.median(zone_incomes)) if zone_incomes else median_income
-        row[f"price_to_income_{z}"] = zs.price_index / zi
+        row[f"vacancy_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.VACANT) / max(
+            1, len(zone_units)
+        )
+        # market vacancy excludes withheld units (second homes, strategic holdouts) —
+        # the Censo-comparable 6–9% urban figure is closer to this basis
+        row[f"vacancy_market_{z}"] = sum(
+            1 for u in zone_units if u.tenure is Tenure.VACANT and not u.withheld
+        ) / max(1, len(zone_units))
+        row[f"new_leases_{z}"] = sum(
+            1 for r in rentals if state.stock.units[r.unit_id].zone is zone
+        )
+        row[f"seasonal_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.SEASONAL)
+        zone_hhs = [h for h in hhs if h.zone is zone]
+        zone_weights[zone] = len(zone_hhs) / n_hh
+        zi = float(np.median([h.income for h in zone_hhs])) if zone_hhs else median_income
+        row[f"price_to_income_{z}"] = zs.price_index / (zi * DISPOSABLE_FACTOR)
 
-    row["price_national"] = float(np.mean([state.zones[z].price_index for z in ZoneType]))
-    row["price_to_income"] = row["price_national"] / median_income
+    row["price_national"] = float(
+        sum(state.zones[z].price_index * zone_weights[z] for z in ZoneType)
+    )
+    row["price_to_income"] = row["price_national"] / (median_income * DISPOSABLE_FACTOR)
     return row
 
 

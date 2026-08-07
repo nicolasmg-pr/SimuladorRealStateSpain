@@ -124,12 +124,18 @@ def clear_rentals(
 
     for zone, apps in by_zone.items():
         listings = sorted(listings_by_zone.get(zone, []), key=lambda x: x.ask)
-        # queue by willingness: highest max_rent first (screening favours solvency)
+        # queue by willingness: highest max_rent first (screening favours solvency);
+        # each applicant takes the BEST listing they can afford (housing is a normal
+        # good) — assortative matching keeps the contract-rent index demand-driven
         apps = sorted(apps, key=lambda a: -a.max_rent)
         used: set[int] = set()
         for app in apps:
             match = next(
-                (lst for lst in listings if lst.unit_id not in used and lst.ask <= app.max_rent),
+                (
+                    lst
+                    for lst in reversed(listings)
+                    if lst.unit_id not in used and lst.ask <= app.max_rent
+                ),
                 None,
             )
             if match is None:

@@ -128,5 +128,5 @@ Mark phases done here; details and dates in commit history.
 - [x] Phase 3 — policy evidence review (7/7 levers)
 - [x] Phase 4 — model spec
 - [x] Phase 5 — implementation (all 11 modules; 12 tests green)
-- [ ] Phase 6 — calibration & validation
-- [ ] Phase 7 — policy experiments
+- [x] Phase 6 — calibration & validation (`validation.md`; Morris/Sobol pass still open)
+- [x] Phase 7 — first experiment done: rent cap spans the three Catalonia studies (`experiments/rent-cap.md`); remaining levers implemented and runnable, experiments ongoing

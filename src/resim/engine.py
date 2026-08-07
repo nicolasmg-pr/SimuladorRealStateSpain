@@ -183,7 +183,7 @@ class Engine:
                         occupant_id=None,
                         tenure=Tenure.VACANT,
                         last_sale_price=zs.price_index * quality,
-                        withheld=bool(rng.random() < 0.5),  # 2nd homes etc. [guess]
+                        withheld=bool(rng.random() < 0.35),  # 2nd homes etc. [guess]
                     )
                 )
 
@@ -218,7 +218,10 @@ class Engine:
     def step(self, state: WorldState) -> WorldState:
         """Advance exactly one tick, following the order documented above."""
         state.tick += 1
-        state.tick_events = {"sales_by_zone": state.tick_events.get("sales_by_zone", {})}
+        state.tick_events = {
+            "sales_by_zone": state.tick_events.get("sales_by_zone", {}),
+            "rental_tightness": state.tick_events.get("rental_tightness", {}),
+        }
 
         self._macro_update(state)  # 1
         self._demography(state)  # 2
@@ -226,6 +229,7 @@ class Engine:
         bundle = self._collect_intents(state)  # 4
         self._credit_screen(state, bundle)  # 5
         self._apply_listings(state, bundle)
+        self._record_tightness(state, bundle)
         trades = clear_sales(state, bundle.offers, self.market_rng)  # 6
         rentals = clear_rentals(state, bundle.rent_applications, self.market_rng)
         settle(state, trades, rentals)  # 7
@@ -312,10 +316,12 @@ class Engine:
                 zone=zcfg.zone,
                 income=float(
                     rng.lognormal(
-                        np.log(pop.income_median * zcfg.income_multiplier * 0.8),
+                        np.log(
+                            pop.income_median * zcfg.income_multiplier * pop.formation_income_factor
+                        ),
                         pop.income_sigma,
                     )
-                ),  # young households earn less [EFF <35 median 32k]
+                ),
                 wealth=float(rng.lognormal(np.log(pop.seeker_wealth_median), pop.wealth_sigma)),
                 status=HouseholdStatus.SEEKER,
                 max_rent_burden=float(rng.uniform(pop.max_rent_burden_lo, pop.max_rent_burden_hi)),
@@ -497,6 +503,16 @@ class Engine:
                     unit_id=lr.unit_id, ask=lr.ask, capped=lr.capped
                 )
 
+    def _record_tightness(self, state: WorldState, bundle: IntentBundle) -> None:
+        """Applicants per rental listing, by zone — landlords read it next tick."""
+        apps: dict[ZoneType, int] = dict.fromkeys(ZoneType, 0)
+        for a in bundle.rent_applications:
+            apps[a.zone] += 1
+        listings: dict[ZoneType, int] = dict.fromkeys(ZoneType, 0)
+        for lst in state.rent_listings.values():
+            listings[state.stock.units[lst.unit_id].zone] += 1
+        state.tick_events["rental_tightness"] = {z: apps[z] / max(1, listings[z]) for z in ZoneType}
+
     # -- indices --------------------------------------------------------------
 
     def _update_indices(self, state: WorldState, trades, rentals) -> None:
@@ -516,20 +532,38 @@ class Engine:
                 zs.price_index = (1 - s) * old_p + s * float(np.median(zone_trades))
             zs.price_growth.append(zs.price_index / old_p - 1.0)
 
+            # the agent-visible rent index is ASKING-based (idealista-like): the
+            # transacted median is composition-fragile (rich tenants exiting to
+            # ownership drags it down even in a shortage). Transacted rents are
+            # recorded separately in metrics (SERPAVI-like basis).
+            zone_asks = [
+                lst.ask / state.stock.units[lst.unit_id].quality
+                for lst in state.rent_listings.values()
+                if state.stock.units[lst.unit_id].zone is zone
+            ]
             zone_rents = [
                 r.rent / state.stock.units[r.unit_id].quality
                 for r in rentals
                 if state.stock.units[r.unit_id].zone is zone
             ]
             old_r = zs.rent_index
-            if zone_rents:
-                zs.rent_index = (1 - s) * old_r + s * float(np.median(zone_rents))
+            signal = zone_asks + zone_rents
+            if signal:
+                zs.rent_index = (1 - s) * old_r + s * float(np.median(signal))
             zs.rent_growth.append(zs.rent_index / old_r - 1.0)
+            zs.rent_transacted = float(np.median(zone_rents)) if zone_rents else zs.rent_transacted
 
-            # official reference index follows new-contract rents with a lag
-            zs.reference_rent = 0.9 * zs.reference_rent + 0.1 * zs.rent_index * (
-                1.0 - cfg.policy.cap_reference_discount
-            )
+            # official reference index: while a cap is active in this zone the table
+            # is administrative — frozen at activation and updated by IRAV only
+            # (re-anchoring it on the capped market would spiral the cap downward);
+            # otherwise it tracks new-contract rents with a lag
+            cap_here = cfg.policy.rent_cap_enabled and zone in cfg.policy.rent_cap_zones
+            if cap_here:
+                zs.reference_rent *= 1.0 + cfg.policy.within_contract_update / 4.0
+            else:
+                zs.reference_rent = 0.9 * zs.reference_rent + 0.1 * zs.rent_index * (
+                    1.0 - cfg.policy.cap_reference_discount
+                )
         state.tick_events["sales_by_zone"] = sales_by_zone
 
     # -- 8 ------------------------------------------------------------------
@@ -592,7 +626,9 @@ class Engine:
     def _household_flows(self, state: WorldState) -> None:
         cfg = state.config
         sr = cfg.population.saving_rate
+        income_growth = cfg.market.long_run_growth  # nominal wage anchor, /tick
         for hh in state.households.values():
+            hh.income *= 1.0 + income_growth
             saving = sr * hh.income / 4.0
             if hh.status is HouseholdStatus.TENANT and hh.unit_id is not None:
                 rent_y = state.stock.units[hh.unit_id].rent * 12.0
