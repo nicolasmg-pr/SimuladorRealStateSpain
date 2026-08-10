@@ -45,15 +45,18 @@ def max_price(
     credit: CreditConfig,
     itp: float,
     fees: float,
-    guaranteed: bool = False,
+    ltv_boost: float = 0.0,
 ) -> float:
     """Highest price this household can close at, given wealth, income and the caps.
 
     Two binding constraints (model-spec §5):
       equity:  price·(1 − ltv + itp + fees) ≤ wealth   (down payment + taxes upfront)
       dsti:    financed part ≤ max_principal            (income services the loan)
+
+    `ltv_boost` is the state-guarantee lift (PolicyConfig.guarantee_ltv_boost) and must be
+    passed by the caller for guarantee-eligible buyers only — 0.0 is the unassisted screen.
     """
-    ltv = min(1.0, credit.max_ltv + (credit.guarantee_ltv_boost if guaranteed else 0.0))
+    ltv = min(1.0, credit.max_ltv + ltv_boost)
     principal_cap = max_principal(hh.income, rate_yr, credit)
     equity_bound = hh.wealth / max(1e-9, 1.0 - ltv + itp + fees)
     cashflow_bound = (hh.wealth + principal_cap) / (1.0 + itp + fees)
@@ -71,10 +74,10 @@ def loan_terms(
     credit: CreditConfig,
     itp: float,
     fees: float,
-    guaranteed: bool = False,
+    ltv_boost: float = 0.0,
 ) -> tuple[float, float, int]:
     """(principal, quarterly payment, n quarters) for a closed purchase."""
-    ltv = min(1.0, credit.max_ltv + (credit.guarantee_ltv_boost if guaranteed else 0.0))
+    ltv = min(1.0, credit.max_ltv + ltv_boost)
     upfront = price * (itp + fees)
     equity = max(0.0, min(hh.wealth - upfront, price))
     principal = min(price - equity, ltv * price)

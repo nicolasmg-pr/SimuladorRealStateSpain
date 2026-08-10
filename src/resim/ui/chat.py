@@ -28,7 +28,8 @@ div[data-testid="stPopover"] {
     position: fixed;
     bottom: 1.25rem;
     right: 1.25rem;
-    width: fit-content !important;  /* Streamlit sets 100%, which pushes the button off-screen left */
+    /* Streamlit sets 100%, which pushes the button off-screen left */
+    width: fit-content !important;
     z-index: 1000;
 }
 div[data-testid="stPopover"] button[data-testid="stPopoverButton"] {

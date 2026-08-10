@@ -30,6 +30,10 @@ EXIT_SPLIT = {"sale": 0.5, "seasonal": 0.35, "vacant": 0.15}
 # per-listing hazard → annual contract-flow elasticity mapping (see decide())
 HAZARD_SCALE = 1.75
 
+# EXIT_SPLIT was written at this level of seasonal evasion; the seasonal branch scales
+# proportionally when the parameter is swept away from it [Incasòl — medium]
+EXIT_SPLIT_EVASION_BASE = 0.15
+
 
 def required_rent(state: WorldState, zone: ZoneType, value: float) -> float:
     """€/month a small landlord needs to keep a unit on the rental market.
@@ -117,7 +121,9 @@ class SmallLandlords:
         seasonal_open = not pol.seasonal_segment_capped
         p_sale = EXIT_SPLIT["sale"]
         p_seasonal = EXIT_SPLIT["seasonal"] * (
-            state.config.market.seasonal_evasion_share / 0.15 if seasonal_open else 0.0
+            state.config.market.seasonal_evasion_share / EXIT_SPLIT_EVASION_BASE
+            if seasonal_open
+            else 0.0
         )
         if u < p_sale:
             dest = "sale"

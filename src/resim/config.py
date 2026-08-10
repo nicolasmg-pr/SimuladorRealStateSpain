@@ -42,8 +42,26 @@ class ZoneConfig:
     cost_per_m2: float
     # land as fraction of final new-build price [CNMC 25–50%, developer §6 — medium]
     land_share: float
+    # long-run price elasticity of starts IN THIS ZONE. Land availability is what separates
+    # the zones: a tensioned metro core cannot answer a price rise with much new supply, a
+    # rural municipality can. Without this gradient nothing holds the zone price ladder
+    # apart — every zone converges on its own households' credit ceiling and the T/R price
+    # ratio collapses (measured: 3.2× → 1.85× over 60 ticks, with rural ending LESS
+    # affordable than the secondary city). Household-share-weighted average is held at the
+    # sourced national 0.45–0.58 [Caldera&Johansson/BdE]; the split across zones is a
+    # Saiz-style land-availability gradient [guess — developer §7.3, weakest evidence block]
+    supply_elasticity: float
     # non-resident cash demand present [Registradores concentration, household-owner §6]
     foreign_overlay: bool
+    # tourist-rental (VUT) stock at init, as a share of the zone's residential stock. Held
+    # OUTSIDE `units_per_household`, which is documented as excluding second homes — so these
+    # are additional dwellings, and converting them back (tourist-restriction lever) genuinely
+    # adds housing. National weighted ≈1.8%, matching 329,764 VUT (INE, Nov 2025) against
+    # 18.54M dwellings; the tensioned value is the central-Barcelona district figure of
+    # 2.8–2.9% of dwellings [INE via El País; tourist-rental-restriction §2 — medium. The
+    # dossier also records hotspot census sections at 20–30%, which this abstraction cannot
+    # represent: a zone mean, not a hotspot]
+    seasonal_share: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -89,15 +107,23 @@ class PopulationConfig:
 class StockConfig:
     """The initial housing stock: how many units, of what quality, where, owned by whom."""
 
-    # dwellings incl. vacant, excl. 2nd homes [Censo-derived — guess]
+    # dwellings incl. vacant, excl. 2nd homes [Censo-derived — guess]. This is what sets
+    # the initial vacant stock (units_per_household − 1); vacancy itself is emergent and
+    # validated against the urban 6–9% Censo figure [INE via investor-small §6 — medium].
     units_per_household: float = 1.07
-    vacancy_rate: float = 0.07  # urban 6–9% [INE via investor-small §6 — medium]
     median_value: float = 170_000.0  # € national median main residence [EFF2024 — high]
-    avg_size_m2: float = 80.0  # m² [Censo approx — guess]
-    # individuals' share of rental stock; range .85–.92 [investor-small §1 — high]
-    small_landlord_share: float = 0.90
-    # share of stock; range .015–.033 [MIVAU/Provivienda — medium]
-    public_rental_share: float = 0.02
+    avg_size_m2: float = 80.0  # m² average dwelling [Censo approx — guess]
+    # individuals' share of rental stock; range .85–.92 [investor-small §1 — high].
+    # NOT an input: it is an emergent cross-check, reported as `small_landlord_rental_share`
+    # in metrics.py and asserted in tests/test_validation.py.
+    small_landlord_share_target: tuple[float, float] = (0.85, 0.92)
+    # public social rental as a share of the TOTAL stock (318k of 18.54M dwellings = 1.7%);
+    # range .015–.025 [Housing Europe 2025 / MIVAU Boletín, public-housing §3 — medium].
+    # Basis matters: the engine converts this to a share of *rented* units at init.
+    public_rental_share: float = 0.017
+    # metro concentration of the public stock at init (T/S/R) — social housing is urban
+    # [public-housing §3 — guess; mirrors the policy lever's delivery weights]
+    public_zone_weights: tuple[float, float, float] = (0.6, 0.3, 0.1)
 
 
 @dataclass(frozen=True)
@@ -106,7 +132,9 @@ class MarketConfig:
 
     # /tick ask cut while unsold; range .02–.05 [sticky-ask evidence 2008–13 — guess]
     ask_decay: float = 0.03
-    max_seller_discount: float = 0.10  # reserve = ask×(1−this); range .05–.15 [guess]
+    # reserve = ask×(1−d), d drawn per listing ~U(lo, hi) (model-spec §5) [guess]
+    max_seller_discount_lo: float = 0.05
+    max_seller_discount_hi: float = 0.15
     max_listing_ticks: int = 6  # withdraw after; range 4–8 [guess]
     overbid_sigma: float = 0.04  # bid dispersion around ask in sealed bid [guess; calibrated]
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
@@ -138,13 +166,16 @@ class CreditConfig:
 
     euribor: float = 0.022  # /yr, 12m euríbor level [exogenous path via scenario]
     spread: float = 0.011  # pp over euríbor; range .009–.012 [bank §6 — medium]
-    # per-tick adjustment of offered rate toward euríbor+spread (~32%/16m) [BdE DO 2312 — medium]
-    pass_through: float = 0.15
+    # per-tick partial adjustment of the offered rate toward euríbor+spread. Calibrated to
+    # BdE DO 2312: ~32% of a shock passed through after 16 months (5.33 ticks), i.e.
+    # 1−(1−p)^5.33 = 0.32 ⇒ p ≈ 0.07 [BdE DO 2312 — medium]
+    pass_through: float = 0.07
     max_ltv: float = 0.80  # bank practice, no legal cap; 24% bunching at 0.80 [BdE IEF — high]
     max_dsti: float = 0.35  # payment/net income; range .30–.40 [bank §6 — high]
     term_years: int = 25  # avg 24–26 [INE — medium]
-    guarantee_ltv_boost: float = 0.0  # policy: ICO aval lifts LTV toward 1.0 [demand-subsidy §5]
-    guarantee_eligible_share: float = 0.0  # share of first-time buyers eligible [demand-subsidy §5]
+    # NOTE: the state-guarantee LTV boost is a *policy* field (PolicyConfig.guarantee_ltv_boost)
+    # and reaches the lending caps as an explicit `ltv_boost` argument to bank.max_price /
+    # bank.loan_terms. It is deliberately not duplicated here.
 
 
 @dataclass(frozen=True)
@@ -154,7 +185,11 @@ class DeveloperConfig:
     construction_lag: int = 8  # ticks, visado→CFO; range 6–10 [Euroval, developer §6 — high]
     # min expected margin on cost; range .15–.20 [IMPLICA/KPMG — medium]
     margin_threshold: float = 0.175
-    # long-run price elasticity of starts; range .45–.58+ [Caldera&Johansson/BdE — medium]
+    # National long-run price elasticity of starts, d ln(starts)/d ln(price); range .45–.58+
+    # [Caldera&Johansson/BdE — medium]. The elasticity the developer actually applies is
+    # per-zone (ZoneConfig.supply_elasticity) because land availability differs; this field
+    # is the national anchor those zone values must average to, asserted in
+    # tests/test_validation.py. Not read by any agent.
     supply_elasticity: float = 0.5
     # national capacity ≈190k/yr real at model scale; range 150k–220k [CNC claim — low]
     max_starts_per_tick: int = 24
@@ -197,6 +232,9 @@ class PolicyConfig:
     # demand subsidy (demand-subsidy.md)
     guarantee_ltv_boost: float = 0.0  # extra LTV via state guarantee; ICO = .20
     guarantee_eligible_share: float = 0.0  # of first-time buyers; sweep .05–.50
+    # total guarantee envelope at model scale: the ICO line is €2.5bn *once*, not per tick.
+    # 2.5e9 / 2000 households-per-model-household [demand-subsidy §5 — high]
+    guarantee_budget: float = 1_250_000.0
     rent_subsidy_month: float = 0.0  # €/month to eligible tenants
     rent_subsidy_eligible_share: float = 0.0  # of under-35 tenants; sweep .006–.20
     # land release (land-release.md)
@@ -234,7 +272,9 @@ class SimConfig:
                 large_investor_share=0.10,  # 8–15 guess
                 cost_per_m2=1_450.0,  # ×1.2 national — guess
                 land_share=0.45,  # 40–50
+                supply_elasticity=0.25,  # metro core: little developable land left
                 foreign_overlay=True,
+                seasonal_share=0.028,  # central-district VUT share, 2.8–2.9
             ),
             ZoneConfig(
                 zone=ZoneType.SECONDARY,
@@ -247,7 +287,9 @@ class SimConfig:
                 large_investor_share=0.02,
                 cost_per_m2=1_200.0,
                 land_share=0.30,  # 25–35
+                supply_elasticity=0.50,  # national average
                 foreign_overlay=False,
+                seasonal_share=0.010,
             ),
             ZoneConfig(
                 zone=ZoneType.RURAL,
@@ -260,7 +302,9 @@ class SimConfig:
                 large_investor_share=0.0,
                 cost_per_m2=1_080.0,
                 land_share=0.20,  # 15–25
+                supply_elasticity=1.00,  # abundant land: supply answers price
                 foreign_overlay=False,
+                seasonal_share=0.005,
             ),
         )
         return cls(

@@ -38,10 +38,11 @@ from .agents.developer import Developer
 from .agents.government import Government
 from .agents.household import Households
 from .agents.investor import LargeInvestor
-from .agents.landlord import SmallLandlords
+from .agents.landlord import SmallLandlords, cap_level, required_rent
 from .config import ZoneType
 from .market.clearing import FOREIGN_ID, clear_rentals, clear_sales, settle
 from .market.stock import (
+    DEVELOPER_ID,
     LARGE_INVESTOR_ID,
     PUBLIC_ID,
     Stock,
@@ -140,6 +141,7 @@ class Engine:
                     wealth=float(rng.lognormal(np.log(wealth_median), wealth_sigma)),
                     status=status,
                     max_rent_burden=float(burdens[i]),
+                    eligibility_draw=float(rng.random()),
                 )
                 state.households[hid] = hh
 
@@ -187,28 +189,63 @@ class Engine:
                     )
                 )
 
+            # tourist-rental (VUT) segment, on top of the residential stock. Without it the
+            # tourist-restriction lever has nothing to phase out and reads as a no-op: the
+            # only other route into Tenure.SEASONAL is rent-cap evasion.
+            n_seasonal = int(round(n_hh * stk.units_per_household * zcfg.seasonal_share))
+            for _ in range(n_seasonal):
+                quality = float(rng.lognormal(0.0, 0.15))
+                state.stock.add(
+                    Unit(
+                        id=state.stock.new_id(),
+                        zone=zcfg.zone,
+                        quality=quality,
+                        owner_id=-1,
+                        occupant_id=None,
+                        tenure=Tenure.SEASONAL,
+                        last_sale_price=zs.price_index * quality,
+                    )
+                )
+
         self._assign_landlords(state)
         return state
 
     def _assign_landlords(self, state: WorldState) -> None:
-        """Distribute rented + vacant units to owners per dossier shares."""
+        """Distribute rented + vacant units to owners per dossier shares.
+
+        `public_rental_share` is a share of the TOTAL stock (318k of 18.54M dwellings), so it
+        has to be converted to a per-zone share of *rented* units before it can be used as an
+        assignment probability — reading it directly as a rental-stock share undercounted the
+        public parque by roughly 4×. Public stock is metro-concentrated, hence the weights.
+        """
         cfg = state.config
         rng = self.rng
         owners = [h.id for h in state.households.values() if h.status is HouseholdStatus.OWNER]
+        n_public_total = cfg.stock.public_rental_share * len(state.stock)
+        rented_by_zone = {z: 0 for z in ZoneType}
+        for unit in state.stock.units.values():
+            if unit.tenure is Tenure.RENTED:
+                rented_by_zone[unit.zone] += 1
+        public_share_of_rented = {}
+        for zone, weight in zip(ZoneType, cfg.stock.public_zone_weights, strict=True):
+            public_share_of_rented[zone] = min(
+                0.9, n_public_total * weight / max(1, rented_by_zone[zone])
+            )
+
         for unit in state.stock.units.values():
             if unit.owner_id != -1:
                 continue
             zcfg = cfg.zone(unit.zone)
             r = rng.random()
-            if unit.tenure is Tenure.RENTED and r < zcfg.large_investor_share:
+            if unit.tenure is not Tenure.RENTED:
+                # vacant stock is held by individuals (2nd homes, inherited, between lets)
+                unit.owner_id = int(owners[int(rng.integers(len(owners)))])
+            elif r < zcfg.large_investor_share:
                 unit.owner_id = LARGE_INVESTOR_ID
-            elif (
-                unit.tenure is Tenure.RENTED
-                and r < zcfg.large_investor_share + cfg.stock.public_rental_share
-            ):
+            elif r < zcfg.large_investor_share + public_share_of_rented[unit.zone]:
                 unit.owner_id = PUBLIC_ID
                 unit.is_public = True
-                unit.rent *= 0.5  # public rent discount
+                unit.rent *= cfg.policy.public_rent_discount
             else:
                 # small landlord: skew toward higher-wealth owners [EFF: age/wealth gradient]
                 unit.owner_id = int(owners[int(rng.integers(len(owners)))])
@@ -231,6 +268,10 @@ class Engine:
         self._apply_listings(state, bundle)
         self._record_tightness(state, bundle)
         trades = clear_sales(state, bundle.offers, self.market_rng)  # 6
+        for tr in trades:
+            # a unit sold this tick cannot also be leased this tick (a landlord can hold
+            # both listings open); the sale wins
+            state.rent_listings.pop(tr.unit_id, None)
         rentals = clear_rentals(state, bundle.rent_applications, self.market_rng)
         settle(state, trades, rentals)  # 7
         self._update_indices(state, trades, rentals)
@@ -250,18 +291,21 @@ class Engine:
         for zcfg in cfg.zones:
             delta = cfg.policy.itp_delta if zcfg.zone in cfg.policy.itp_zones else 0.0
             macro.itp[zcfg.zone] = zcfg.itp_rate + delta
-        if cfg.policy.guarantee_ltv_boost > 0.0 and macro.guarantee_budget_left == 0.0:
-            # model-scale ICO line: €2.5bn/2000 [demand-subsidy §5]
-            macro.guarantee_budget_left = 2.5e9 / 2000.0
+        if cfg.policy.guarantee_ltv_boost > 0.0 and not macro.guarantee_budget_funded:
+            # the ICO line is a one-off envelope, funded the tick the lever switches on.
+            # Once spent it stays spent — the programme closes [demand-subsidy §5].
+            macro.guarantee_budget_left = cfg.policy.guarantee_budget
+            macro.guarantee_budget_funded = True
 
-        # sitting-rent indexation at contract anniversaries
+        # sitting-rent indexation at contract anniversaries. Public rents are administrative
+        # and are not indexed on the private update path.
         annual_update = (
             cfg.policy.within_contract_update
             if cfg.policy.rent_cap_enabled
             else cfg.market.long_run_growth * 4
         )
         for unit in state.stock.rented():
-            if (state.tick - unit.contract_start) % 4 == 0:
+            if not unit.is_public and (state.tick - unit.contract_start) % 4 == 0:
                 unit.rent *= 1.0 + annual_update
 
         # vacancy tax: detected long-vacant units of large-portfolio owners re-enter
@@ -306,6 +350,7 @@ class Engine:
         pop = cfg.population
         rng = self.rng
         n_new = int(rng.poisson(pop.formation_per_tick))
+        state.tick_events["formation"] = n_new
         shares = np.array([z.household_share for z in cfg.zones])
         zone_ids = rng.choice(len(cfg.zones), size=n_new, p=shares / shares.sum())
         for zi in zone_ids:
@@ -325,24 +370,32 @@ class Engine:
                 wealth=float(rng.lognormal(np.log(pop.seeker_wealth_median), pop.wealth_sigma)),
                 status=HouseholdStatus.SEEKER,
                 max_rent_burden=float(rng.uniform(pop.max_rent_burden_lo, pop.max_rent_burden_hi)),
+                eligibility_draw=float(rng.random()),
             )
 
-        # dissolutions: estate passes to a random surviving household (inheritance)
+        # dissolutions: the WHOLE estate passes to a surviving household (inheritance) —
+        # the home *and* any rental units, otherwise dissolved small landlords leave
+        # permanently orphaned stock behind that still acts as a landlord
         n_exit = int(rng.poisson(pop.formation_per_tick * pop.dissolution_rate))
         ids = list(state.households.keys())
         if len(ids) > n_exit > 0:
-            for hid in rng.choice(ids, size=n_exit, replace=False):
-                hh = state.households.pop(int(hid))
-                if hh.unit_id is not None:
-                    unit = state.stock.units[hh.unit_id]
-                    unit.occupant_id = None
-                    if unit.tenure is Tenure.OWNER_OCCUPIED:
-                        heirs = list(state.households.keys())
+            gone = {int(h) for h in rng.choice(ids, size=n_exit, replace=False)}
+            for hid in gone:
+                hh = state.households.pop(hid)
+                if hh.unit_id is None:
+                    continue
+                unit = state.stock.units[hh.unit_id]
+                unit.occupant_id = None
+                unit.tenure = Tenure.VACANT
+                unit.vacant_since = state.tick
+                unit.rent = 0.0
+                state.sale_listings.pop(hh.unit_id, None)
+                state.rent_listings.pop(hh.unit_id, None)
+            heirs = list(state.households.keys())
+            if heirs:
+                for unit in state.stock.units.values():
+                    if unit.owner_id in gone:
                         unit.owner_id = int(heirs[int(rng.integers(len(heirs)))])
-                    unit.tenure = Tenure.VACANT
-                    unit.vacant_since = state.tick
-                    unit.rent = 0.0
-                state.sale_listings.pop(hh.unit_id, None) if hh.unit_id else None
 
         # migration: priced-out seekers slide down the zone ladder [guess]
         ladder = {ZoneType.TENSIONED: ZoneType.SECONDARY, ZoneType.SECONDARY: ZoneType.RURAL}
@@ -435,28 +488,27 @@ class Engine:
             hh = state.households.get(offer.agent_id)
             if hh is None:
                 continue
-            guaranteed = (
-                offer.first_time
-                and cfg.policy.guarantee_ltv_boost > 0.0
-                and state.macro.guarantee_budget_left > 0.0
-            )
+            # the guarantee decision belongs to the household (means test); the bank only
+            # re-checks that the programme envelope is still open at screening time
+            guaranteed = offer.guaranteed and state.macro.guarantee_budget_left > 0.0
             limit = max_price(
                 hh,
                 state.macro.mortgage_rate,
                 cfg.credit,
                 state.macro.itp[offer.zone],
                 cfg.market.buyer_fees,
-                guaranteed,
+                cfg.policy.guarantee_ltv_boost if guaranteed else 0.0,
             )
             if limit <= 0:
                 continue
-            if offer.budget > limit:
+            if offer.budget > limit or guaranteed != offer.guaranteed:
                 offer = MakeOffer(
                     agent_id=offer.agent_id,
                     zone=offer.zone,
-                    budget=limit,
+                    budget=min(offer.budget, limit),
                     cash=offer.cash,
                     first_time=offer.first_time,
+                    guaranteed=guaranteed,
                 )
             screened.append(offer)
         bundle.offers = screened
@@ -472,10 +524,26 @@ class Engine:
             lst.ask *= 1.0 - cfg.market.ask_decay
             if lst.ticks_listed > cfg.market.max_listing_ticks or lst.ask < lst.reserve:
                 del state.sale_listings[unit_id]
+        # rental asks decay too, but they have a FLOOR (the landlord's required yield, or the
+        # cap where one binds) and they EXPIRE. Without both, unmatched listings ground their
+        # ask down indefinitely and dragged the asking-basis rent index with them.
         for unit_id in list(state.rent_listings):
             lst = state.rent_listings[unit_id]
+            unit = state.stock.units[unit_id]
+            if unit.is_public:
+                continue  # administrative rent, allocated by queue — no decay, no expiry
             lst.ticks_listed += 1
-            lst.ask *= 1.0 - cfg.market.ask_decay
+            if lst.ticks_listed > cfg.market.max_listing_ticks:
+                # the landlord gives up on this ask; they re-decide (and re-price at the
+                # current market level) next tick
+                del state.rent_listings[unit_id]
+                continue
+            zs = state.zones[unit.zone]
+            floor = required_rent(state, unit.zone, zs.price_index * unit.quality)
+            cap = cap_level(state, unit.zone, unit.quality)
+            if cap is not None:
+                floor = min(floor, cap)
+            lst.ask = max(floor, lst.ask * (1.0 - cfg.market.ask_decay))
 
         for w in bundle.withdrawals:
             unit = state.stock.units[w.unit_id]
@@ -483,8 +551,13 @@ class Engine:
             if w.destination == "sale":
                 zs = state.zones[unit.zone]
                 ask = zs.price_index * unit.quality
+                discount = float(
+                    self.market_rng.uniform(
+                        cfg.market.max_seller_discount_lo, cfg.market.max_seller_discount_hi
+                    )
+                )
                 state.sale_listings[unit.id] = SaleListing(
-                    unit_id=unit.id, ask=ask, reserve=ask * (1 - cfg.market.max_seller_discount)
+                    unit_id=unit.id, ask=ask, reserve=ask * (1.0 - discount)
                 )
             elif w.destination == "seasonal":
                 unit.tenure = Tenure.SEASONAL
@@ -536,15 +609,19 @@ class Engine:
             # transacted median is composition-fragile (rich tenants exiting to
             # ownership drags it down even in a shortage). Transacted rents are
             # recorded separately in metrics (SERPAVI-like basis).
+            # public rents are administrative, not market signals — they must not enter the
+            # index agents condition on, or the parque social would look like a price cut
             zone_asks = [
                 lst.ask / state.stock.units[lst.unit_id].quality
                 for lst in state.rent_listings.values()
                 if state.stock.units[lst.unit_id].zone is zone
+                and not state.stock.units[lst.unit_id].is_public
             ]
             zone_rents = [
                 r.rent / state.stock.units[r.unit_id].quality
                 for r in rentals
                 if state.stock.units[r.unit_id].zone is zone
+                and not state.stock.units[r.unit_id].is_public
             ]
             old_r = zs.rent_index
             signal = zone_asks + zone_rents
@@ -573,12 +650,16 @@ class Engine:
         pol = cfg.policy
         lag = max(1, cfg.developer.construction_lag + pol.permit_lag_delta)
 
-        public_starts = sum(c.n_units for c in bundle.construction if c.is_public)
+        public_starts: dict[ZoneType, int] = dict.fromkeys(ZoneType, 0)
+        for c in bundle.construction:
+            if c.is_public:
+                public_starts[c.zone] += c.n_units
         for c in bundle.construction:
             n = c.n_units
-            if not c.is_public and public_starts > 0:
-                # crowding out: public programmes absorb private capacity
-                n = max(0, n - int(pol.crowding_out_share * public_starts / 3))
+            if not c.is_public:
+                # crowding out: public programmes absorb private capacity in the SAME zone
+                # (builders, trades and land compete locally, not nationally)
+                n = max(0, n - int(pol.crowding_out_share * public_starts[c.zone]))
             if n > 0:
                 state.pipeline.append(
                     (
@@ -591,6 +672,7 @@ class Engine:
 
         arrivals = [p for p in state.pipeline if p[0] <= state.tick]
         state.pipeline = [p for p in state.pipeline if p[0] > state.tick]
+        state.tick_events["completions"] = sum(n for _, _, n, _ in arrivals)
         for _, zone, n_units, is_public in arrivals:
             zs = state.zones[zone]
             for _ in range(n_units):
@@ -603,10 +685,11 @@ class Engine:
                     id=state.stock.new_id(),
                     zone=zone,
                     quality=quality,
-                    owner_id=PUBLIC_ID if is_public else -6,  # -6 = developer inventory
+                    owner_id=PUBLIC_ID if is_public else DEVELOPER_ID,
                     occupant_id=None,
                     tenure=Tenure.VACANT,
                     last_sale_price=zs.price_index * quality,
+                    vacant_since=state.tick,  # completion date = start of inventory ageing
                     is_public=is_public,
                 )
                 state.stock.add(unit)
@@ -616,6 +699,8 @@ class Engine:
                         ask=zs.rent_index * quality * pol.public_rent_discount,
                     )
                 else:
+                    # first listing only; the developer re-prices unsold inventory itself
+                    # (developer.py) rather than letting it fall out of the market
                     ask = zs.price_index * quality
                     state.sale_listings[unit.id] = SaleListing(
                         unit_id=unit.id, ask=ask, reserve=ask * 0.9, presale=True

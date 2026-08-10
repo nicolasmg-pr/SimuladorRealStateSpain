@@ -4,6 +4,11 @@ For a stochastic model these are the tests that matter — not "does it return 4
 but "is it reproducible" and "does it behave the way the theory says".
 """
 
+import os
+import subprocess
+import sys
+
+import numpy as np
 import pandas as pd
 
 from resim import metrics
@@ -28,6 +33,35 @@ def test_same_seed_same_run():
     a = run_frame(seed=123)
     b = run_frame(seed=123)
     pd.testing.assert_frame_equal(a, b)
+
+
+def test_reproducible_across_processes():
+    """Reproducibility must not depend on PYTHONHASHSEED.
+
+    Python salts str/tuple hashing per process, so `hash()` can never carry a model draw.
+    This runs a policy that exercises means-tested eligibility in a fresh interpreter with
+    two different hash seeds and requires an identical fingerprint.
+    """
+    script = (
+        "from resim import metrics;"
+        "from resim.config import SimConfig;"
+        "from resim.engine import Engine;"
+        "from resim.scenario import DemandSubsidy, Scenario;"
+        "sc = Scenario('ds', SimConfig.baseline(seed=42, ticks=12),"
+        " (DemandSubsidy(start_tick=1, rent_subsidy_month=280.0,"
+        "  rent_subsidy_eligible_share=0.15),));"
+        "f = metrics.to_frame(Engine(sc).run());"
+        "print(f'{f[\"rent_tensioned\"].iloc[-1]:.9f}')"
+    )
+    out = []
+    for hash_seed in ("1", "2"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        out.append(
+            subprocess.run(
+                [sys.executable, "-c", script], capture_output=True, text=True, check=True, env=env
+            ).stdout.strip()
+        )
+    assert out[0] == out[1], f"run depends on PYTHONHASHSEED: {out}"
 
 
 def test_different_seed_different_run():
@@ -102,15 +136,28 @@ def test_supply_shock_lowers_prices():
 
 
 def test_rate_shock_cuts_transactions_before_prices():
-    """2022–23 signature: a rate shock compresses volumes, prices stay sticky."""
-    f_base = run_frame(ticks=24, seed=3)
-    f_shock = run_frame("rate-shock", ticks=24, seed=3, start_tick=8, euribor=0.05)
+    """2022–23 signature: a rate shock compresses volumes, prices stay sticky.
+
+    Two deliberate choices:
+      - the window starts 4 ticks after the shock, because mortgage-rate pass-through is
+        slow (~32% of a euríbor move after 16 months, BdE DO 2312). Measuring from the
+        shock tick would test the pass-through parameter, not the demand response.
+      - averaged over 3 seeds. The single-seed spread on this ratio is ±5pp, wider than
+        the effect being asserted, so a one-seed version of this test measures noise.
+    """
     tail = slice(12, 24)
-    vol_drop = f_shock["transactions"].iloc[tail].mean() / max(
-        f_base["transactions"].iloc[tail].mean(), 1e-9
-    )
-    price_ratio = (
-        f_shock["price_national"].iloc[tail].mean() / f_base["price_national"].iloc[tail].mean()
-    )
+    vol, price = [], []
+    for seed in (3, 9, 11):
+        f_base = run_frame(ticks=24, seed=seed)
+        f_shock = run_frame("rate-shock", ticks=24, seed=seed, start_tick=8, euribor=0.05)
+        vol.append(
+            f_shock["transactions"].iloc[tail].mean()
+            / max(f_base["transactions"].iloc[tail].mean(), 1e-9)
+        )
+        price.append(
+            f_shock["price_national"].iloc[tail].mean() / f_base["price_national"].iloc[tail].mean()
+        )
+    vol_drop = float(np.mean(vol))
+    price_ratio = float(np.mean(price))
     assert vol_drop < 0.95  # volumes fall
     assert price_ratio > vol_drop  # prices fall less than volumes (stickiness)

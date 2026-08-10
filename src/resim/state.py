@@ -35,6 +35,11 @@ class HouseholdState:
     mortgage_payment: float = 0.0  # €/quarter
     mortgage_ticks_left: int = 0
     is_foreign_cash: bool = False  # non-resident overlay buyer
+    # U(0,1) drawn once from the engine's seeded Generator when the household is created.
+    # Means-tested eligibility (rent subsidy) compares it against the eligible share, so
+    # decide() stays pure AND reproducible — Python's hash() is salted per process and
+    # must never be used for a model draw.
+    eligibility_draw: float = 1.0
 
 
 @dataclass
@@ -75,6 +80,9 @@ class Macro:
     bond_yield: float  # /yr, landlord opportunity cost anchor
     itp: dict[ZoneType, float] = field(default_factory=dict)  # effective buyer tax
     guarantee_budget_left: float = 0.0  # demand-subsidy line, model-scale €
+    # the envelope is a one-off programme stock, funded on the tick the lever switches on.
+    # Without this flag an exhausted budget (== 0.0) would look unfunded and refill forever.
+    guarantee_budget_funded: bool = False
 
 
 @dataclass

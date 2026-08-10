@@ -43,7 +43,7 @@ def test_household_cannot_bid_above_credit_limit():
             cfg.credit,
             state.macro.itp[offer.zone],
             cfg.market.buyer_fees,
-            guaranteed=True,  # most permissive case still must bound the bid
+            ltv_boost=0.20,  # most permissive case still must bound the bid
         )
         assert offer.budget <= limit * 1.15 + 1.0  # momentum shading ≤ +10%, tolerance
 
@@ -121,6 +121,39 @@ def test_tenant_status_consistency():
         elif hh.status is HouseholdStatus.OWNER:
             unit = state.stock.units[hh.unit_id]
             assert unit.owner_id == hh.id
+
+
+def test_state_guarantee_reaches_the_lending_cap():
+    """The aval must actually lift the equity constraint, and only for eligible buyers.
+
+    Regression guard: the boost used to live on CreditConfig, which no intervention ever
+    set, so the whole demand-subsidy guarantee arm was inert while still draining budget.
+    """
+    from resim.scenario import DemandSubsidy, Scenario
+
+    cfg = SimConfig.baseline(seed=42, ticks=12)
+    active = Scenario(
+        name="ds",
+        baseline=cfg,
+        interventions=(DemandSubsidy(start_tick=1, guarantee_ltv_boost=0.20),),
+    ).config_at(6)
+    hh = HouseholdState(0, ZoneType.TENSIONED, 40_000, 20_000, HouseholdStatus.SEEKER)
+    unassisted = max_price(hh, 0.033, active.credit, 0.10, 0.02)
+    assisted = max_price(hh, 0.033, active.credit, 0.10, 0.02, active.policy.guarantee_ltv_boost)
+    assert assisted > unassisted * 1.2, "guarantee must relax the down-payment constraint"
+
+    # and the envelope is a one-off stock, not a per-tick allowance
+    state = Engine(
+        Scenario(
+            name="ds",
+            baseline=cfg,
+            interventions=(
+                DemandSubsidy(start_tick=1, guarantee_ltv_boost=0.20, guarantee_eligible_share=1.0),
+            ),
+        )
+    ).run()
+    assert state.macro.guarantee_budget_funded
+    assert state.macro.guarantee_budget_left < active.policy.guarantee_budget
 
 
 def test_max_price_monotone_in_wealth_and_income():

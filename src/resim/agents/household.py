@@ -21,6 +21,21 @@ from ..state import HouseholdStatus, WorldState
 from .bank import cash_price, max_price
 from .base import Intent, ListForSale, MakeOffer, RentApplication
 
+# --- participation rule coefficients (free parameters, calibrated — model-spec §9.6b) ---
+# d(participation)/d(expected growth above the long-run anchor): the FOMO/boom channel,
+# fitted on the 2024–25 easing surge (sales +10.7% to a 17-year high) [household-owner §4]
+PARTICIPATION_GROWTH_SENSITIVITY = 15.0
+# d(participation)/d(mortgage rate above the comfort threshold): the freeze channel.
+# Fitted so a +2.4pp rate move (1.5→3.9% new-mortgage rates, 2022–23) cuts transactions
+# ≈11%, the MIVAU 2023 figure [household-owner §4]. Identified purely by the shock episode:
+# at baseline rates the term is zero, so it does not touch moments 1–5. Depends on
+# CreditConfig.pass_through — refit both together, never one alone.
+PARTICIPATION_RATE_SENSITIVITY = 20.0
+RATE_COMFORT_THRESHOLD = 0.035  # /yr offered rate above which buyers start to withdraw
+# WTP momentum: expected-growth shading of the bank-permitted budget, capped either way
+MOMENTUM_GAIN = 5.0
+MOMENTUM_CAP = 0.10
+
 
 class Households:
     def __init__(self, agent_id: int, rng: np.random.Generator) -> None:
@@ -39,35 +54,42 @@ class Households:
         move_draw = self.rng.random(n)
         buy_draw = self.rng.random(n)
         shade_draw = self.rng.uniform(0.85, 1.0, n)
-        guarantee_draw = self.rng.random(n)
+        discount_draw = self.rng.uniform(
+            cfg.market.max_seller_discount_lo, cfg.market.max_seller_discount_hi, n
+        )
 
         for i, hh in enumerate(hhs):
             zone_cfg = cfg.zone(hh.zone)
             zs = state.zones[hh.zone]
             itp = macro.itp[hh.zone]
-            momentum = float(np.clip(5.0 * zs.expected_price_growth, -0.10, 0.10))
+            momentum = float(
+                np.clip(MOMENTUM_GAIN * zs.expected_price_growth, -MOMENTUM_CAP, MOMENTUM_CAP)
+            )
 
             if hh.status is HouseholdStatus.OWNER:
                 # rare movers: list the home; they re-enter demand after it sells
                 if move_draw[i] < pop.owner_move_prob:
                     unit = state.stock.units[hh.unit_id]
                     ask = zs.price_index * unit.quality * (1.0 + zs.expected_price_growth)
-                    reserve = ask * (1.0 - cfg.market.max_seller_discount)
+                    reserve = ask * (1.0 - discount_draw[i])
                     intents.append(
                         ListForSale(agent_id=hh.id, unit_id=unit.id, ask=ask, reserve=reserve)
                     )
                 continue
 
-            # TENANT or SEEKER — first the buy attempt, else the rental market
+            # TENANT or SEEKER — first the buy attempt, else the rental market.
+            # Non-owners are first-time buyers by construction; the aval means test is the
+            # household's own reproducible draw, not a per-tick coin flip.
             first_time = True
             guaranteed = (
                 cfg.policy.guarantee_ltv_boost > 0.0
                 and first_time
-                and guarantee_draw[i] < cfg.policy.guarantee_eligible_share
+                and hh.eligibility_draw < cfg.policy.guarantee_eligible_share
                 and macro.guarantee_budget_left > 0.0
             )
+            ltv_boost = cfg.policy.guarantee_ltv_boost if guaranteed else 0.0
             limit = max_price(
-                hh, macro.mortgage_rate, credit, itp, cfg.market.buyer_fees, guaranteed
+                hh, macro.mortgage_rate, credit, itp, cfg.market.buyer_fees, ltv_boost
             )
             median_price = zs.price_index
             # user-cost check: owning vs renting at the current rate — the channel a
@@ -83,8 +105,10 @@ class Households:
             participation = float(
                 np.clip(
                     1.0
-                    + 15.0 * (zs.expected_price_growth - cfg.market.long_run_growth)
-                    - 8.0 * max(0.0, macro.mortgage_rate - 0.035),
+                    + PARTICIPATION_GROWTH_SENSITIVITY
+                    * (zs.expected_price_growth - cfg.market.long_run_growth)
+                    - PARTICIPATION_RATE_SENSITIVITY
+                    * max(0.0, macro.mortgage_rate - RATE_COMFORT_THRESHOLD),
                     0.4,
                     1.6,
                 )
@@ -100,6 +124,7 @@ class Households:
                         budget=budget,
                         cash=cash_price(hh, itp, cfg.market.buyer_fees) >= budget,
                         first_time=first_time,
+                        guaranteed=guaranteed,
                     )
                 )
                 continue
@@ -124,6 +149,8 @@ class Households:
         pol = state.config.policy
         if pol.rent_subsidy_month <= 0.0:
             return 0.0
-        # eligibility drawn once per household id — deterministic hash keeps decide() pure
-        eligible = (hash((hh.id, "bono")) % 1000) / 1000.0 < pol.rent_subsidy_eligible_share
-        return pol.rent_subsidy_month if eligible else 0.0
+        # eligibility fixed per household by its seeded draw: decide() stays pure and the
+        # run stays reproducible (a salted hash() would not be — see HouseholdState)
+        return (
+            pol.rent_subsidy_month if hh.eligibility_draw < pol.rent_subsidy_eligible_share else 0.0
+        )

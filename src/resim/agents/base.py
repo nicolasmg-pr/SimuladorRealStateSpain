@@ -41,7 +41,11 @@ class MakeOffer(Intent):
     zone: ZoneType = ZoneType.SECONDARY
     budget: float = 0.0  # € max price (pre-screen willingness)
     cash: bool = False
-    first_time: bool = False  # eligible for demand-subsidy guarantee
+    first_time: bool = False  # buyer owns no home (first-time-buyer status)
+    # the buyer passed the guarantee means test AND the programme still has budget. Decided
+    # once, by the household, and carried through screening and settlement — never
+    # re-derived from `first_time`, which would hand the aval to every buyer.
+    guaranteed: bool = False
 
 
 @dataclass(frozen=True)

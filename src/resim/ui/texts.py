@@ -507,8 +507,10 @@ KPI_HELP: dict[str, str] = {
     "España real: ~75%.",
     "price_to_income": "Años de renta disponible del hogar mediano necesarios para "
     "pagar la vivienda mediana. Más alto = menos asequible. España real: ~7,5.",
-    "rent_overburden_share": "Porcentaje de inquilinos que dedican más del 40% de sus "
-    "ingresos al alquiler. Es el termómetro del esfuerzo de los que alquilan.",
+    "rent_overburden_share": "Porcentaje de inquilinos **a precio de mercado** que dedican "
+    "más del 40% de sus ingresos al alquiler. Es el termómetro del esfuerzo de los que "
+    "alquilan. Excluye la vivienda social, cuyo alquiler es administrado y no de mercado: "
+    "es la misma base que el indicador de Eurostat con el que se valida (27–33% en España).",
     "buyer_access": "Accesibilidad de la vivienda: porcentaje de hogares no "
     "propietarios (inquilinos y buscadores) a los que el banco les concedería una "
     "hipoteca suficiente para la vivienda mediana de su zona, con los criterios "

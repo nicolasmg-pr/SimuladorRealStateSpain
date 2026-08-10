@@ -51,6 +51,17 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
 
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)
+    # construction flow vs household formation (model-spec §9 target 4)
+    row["completions"] = state.tick_events.get("completions", 0)
+    row["formation"] = state.tick_events.get("formation", 0)
+    row["completion_ratio"] = row["completions"] / max(1, row["formation"])
+    # who owns the rental stock — cross-check against the 85–92% individual share
+    # [investor-small §1]. An input nowhere: this is emergent (model-spec §9).
+    rented = [u for u in all_units if u.tenure is Tenure.RENTED]
+    row["small_landlord_rental_share"] = sum(1 for u in rented if u.owner_id >= 0) / max(
+        1, len(rented)
+    )
+    row["public_rental_share"] = sum(1 for u in rented if u.is_public) / max(1, len(rented))
     row["vacancy_rate"] = sum(1 for u in all_units if u.tenure is Tenure.VACANT) / max(
         1, len(state.stock)
     )
@@ -59,14 +70,53 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["sale_listings"] = len(state.sale_listings)
     row["rent_listings"] = len(state.rent_listings)
 
-    # rent burden of sitting tenants (distributional, not just mean)
-    burdens = [
-        state.stock.units[h.unit_id].rent * 12.0 / max(h.income, 1.0)
+    # Rent burden of sitting tenants. The headline overburden indicator is MARKET tenants
+    # only: the 27–33% target is the Eurostat "tenant, rent at market price" series, and
+    # social tenants pay an administered fraction of market rent — folding them in
+    # understates the indicator by ~2pp at a realistic size of the parque social.
+    tenancies = [
+        (state.stock.units[h.unit_id], h.income)
         for h in hhs
         if h.status is HouseholdStatus.TENANT and h.unit_id is not None
     ]
-    row["rent_burden_mean"] = float(np.mean(burdens)) if burdens else 0.0
-    row["rent_overburden_share"] = float(np.mean([b > 0.40 for b in burdens])) if burdens else 0.0
+    burdens_all = [u.rent * 12.0 / max(inc, 1.0) for u, inc in tenancies]
+    burdens_market = [u.rent * 12.0 / max(inc, 1.0) for u, inc in tenancies if not u.is_public]
+    row["rent_burden_mean"] = float(np.mean(burdens_all)) if burdens_all else 0.0
+    row["rent_overburden_share"] = (
+        float(np.mean([b > 0.40 for b in burdens_market])) if burdens_market else 0.0
+    )
+    row["rent_overburden_share_all"] = (
+        float(np.mean([b > 0.40 for b in burdens_all])) if burdens_all else 0.0
+    )
+
+    # insider/outsider wedge (model-spec §9 target 5): sitting rents move only by the
+    # update cap, so all price discovery happens at rotation.
+    #
+    # Measured on QUALITY-ADJUSTED RENT LEVELS, not on rent/income burdens. Burdens are the
+    # wrong basis here: rental matching is assortative (the queue sorts applicants by
+    # willingness), so entrants are selected on income and their burden ratio comes out
+    # *lower* than sitting tenants' even while they pay strictly more for the same flat.
+    # The wedge the mechanism produces is a price wedge, so that is what is reported.
+    sitting = [
+        state.stock.units[h.unit_id].rent / max(state.stock.units[h.unit_id].quality, 1e-9)
+        for h in hhs
+        if h.status is HouseholdStatus.TENANT
+        and h.unit_id is not None
+        and not state.stock.units[h.unit_id].is_public
+        and state.tick - state.stock.units[h.unit_id].contract_start > 4
+    ]
+    entrant = [
+        r.rent / max(state.stock.units[r.unit_id].quality, 1e-9)
+        for r in rentals
+        if not state.stock.units[r.unit_id].is_public
+    ]
+    row["rent_sitting"] = float(np.median(sitting)) if sitting else 0.0
+    row["rent_entrant"] = float(np.median(entrant)) if entrant else 0.0
+    row["insider_outsider_wedge"] = (
+        row["rent_entrant"] / row["rent_sitting"] - 1.0
+        if sitting and entrant and row["rent_sitting"] > 0
+        else float("nan")
+    )
 
     credit = state.config.credit
     fees = state.config.market.buyer_fees
@@ -104,7 +154,8 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"purchase_effort_{z}"] = _annual_debt_service(
             credit.max_ltv * zs.price_index, rate, credit.term_years
         ) / (zi * DISPOSABLE_FACTOR)
-        itp = state.config.zone(zone).itp_rate
+        # the EFFECTIVE tax, so an ITP intervention actually shows up here
+        itp = state.macro.itp[zone]
         non_owners = [h for h in zone_hhs if h.status is not HouseholdStatus.OWNER]
         zone_ok = sum(
             1 for h in non_owners if max_price(h, rate, credit, itp, fees) >= zs.price_index

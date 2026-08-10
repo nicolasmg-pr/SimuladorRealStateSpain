@@ -51,8 +51,12 @@ Exactly this order, expressed once in `engine.py`:
 
 1. **Macro & policy update** — apply interventions active at this tick; update euríbor
    path, IRAV; government intents.
-2. **Demography** — household formation (new aspiring households), inter-zone migration,
-   foreign-buyer arrivals; exits (death/dissolution ≈ formation × 0.35, guess).
+2. **Demography** — household formation (new aspiring households), inter-zone migration;
+   exits (death/dissolution ≈ formation × 0.35, guess), on which the **whole estate** passes
+   to a surviving household — the home *and* any rental units, or dissolved small landlords
+   leave orphaned stock behind that still behaves as a landlord. Foreign-buyer arrivals are
+   generated in step 4 with the other purchase intents, not here: their arrival rate is
+   conditioned on recent transaction volume, which is a market observable.
 3. **Expectations update** — each zone's trailing price/rent growth → agents' expected
    growth (adaptive; §6).
 4. **Agent decisions** (read-only state → intents): households (list/bid/apply/move),
@@ -80,14 +84,24 @@ asks without a global auctioneer).
 
 - Sellers list at ask = expected value = last observed zone price × (1 + expected growth),
   with reserve = ask × (1 − max_discount), max_discount ~ U(0.05, 0.15) (guess).
-- Buyers bid min(willingness-to-pay, credit limit) on the best-affordability listing;
-  bid ≥ reserve wins; price = highest bid (first-price; ties by rng).
+- Buyers bid min(willingness-to-pay, credit limit) on **one listing drawn at random from
+  those they can afford** (not the best-affordability one): search is frictional and buyers
+  do not observe the whole zone. This is what lets several buyers land on one listing and
+  produce a bidding war; a best-affordability rule would spread bids evenly and suppress
+  them. Bid ≥ reserve wins; price = highest bid (first-price; ties by rng).
 - **Failed listing: ask decays** 2–5% per tick unsold (sticky-ask evidence: 2008–13 price
   grind over 6 years while volume collapsed [household-owner §4, bank §4]); seller
-  withdraws after 4–8 ticks below reserve.
+  withdraws after 4–8 ticks below reserve. Rental asks decay on the same rule but are
+  **floored** at the landlord's required-yield rent (or the cap where one binds) and expire
+  on the same clock: an unfloored, non-expiring rental ask grinds down without limit and
+  drags the asking-basis index with it.
 - Buyer WTP = budget share drawn around bank limit; foreign non-residents bid with
   premium (they transact at +76–79% €/m² nationally — modelled as higher budgets in
   TENSIONED coastal segment [household-owner §6]).
+- **Aggregate buyers.** The foreign overlay and the large investor are aggregates carrying
+  one agent id each, so a single buyer emits many independent offers per tick. The
+  one-purchase-per-buyer-per-tick rule applies only to households; applying it to the
+  aggregates throttles the whole non-resident stream to one purchase per zone per tick.
 
 **Rentals: queue matching with reference index.**
 
@@ -99,10 +113,23 @@ asks without a global auctioneer).
 - Tenants accept if rent ≤ max_burden × income (max_burden ~ U(0.30, 0.40)
   [household-tenant §6]); else queue/share/stay.
 - **Insider/outsider split**: sitting tenants' rent moves only by the update cap;
-  all price discovery happens at rotation (new contracts) [investor-small §3].
-- Rent index (SERPAVI-analogue) = median of active contracts; **reference index**
-  observable to agents = trailing median of new contracts × (1 − cap_reference_discount)
-  — needed to simulate index-based caps [plan.md Phase 4].
+  all price discovery happens at rotation (new contracts) [investor-small §3]. Reported as
+  `insider_outsider_wedge` — a **rent-level** ratio, not a rent/income one. Matching is
+  assortative (the queue sorts applicants by willingness), so entrants are selected on
+  income and their *burden* comes out lower than sitting tenants' even while they pay
+  strictly more for the same flat. The wedge the mechanism produces is a price wedge.
+- **Three rent series, three bases** — do not conflate them:
+  - `rent_*` — the index agents condition on. **Asking** basis (idealista-like): the median
+    of live asks plus this tick's new contracts. Asking rather than transacted because the
+    transacted median is composition-fragile (rich tenants leaving for ownership drag it
+    down even in a shortage, flipping the sign of the cap response).
+  - `rent_transacted_*` — median new-contract rent (SERPAVI-like). Runs slower, reproducing
+    the real asking/contract wedge [household-tenant §7.4].
+  - `reference_rent_*` — the official index agents are capped against: trailing new-contract
+    median × (1 − cap_reference_discount), frozen to IRAV updates while a cap is active so
+    the table cannot spiral downward on the market it is capping [plan.md Phase 4].
+  **Public rents are excluded from all three.** They are administered, not market signals;
+  including them makes the parque social read as a market price cut.
 
 ## 6. Expectations
 
@@ -117,6 +144,33 @@ E[g_{t+1}] = (1 − λ) · g_longrun + λ · mean(g_{t−3..t})
   (buying accelerates while affordability worsens) and 2022–23 (volume −11%, prices +4%).
 - g_longrun = nominal income growth (exogenous, default 2%/yr).
 - Same rule for rents (landlord side).
+
+## 6b. Supply: why land is the residual claimant
+
+Starts respond to **price over hard cost**, not to an accounting margin:
+
+```
+start if   E[price] ≥ hard_cost · (1 + margin_threshold)
+starts  =  base_starts · zone_share · (E[price] / reference_price) ^ supply_elasticity
+```
+
+`reference_price` = `median_value × price_multiplier × new_build_premium`, i.e. the level at
+which the observed baseline flow (`base_starts_per_tick`, MIVAU) is what developers actually
+build. Derived from config, not a free parameter. The exponent form makes
+d ln(starts)/d ln(price) equal `supply_elasticity` exactly, so the sourced 0.45–0.58 range
+[Caldera & Johansson; BdE] *is* the elasticity the model exhibits.
+
+The reason it cannot be margin-driven: developers compete for sites, so any surplus above
+hard cost plus the required margin capitalises into the **land price** — land is the residual
+claimant, which is why realised margins cluster at 15–20% [IMPLICA/KPMG] across very
+different price levels. Pricing land as a fixed *share* of the final price instead makes the
+implied margin rise without bound as prices rise: measured in this model it reached 38%
+(tensioned), 59% (secondary) and **103% (rural)**, which pinned starts against the capacity
+ceiling at ≈184k/yr real against Spain's ≈110–130k. Volume, not margin, carries the signal.
+
+Unsold completed inventory is **re-priced every tick** at a markdown that widens with holding
+time (2%/tick, capped at 25% — guess). Developers carry debt against stock and cut to clear;
+letting a completion fall out of the market instead creates permanently dead supply.
 
 ## 7. Parameters
 
@@ -188,9 +242,15 @@ result is reported:
    [household-owner §6].
 3. **Transaction volume**: 2.5–3.6% of households transacting/yr [household-owner §1].
 4. **Construction volume**: completions ≈ 40–70% of household formation (2021–25 gap)
-   [developer §1].
-5. **Rent burden**: market-tenant overburden (>40% income) 27–33%; new-entrant effort >
-   sitting-tenant effort (insider/outsider wedge) [household-tenant §6].
+   [developer §1]. Measured as `completion_ratio` — this must be *measured*, not asserted
+   "by construction": the margin hurdle and the pre-sales gate both move it.
+5. **Rent burden**: market-tenant overburden (>40% income) 27–33% on the Eurostat
+   *tenant, rent at market price* basis — social tenants pay an administered rent and are
+   excluded [household-tenant §6]; plus a positive insider/outsider wedge, measured on
+   quality-adjusted rent *levels* (§5 explains why not on burdens).
+5b. **Stock ownership cross-checks** (emergent, not inputs): individuals hold 85–92% of the
+   rental stock [investor-small §1]; public rental ≈8% of the rental stock (1.7% of total
+   stock); the household-share-weighted zone supply elasticity stays in 0.45–0.58.
 6. **Price-cycle amplitude**: demand boom + credit easing produces multi-year price
    growth 8–13%/yr; credit crunch produces volume collapse (−40…−85% lending) with
    price declines arriving slowly (−30…−45% over ≥5 years) [bank §4, household-owner §4].
@@ -212,10 +272,25 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   the model cannot capture housing→GDP→housing loops (2008 amplification understated).
 - **Zone types, not geography**: no within-zone heterogeneity, no specific cities; zone
   multipliers on costs/prices are guesses (flagged).
+- **No location premium — the zone price ladder does not hold.** Households bid only in
+  their own zone and nothing makes a location intrinsically worth more, so each zone's price
+  is pinned by the credit ceiling of the households in it and relative prices converge on
+  relative *incomes* (1.15/1.0/0.80) rather than on a location premium. Measured: the
+  tensioned/rural price ratio decays 3.18× → 1.89× over 60 ticks and rural price-to-income
+  overtakes the secondary city, inverting §9 target 2. Supply elasticity is not the cause —
+  a zone land-availability gradient moved the ratio by 0.04. **Do not report cross-zone
+  comparative results until a spatial-preference mechanism exists**; within-zone and national
+  aggregates are unaffected. Tracked as a strict xfail; see docs/validation.md
+  "Zone price ladder" for the candidate fixes.
 - **Foral territories** absent from AEAT-based sources [investor-small §7].
 - **Quality/size ladder simplified** to a scalar quality tier; composition drift under
   caps (smaller flats, §rent-cap) only partially representable.
 - **Informal market** (unregistered contracts, room rentals) only as evasion shares.
+- **Rent growth cannot outrun income growth.** Tenants accept rent up to a hard share of
+  income and there is no sharing/overcrowding margin, so boom-time rent inflation is capped
+  near the exogenous income anchor (measured ≈+0.7%/yr in the hold-out boom against a real
+  +8–11%). `SEEKER` nominally means "sharing meanwhile" but absorbs no rent. The model's
+  boom rent response is a floor, not an estimate.
 - **Pre-2008 regime** (appraisal inflation, 100%+ LTP, no pre-sales discipline) is NOT
   modelled; do not validate against 1997–2007 without a regime switch [developer §7.8].
 - **Enforcement intensity** of caps poorly measured [government §7.1] — compliance is a

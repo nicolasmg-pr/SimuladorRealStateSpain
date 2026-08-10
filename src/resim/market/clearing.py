@@ -84,10 +84,16 @@ def clear_sales(
             )
             bids[lst.unit_id].append((bid, offer))
 
+        # a household buys at most one home per tick. Negative agent ids are *aggregates*
+        # (the foreign overlay, the large investor): each of their offers is a distinct
+        # buyer, so they must not be deduplicated — doing so silently throttled the whole
+        # non-resident stream to one purchase per zone per tick.
         taken_buyers: set[int] = set()
         for unit_id, unit_bids in bids.items():
             lst = state.sale_listings[unit_id]
-            unit_bids = [(b, o) for b, o in unit_bids if o.agent_id not in taken_buyers]
+            unit_bids = [
+                (b, o) for b, o in unit_bids if not (o.agent_id >= 0 and o.agent_id in taken_buyers)
+            ]
             if not unit_bids:
                 continue
             best_bid, best_offer = max(unit_bids, key=lambda t: t[0])
@@ -101,10 +107,11 @@ def clear_sales(
                     seller_id=unit.owner_id,
                     price=best_bid,
                     cash=best_offer.cash,
-                    guaranteed=best_offer.first_time and cfg.policy.guarantee_ltv_boost > 0.0,
+                    guaranteed=best_offer.guaranteed,
                 )
             )
-            taken_buyers.add(best_offer.agent_id)
+            if best_offer.agent_id >= 0:
+                taken_buyers.add(best_offer.agent_id)
     return trades
 
 
@@ -205,7 +212,7 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
                     cfg.credit,
                     itp,
                     fees,
-                    tr.guaranteed,
+                    cfg.policy.guarantee_ltv_boost if tr.guaranteed else 0.0,
                 )
                 equity = tr.price - principal
                 buyer.wealth = max(0.0, buyer.wealth - equity - tr.price * (itp + fees))
