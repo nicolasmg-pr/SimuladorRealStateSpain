@@ -156,7 +156,7 @@ def render(context: str) -> None:
         st.session_state.chat_messages = []
 
     with st.popover("💬", type="primary"):
-        st.caption("Pregunta sobre lo que ves en pantalla. Modelo: Nemotron 3 Nano (gratuito).")
+        st.caption("Pregunta sobre lo que ves en pantalla.")
         api_key = _api_key()
         if api_key is None:
             st.warning("Falta `OPENROUTER_API_KEY` en `.env` — el chat está desactivado.")
