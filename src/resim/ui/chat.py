@@ -31,8 +31,16 @@ div[data-testid="stPopover"] {
     z-index: 1000;
 }
 div[data-testid="stPopover"] > div > button {
-    border-radius: 2rem;
+    width: 3rem;
+    height: 3rem;
+    min-height: 3rem;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.3rem;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+div[data-testid="stPopover"] > div > button p {
+    font-size: 1.3rem;
 }
 div[data-testid="stPopoverBody"] {
     width: min(420px, 90vw);
@@ -144,7 +152,7 @@ def render(context: str) -> None:
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
 
-    with st.popover("💬 Asistente", type="primary"):
+    with st.popover("💬", type="primary"):
         st.caption("Pregunta sobre lo que ves en pantalla. Modelo: Nemotron 3 Nano (gratuito).")
         api_key = _api_key()
         if api_key is None:
