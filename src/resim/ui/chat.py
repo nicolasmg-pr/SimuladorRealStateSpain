@@ -28,19 +28,22 @@ div[data-testid="stPopover"] {
     position: fixed;
     bottom: 1.25rem;
     right: 1.25rem;
+    width: fit-content !important;  /* Streamlit sets 100%, which pushes the button off-screen left */
     z-index: 1000;
 }
-div[data-testid="stPopover"] > div > button {
+div[data-testid="stPopover"] button[data-testid="stPopoverButton"] {
     width: 3rem;
     height: 3rem;
     min-height: 3rem;
     padding: 0;
     border-radius: 50%;
-    font-size: 1.3rem;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
-div[data-testid="stPopover"] > div > button p {
+div[data-testid="stPopover"] button[data-testid="stPopoverButton"] p {
     font-size: 1.3rem;
+}
+div[data-testid="stPopover"] button[data-testid="stPopoverButton"] [data-testid="stIconMaterial"] {
+    display: none;  /* drop the expand_more chevron so only the bubble emoji shows */
 }
 div[data-testid="stPopoverBody"] {
     width: min(420px, 90vw);
