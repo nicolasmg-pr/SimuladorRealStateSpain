@@ -473,7 +473,8 @@ alquileres **emergen** de sus transacciones — nunca se imponen desde fuera.
 1. **Escala:** 1 hogar del modelo ≈ 2.000 hogares reales (10.000 agentes ≈ 19,9M
    de hogares españoles). 1 tick = 1 trimestre.
 2. **Tres zonas:** metro tensionado (Madrid/Barcelona y costa caliente), ciudad
-   secundaria y rural, con migración entre ellas. La mayoría de políticas solo
+   secundaria (Valladolid, Zaragoza, Murcia) y rural (la España vaciada: Soria,
+   Teruel, Cuenca), con migración entre ellas. La mayoría de políticas solo
    muerde en la tensionada.
 3. **Causalidad limpia:** cada escenario se compara con una base ejecutada con la
    **misma semilla** — el mismo mundo, la misma suerte, la única diferencia es la
