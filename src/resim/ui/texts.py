@@ -34,6 +34,20 @@ CHART_HELP: dict[str, str] = {
         "**En qué fijarse:** el efecto inmediato tras la línea de inicio, y si el "
         "alquiler 'rebota' con el tiempo (los caseros se adaptan)."
     ),
+    "accesibilidad": (
+        "**Qué muestra:** de cada 100 hogares que *no* tienen vivienda en propiedad "
+        "(inquilinos y buscadores), cuántos podrían comprar la vivienda mediana de su "
+        "zona si lo intentaran hoy: el banco les pasa el filtro real de concesión "
+        "(ahorros para la entrada e impuestos, y cuota ≤35% de la renta neta), sin "
+        "contar avales públicos.\n\n"
+        "**Cómo leerlo:** más alto = comprar está al alcance de más gente. No es "
+        "cuántos compran (eso son las compraventas), sino cuántos *podrían*. Se mueve "
+        "cuando cambian los precios, los tipos de interés o los ingresos y ahorros de "
+        "quienes no tienen casa.\n\n"
+        "**En qué fijarse:** una política puede bajar el precio y aun así no mover "
+        "esta línea (si la barrera es la entrada, no la cuota), o al revés. Compárala "
+        "con el esfuerzo teórico del panel de indicadores."
+    ),
     "diff_precio": (
         "**Qué muestra:** la diferencia de precios entre el escenario con política y "
         "la simulación base (misma semilla, sin política). Es la respuesta directa a "
@@ -494,6 +508,15 @@ KPI_HELP: dict[str, str] = {
     "pagar la vivienda mediana. Más alto = menos asequible. España real: ~7,5.",
     "rent_overburden_share": "Porcentaje de inquilinos que dedican más del 40% de sus "
     "ingresos al alquiler. Es el termómetro del esfuerzo de los que alquilan.",
+    "buyer_access": "Accesibilidad de la vivienda: porcentaje de hogares no "
+    "propietarios (inquilinos y buscadores) a los que el banco les concedería una "
+    "hipoteca suficiente para la vivienda mediana de su zona, con los criterios "
+    "reales de concesión (entrada, impuestos, esfuerzo ≤35% de la renta neta) y sin "
+    "avales públicos. Más alto = comprar está al alcance de más gente.",
+    "purchase_effort": "Esfuerzo teórico de compra: porcentaje de la renta disponible "
+    "del hogar mediano que se iría en las cuotas del primer año de una hipoteca "
+    "estándar (80% del precio, 25 años, tipo actual) sobre la vivienda mediana. "
+    "España real: ~35–40% en 2024–25 (Banco de España).",
     "vacancy_rate": "Porcentaje del parque de viviendas sin ocupar (incluye retenidas "
     "y segundas residencias vacías).",
 }

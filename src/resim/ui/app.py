@@ -36,6 +36,8 @@ COMPARE_INDICATORS: dict[str, tuple[str, str, str]] = {
     "Nuevos contratos de alquiler": ("new_leases", "Δ contratos", ",.0f"),
     "Hogares buscando vivienda": ("seeker_share", "Δ proporción", ".2%"),
     "Inquilinos con sobrecarga (>40%)": ("rent_overburden_share", "Δ proporción", ".2%"),
+    "Accesibilidad de la vivienda (% que puede comprar)": ("buyer_access", "Δ proporción", ".2%"),
+    "Esfuerzo teórico de compra (% renta disponible)": ("purchase_effort", "Δ proporción", ".2%"),
     "Vivienda vacía": ("vacancy_rate", "Δ proporción", ".2%"),
 }
 
@@ -111,7 +113,7 @@ def kpi_row(frame, baseline_frame) -> None:
             return None
         return f"{(last[col] - base_last[col]) * 100:+.1f} pp vs base"
 
-    cols = st.columns(4)
+    cols = st.columns(5)
     cols[0].metric(
         "Tasa de propiedad",
         f"{last['ownership_rate']:.1%}",
@@ -137,6 +139,12 @@ def kpi_row(frame, baseline_frame) -> None:
         help=texts.KPI_HELP["rent_overburden_share"],
     )
     cols[3].metric(
+        "Accesibilidad de compra",
+        f"{last['buyer_access']:.1%}",
+        delta=pp_delta("buyer_access"),
+        help=texts.KPI_HELP["buyer_access"],
+    )
+    cols[4].metric(
         "Vivienda vacía",
         f"{last['vacancy_rate']:.1%}",
         delta=pp_delta("vacancy_rate"),
@@ -189,6 +197,16 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         y_title="€/mes",
         colors=charts.ZONE_COLORS,
         policy_start=policy_start,
+    )
+    st.subheader("Accesibilidad de la vivienda (% de no propietarios que puede comprar)")
+    chart_block(
+        "accesibilidad",
+        frame,
+        charts.zone_columns("buyer_access"),
+        y_title="Proporción de no propietarios",
+        colors=charts.ZONE_COLORS,
+        policy_start=policy_start,
+        y_format=".1%",
     )
 
     if scenario_frame is not None:

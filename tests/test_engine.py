@@ -56,6 +56,23 @@ def test_conservation():
             assert u.occupant_id is not None
 
 
+def test_affordability_indicators_sane():
+    """Affordability (model-spec §11): bounded, present per zone, and directionally sound —
+    a rate shock must raise the theoretical effort."""
+    frame = run_frame(seed=9)
+    for zone in ("tensioned", "secondary", "rural", ""):
+        suffix = f"_{zone}" if zone else ""
+        assert (frame[f"buyer_access{suffix}"].between(0, 1)).all()
+        assert (frame[f"purchase_effort{suffix}"] > 0).all()
+    # tensioned zone is the least affordable one
+    tail = frame.tail(8)
+    assert tail["purchase_effort_tensioned"].mean() > tail["purchase_effort_rural"].mean()
+
+    f_shock = run_frame("rate-shock", seed=9, start_tick=4, euribor=0.06)
+    tail = slice(8, TICKS)
+    assert f_shock["purchase_effort"].iloc[tail].mean() > frame["purchase_effort"].iloc[tail].mean()
+
+
 def test_baseline_reaches_steady_state():
     """With no intervention, prices settle rather than diverge."""
     frame = run_frame(ticks=40)

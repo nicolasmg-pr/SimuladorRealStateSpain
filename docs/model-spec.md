@@ -222,3 +222,26 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   swept parameter, not a prediction.
 - Political-economy dynamics (which government enacts what, court reversals) are
   scenario inputs, not endogenous [government §3.5].
+
+## 11. Derived indicators: housing affordability (accesibilidad de la vivienda)
+
+Two indicators, defined once in `metrics.py` (per zone and national), reported every tick:
+
+1. **Theoretical purchase effort** (`purchase_effort`) — BdE *Síntesis de Indicadores 1.5*
+   basis: first-year debt service of a standard loan on the median dwelling
+   (principal = `max_ltv` × zone price index, term = `term_years`, rate = current offered
+   mortgage rate, quarterly annuity) divided by median gross **disposable** household
+   income of the zone (gross × `DISPOSABLE_FACTOR`). Lower = more affordable.
+   Real-Spain reference ≈ 0.35–0.40 in 2024–25 [BdE Síntesis 1.5; BdE Informe Anual 2025
+   — both registered in docs/sources.md]. Not (yet) a §9 validation target; reference
+   value shown in the UI for sanity.
+2. **Purchase access share** (`buyer_access`) — share of the zone's non-owner households
+   (tenants + seekers) whose bank limit `max_price()` (LTV + DSTI + upfront ITP/fees
+   screen, §5, no state guarantee) reaches the zone price index. Emergent from the same
+   credit rules the market uses — no new behavioural parameter. Higher = more accessible.
+   National value = share over all non-owner households, each against its own zone.
+
+Rationale: effort is the comparable-to-reality series (validatable against BdE);
+access is the distributional one (moves when credit, prices or incomes shift who can
+buy at all). Neither uses the guarantee boost — the indicator measures unassisted access;
+guarantee policies show up as the gap they close in `buyer_access`.

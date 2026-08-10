@@ -11,6 +11,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from .agents.bank import max_price
 from .config import ZoneType
 from .market.stock import Tenure
 from .state import HouseholdStatus, WorldState
@@ -19,6 +20,15 @@ SCALE = 2_000  # one model household ≈ 2,000 real households (model-spec §2)
 # BdE's price-to-income uses gross DISPOSABLE income per household; model incomes are
 # gross. Conversion factor ≈ 0.72 [BdE Síntesis basis — medium]
 DISPOSABLE_FACTOR = 0.72
+
+
+def _annual_debt_service(principal: float, rate_yr: float, term_years: int) -> float:
+    """First-year payments of a quarterly annuity loan (model-spec §11)."""
+    r = rate_yr / 4.0
+    n = term_years * 4
+    if r <= 0:
+        return 4.0 * principal / n
+    return 4.0 * principal * r / (1.0 - (1.0 + r) ** -n)
 
 
 def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
@@ -58,6 +68,10 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["rent_burden_mean"] = float(np.mean(burdens)) if burdens else 0.0
     row["rent_overburden_share"] = float(np.mean([b > 0.40 for b in burdens])) if burdens else 0.0
 
+    credit = state.config.credit
+    fees = state.config.market.buyer_fees
+    rate = state.macro.mortgage_rate
+    access_ok = access_total = 0
     zone_weights: dict[ZoneType, float] = {}
     for zone in ZoneType:
         zs = state.zones[zone]
@@ -86,10 +100,27 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         zi = float(np.median([h.income for h in zone_hhs])) if zone_hhs else median_income
         row[f"price_to_income_{z}"] = zs.price_index / (zi * DISPOSABLE_FACTOR)
 
+        # affordability (model-spec §11): theoretical effort + unassisted access share
+        row[f"purchase_effort_{z}"] = _annual_debt_service(
+            credit.max_ltv * zs.price_index, rate, credit.term_years
+        ) / (zi * DISPOSABLE_FACTOR)
+        itp = state.config.zone(zone).itp_rate
+        non_owners = [h for h in zone_hhs if h.status is not HouseholdStatus.OWNER]
+        zone_ok = sum(
+            1 for h in non_owners if max_price(h, rate, credit, itp, fees) >= zs.price_index
+        )
+        row[f"buyer_access_{z}"] = zone_ok / max(1, len(non_owners))
+        access_ok += zone_ok
+        access_total += len(non_owners)
+
     row["price_national"] = float(
         sum(state.zones[z].price_index * zone_weights[z] for z in ZoneType)
     )
     row["price_to_income"] = row["price_national"] / (median_income * DISPOSABLE_FACTOR)
+    row["purchase_effort"] = _annual_debt_service(
+        credit.max_ltv * row["price_national"], rate, credit.term_years
+    ) / (median_income * DISPOSABLE_FACTOR)
+    row["buyer_access"] = access_ok / max(1, access_total)
     return row
 
 
