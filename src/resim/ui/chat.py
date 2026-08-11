@@ -10,8 +10,10 @@ it never derives new indicators.
 
 from __future__ import annotations
 
+import json
 import os
 import re
+from collections.abc import Iterator
 from pathlib import Path
 
 import requests
@@ -87,8 +89,41 @@ def _strip_reasoning(text: str) -> str:
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
-def _ask(api_key: str, context: str, history: list[dict[str, str]]) -> str:
-    response = requests.post(
+_OPEN, _CLOSE = "<think>", "</think>"
+
+
+def _hide_thinking(chunks: Iterator[str]) -> Iterator[str]:
+    """Pass chunks through, dropping anything between <think> and </think>.
+
+    Streaming splits tags across chunks, so we hold back a tail as long as the
+    tag we are looking for (minus one character) before emitting.
+    """
+    buffer = ""
+    thinking = False
+    for chunk in chunks:
+        buffer += chunk
+        while True:
+            marker = _CLOSE if thinking else _OPEN
+            index = buffer.find(marker)
+            if index == -1:
+                break
+            if not thinking and index:
+                yield buffer[:index]
+            buffer = buffer[index + len(marker) :]
+            thinking = not thinking
+        keep = len(_CLOSE if thinking else _OPEN) - 1
+        if thinking:
+            buffer = buffer[-keep:]
+        elif len(buffer) > keep:
+            yield buffer[:-keep]
+            buffer = buffer[-keep:]
+    if not thinking and buffer:
+        yield buffer
+
+
+def _stream(api_key: str, context: str, history: list[dict[str, str]]) -> Iterator[str]:
+    """Yield answer fragments as OpenRouter emits them (server-sent events)."""
+    with requests.post(
         OPENROUTER_URL,
         headers={"Authorization": f"Bearer {api_key}"},
         json={
@@ -97,13 +132,33 @@ def _ask(api_key: str, context: str, history: list[dict[str, str]]) -> str:
                 {"role": "system", "content": _SYSTEM_PROMPT.format(context=context)},
                 *history[-HISTORY_SENT:],
             ],
+            "stream": True,
         },
         timeout=TIMEOUT_S,
-    )
-    response.raise_for_status()
-    message = response.json()["choices"][0]["message"]
-    answer = _strip_reasoning(message.get("content") or "")
-    return answer or _strip_reasoning(message.get("reasoning") or "") or "(respuesta vacía)"
+        stream=True,
+    ) as response:
+        response.raise_for_status()
+        reasoning: list[str] = []
+        saw_content = False
+        for line in response.iter_lines(decode_unicode=True):
+            if not line or not line.startswith("data:"):
+                continue  # blank keep-alives and SSE comments
+            payload = line[len("data:") :].strip()
+            if payload == "[DONE]":
+                break
+            try:
+                delta = json.loads(payload)["choices"][0]["delta"]
+            except (json.JSONDecodeError, KeyError, IndexError):
+                continue
+            piece = delta.get("content")
+            if piece:
+                saw_content = True
+                yield piece
+            elif delta.get("reasoning"):
+                reasoning.append(delta["reasoning"])
+        if not saw_content and reasoning:
+            # Some models put everything in `reasoning`; better that than a blank reply.
+            yield _strip_reasoning("".join(reasoning))
 
 
 def screen_context(
@@ -174,10 +229,21 @@ def render(context: str) -> None:
             with history_box.chat_message("user"):
                 st.markdown(prompt)
             with history_box.chat_message("assistant"):
-                try:
-                    with st.spinner("Pensando…"):
-                        answer = _ask(api_key, context, st.session_state.chat_messages)
-                except requests.RequestException as exc:
-                    answer = f"⚠️ Error al llamar a OpenRouter: {exc}"
-                st.markdown(answer)
+                answer = _render_streamed(api_key, context, st.session_state.chat_messages)
             st.session_state.chat_messages.append({"role": "assistant", "content": answer})
+
+
+def _render_streamed(api_key: str, context: str, history: list[dict[str, str]]) -> str:
+    """Paint the answer token by token; return the final text for the history."""
+    slot = st.empty()
+    slot.markdown("_Pensando…_")
+    answer = ""
+    try:
+        for piece in _hide_thinking(_stream(api_key, context, history)):
+            answer += piece
+            slot.markdown(answer + "▌")
+    except requests.RequestException as exc:
+        answer = f"⚠️ Error al llamar a OpenRouter: {exc}"
+    answer = answer.strip() or "(respuesta vacía)"
+    slot.markdown(answer)
+    return answer
