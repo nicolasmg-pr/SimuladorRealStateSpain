@@ -494,7 +494,8 @@ def main() -> None:
             params=params,
             baseline_frame=baseline_frame,
             scenario_frame=scenario_frame,
-        )
+        ),
+        lever=lever,
     )
 
 

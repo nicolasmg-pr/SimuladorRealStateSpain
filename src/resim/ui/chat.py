@@ -4,6 +4,11 @@ A popover pinned to the bottom-right corner via CSS. The app hands us a plain-te
 snapshot of the visible state (`screen_context`); we send it as the system prompt so
 the model answers about *this* run, not housing markets in general.
 
+Screen numbers alone cannot answer "why does this policy work that way?", so every
+question also carries the matching sections of `docs/` — the sourced evidence the model
+was built from — retrieved by `resim.ui.knowledge`. The whole tree is reachable; the
+active lever's note is pinned because the run on screen is that policy.
+
 Rule: this module only formats numbers the app already computed via resim.metrics —
 it never derives new indicators.
 """
@@ -18,6 +23,8 @@ from pathlib import Path
 
 import requests
 import streamlit as st
+
+from resim.ui import knowledge
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
@@ -60,15 +67,55 @@ en agentes (hogares, caseros, inversores, promotores, banca y gobierno) que simu
 por trimestres el mercado de vivienda en tres tipos de zona (metro tensionada,
 ciudad secundaria, rural).
 
-Responde en español, breve y claro, a preguntas sobre lo que el usuario ve en
-pantalla. Usa SOLO los datos del estado actual que aparecen a continuación; si algo
-no está en ellos, dilo. Recuerda al usuario, cuando proceda, que los resultados son
-condicionales al modelo y a los deslizadores, no predicciones.
+Responde en español, breve y claro. Tienes dos fuentes y ninguna otra:
 
-Estado actual de la pantalla:
+1. El ESTADO DE LA PANTALLA: los únicos números de esta simulación. Cifras sobre el
+   run actual salen solo de aquí.
+2. La DOCUMENTACIÓN DEL MODELO: secciones de `docs/` recuperadas para esta pregunta
+   (notas de política, fichas de cada actor, especificación del modelo, objetivos de
+   validación, registro de fuentes, previsiones externas). Úsala para explicar
+   mecanismos, causalidad, evidencia empírica, reglas de comportamiento y por qué una
+   política produce el efecto que produce. Cita el estudio o la fuente cuando la nota
+   la nombre, y conserva sus advertencias (rangos en disputa, estimaciones de parte,
+   efectos no evaluados).
+
+Si la pregunta es conceptual («¿por qué…?», «¿qué dice la evidencia sobre…?»),
+respóndela con la documentación aunque los números de pantalla no la cubran. Se
+adjuntan solo las secciones que coinciden con la pregunta: si te falta un detalle,
+dilo y sugiere reformular nombrando el tema (palanca, actor, indicador). No inventes
+cifras que no estén en ninguna fuente.
+
+Recuerda al usuario, cuando proceda, que los resultados son condicionales al modelo y
+a los deslizadores, no predicciones.
+
+ESTADO ACTUAL DE LA PANTALLA:
 
 {context}
+
+DOCUMENTACIÓN DEL MODELO (secciones recuperadas para esta pregunta):
+
+{evidence}
+
+ÍNDICE COMPLETO DE `docs/` (lo que existe, aunque hoy no se haya adjuntado):
+
+{catalogue}
 """
+
+# Lever names come from resim.ui.levers.LEVER_CLASSES. "shock de tipos" has no note.
+_LEVER_DOCS = {
+    "tope de alquiler": "docs/policies/rent-cap.md",
+    "impuesto de transmisiones (ITP)": "docs/policies/transaction-tax.md",
+    "impuesto a la vivienda vacía": "docs/policies/vacancy-tax.md",
+    "vivienda pública": "docs/policies/public-housing.md",
+    "restricción de pisos turísticos": "docs/policies/tourist-rental-restriction.md",
+    "ayudas a la demanda (avales)": "docs/policies/demand-subsidy.md",
+    "liberación de suelo": "docs/policies/land-release.md",
+}
+
+
+def _evidence(lever: str, question: str) -> str:
+    """Documentation for this question: the active lever's note plus the best matches."""
+    return knowledge.retrieve(question, pinned=_LEVER_DOCS.get(lever))
 
 
 def _api_key() -> str | None:
@@ -121,7 +168,9 @@ def _hide_thinking(chunks: Iterator[str]) -> Iterator[str]:
         yield buffer
 
 
-def _stream(api_key: str, context: str, history: list[dict[str, str]]) -> Iterator[str]:
+def _stream(
+    api_key: str, context: str, evidence: str, history: list[dict[str, str]]
+) -> Iterator[str]:
     """Yield answer fragments as OpenRouter emits them (server-sent events)."""
     with requests.post(
         OPENROUTER_URL,
@@ -129,7 +178,14 @@ def _stream(api_key: str, context: str, history: list[dict[str, str]]) -> Iterat
         json={
             "model": MODEL,
             "messages": [
-                {"role": "system", "content": _SYSTEM_PROMPT.format(context=context)},
+                {
+                    "role": "system",
+                    "content": _SYSTEM_PROMPT.format(
+                        context=context,
+                        evidence=evidence,
+                        catalogue=knowledge.catalogue(),
+                    ),
+                },
                 *history[-HISTORY_SENT:],
             ],
             "stream": True,
@@ -208,7 +264,7 @@ def screen_context(
     return "\n".join(lines)
 
 
-def render(context: str) -> None:
+def render(context: str, lever: str = "ninguna") -> None:
     """Floating chat window, bottom-right. Call once at the end of the page."""
     st.markdown(_FLOAT_CSS, unsafe_allow_html=True)
     if "chat_messages" not in st.session_state:
@@ -231,18 +287,23 @@ def render(context: str) -> None:
             st.session_state.chat_messages.append({"role": "user", "content": prompt})
             with history_box.chat_message("user"):
                 st.markdown(prompt)
+            evidence = _evidence(lever, prompt)
             with history_box.chat_message("assistant"):
-                answer = _render_streamed(api_key, context, st.session_state.chat_messages)
+                answer = _render_streamed(
+                    api_key, context, evidence, st.session_state.chat_messages
+                )
             st.session_state.chat_messages.append({"role": "assistant", "content": answer})
 
 
-def _render_streamed(api_key: str, context: str, history: list[dict[str, str]]) -> str:
+def _render_streamed(
+    api_key: str, context: str, evidence: str, history: list[dict[str, str]]
+) -> str:
     """Paint the answer token by token; return the final text for the history."""
     slot = st.empty()
     slot.markdown("_Pensando…_")
     answer = ""
     try:
-        for piece in _hide_thinking(_stream(api_key, context, history)):
+        for piece in _hide_thinking(_stream(api_key, context, evidence, history)):
             answer += piece
             slot.markdown(answer + "▌")
     except requests.RequestException as exc:
