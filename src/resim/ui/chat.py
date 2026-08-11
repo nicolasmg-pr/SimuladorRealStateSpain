@@ -138,6 +138,9 @@ def _stream(api_key: str, context: str, history: list[dict[str, str]]) -> Iterat
         stream=True,
     ) as response:
         response.raise_for_status()
+        # SSE arrives as text/event-stream with no charset, and requests then falls back
+        # to ISO-8859-1 — which turns «Sí» into «SÃ­». The stream is UTF-8.
+        response.encoding = "utf-8"
         reasoning: list[str] = []
         saw_content = False
         for line in response.iter_lines(decode_unicode=True):
