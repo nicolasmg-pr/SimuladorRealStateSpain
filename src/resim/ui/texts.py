@@ -502,6 +502,66 @@ contratos». Ese deslizador (elasticidad 0–2) recorre exactamente ese rango.
 - El modelo informa la discusión; no la sustituye.
 """
 
+BDE_INTRO = """
+**El Banco de España no publica ninguna previsión de vivienda.** Sus tablas de proyecciones
+macro no tienen ni una fila de vivienda: ni precios, ni inversión residencial, ni viviendas
+iniciadas, ni renta bruta disponible de los hogares, ni tipo hipotecario. Se verificó una a
+una (`docs/external-forecasts.md` §1). Así que **no existe una «previsión del BdE» contra la
+que comparar la proyección de este simulador**: si alguien te la ofrece, no es del BdE.
+
+Lo que el BdE sí publica son **datos observados y diagnósticos estructurales** — un déficit
+medido, una banda de sobrevaloración, una elasticidad de oferta. Eso sí es comparable, y es
+lo que hay en esta tabla: las cifras nacionales del modelo frente a la cifra oficial de la
+misma variable.
+
+Tres cosas distintas, a propósito separadas:
+
+- **`docs/validation.md`** — ¿la base reproduce la historia? **Es una puerta**: ningún
+  escenario se reporta si falla.
+- **Esta pestaña** — ¿cómo quedan las cifras del modelo frente a las oficiales publicadas?
+  **No es una puerta**, es diagnóstico.
+- **`docs/external-forecasts.md` §4** — ¿nuestra senda cae dentro de lo que proyectan otros?
+  No es una puerta, y no es del BdE.
+
+Cómo leerla sin equivocarse:
+
+- **Las bases se igualan explícitamente.** El modelo corre a escala 1:2.000 y por trimestres;
+  cada fila dice en qué la convierte. Comparar sobre bases distintas es peor que no comparar.
+- **El reloj del modelo no es un calendario.** 60 trimestres son «≈15 años de un mercado
+  parecido al español», no 2011–2026. Por eso se contrasta la **fase estabilizada** del modelo
+  contra la ventana plurianual del BdE (2021–2025), nunca trimestre a trimestre.
+- **Las dos filas de crecimiento (precio y alquiler) van con trampa de fase**: comparan un
+  estado estacionario del modelo con 2025, el año más fuerte en 18 años. Van a quedar por
+  debajo, y eso no es un error. Para contrastar un auge, carga un escenario de auge.
+"""
+
+BDE_FORECAST_PANEL = """
+### ¿Y si quiero comparar una *proyección*?
+
+Entonces el BdE no sirve, porque no la publica. Sí existen sendas de precio de vivienda
+para España, pero de **entidades comerciales y multilaterales**, y todas en PDF: ninguna
+serie es legible por máquina (`docs/external-forecasts.md` §4).
+
+| Institución | 2026 | 2027 | Base |
+|---|---|---|---|
+| BBVA Research (jul 2026) | +12,0% | +5,7% | MIVAU valor tasado, nominal |
+| CaixaBank Research (mar 2026) | +10,1% | +5,5% | INE IPV, nominal |
+| S&P Global (jul 2026) | +9,1% | +7,4% | INE IPV, nominal |
+| FMI / EBA — base (may 2026) | +7,6% | +6,7% | nominal, senda del test de estrés EBA |
+| FMI / EBA — adverso | — | — | 2028 **−4,3%**, 2029 **−11,0%** |
+| Comisión Europea (nov 2025) | +8,0% | — | Eurostat HPI |
+| Fitch (dic 2025) | +8 a +10% | — | nominal |
+| Bankinter (feb 2026) | +7,0% | +4,0% | INE vivienda libre |
+
+El par **base + adverso del FMI/EBA** es el más útil de la lista: es el único camino
+publicado para España con un escenario de crisis emparejado, así que es el contraste natural
+para una intervención tipo `CreditCrunch` — que este modelo todavía no tiene
+(`docs/validation.md`, hueco conocido).
+
+Nota de honestidad: el panel de 2026 **subestimó mucho** el precio real. No es un tribunal;
+es contexto.
+"""
+
 KPI_HELP: dict[str, str] = {
     "ownership_rate": "Porcentaje de hogares que son propietarios de su vivienda. "
     "España real: ~75%.",

@@ -2,21 +2,24 @@
 
 Run: streamlit run src/resim/ui/app.py
 
-Three tabs: explore one policy in depth (with actor-reaction explanations),
-compare all policies on one indicator, and a plain-language guide to the model.
+Four tabs: explore one policy in depth (with actor-reaction explanations), compare all
+policies on one indicator, contrast the model's national figures against what Banco de
+España actually publishes, and a plain-language guide to the model.
 Sidebar: baseline knobs, one policy lever, and the *disputed* parameters exposed as
 sliders labeled with the competing estimates (bias-control rule: the model spans the
 disagreement, the user explores it).
 
-Rule: this file only calls into resim.scenario, resim.engine, and resim.metrics.
-Any number it computes itself is a number the tests do not cover.
+Rule: this file only calls into resim.scenario, resim.engine, resim.metrics and
+resim.benchmarks. Any number it computes itself is a number the tests do not cover — the
+BdE contrast in particular is computed in benchmarks.py, including its basis conversions,
+precisely so the comparison arithmetic is testable.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
-from resim import metrics
+from resim import benchmarks, metrics
 from resim.config import SimConfig
 from resim.engine import Engine
 from resim.scenario import Scenario
@@ -342,6 +345,83 @@ def compare_tab(seed: int, ticks: int, momentum: float) -> None:
     )
 
 
+def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) -> None:
+    """Model output against the figures Banco de España actually publishes."""
+    st.subheader("Contraste con el Banco de España")
+    st.markdown(texts.BDE_INTRO)
+
+    scenario_label = "base (sin política)" if lever == "ninguna" else lever
+    c1, c2 = st.columns([2, 3])
+    with c1:
+        pooled = st.checkbox(
+            "Promediar 3 semillas",
+            value=False,
+            help="Varias de estas magnitudes tienen más dispersión entre semillas que la "
+            "banda publicada: la formación de hogares es un sorteo de Poisson y una "
+            "ventana de 5 años oscila ±10.000 viviendas/año a escala nacional. Con una "
+            "sola semilla puedes ver un desajuste que es puro azar. Más lento.",
+        )
+    with c2:
+        st.caption(
+            f"Escenario contrastado: **{scenario_label}** · semilla {seed} · {ticks} trimestres"
+        )
+
+    seeds = [seed, seed + 1, seed + 2] if pooled else [seed]
+    frames = []
+    for s in seeds:
+        base_frame, scen_frame = run(s, ticks, lever, params, momentum)
+        frames.append(scen_frame if scen_frame is not None else base_frame)
+
+    config = _config(seed, ticks, momentum)
+    table = benchmarks.contrast(frames, config)
+    counts = benchmarks.summary(frames, config)
+
+    k = st.columns(4)
+    k[0].metric("Indicadores contrastados", counts["total"])
+    k[1].metric("✅ Dentro de banda", counts["inside"])
+    k[2].metric("🔽 Por debajo", counts["below"])
+    k[3].metric("🔼 Por encima", counts["above"])
+
+    st.dataframe(
+        table[
+            [
+                "Indicador",
+                "Modelo",
+                "Oficial (BdE)",
+                "Banda",
+                "Δ relativa",
+                "Encaja",
+                "Periodo",
+            ]
+        ],
+        width="stretch",
+        hide_index=True,
+    )
+    st.caption(
+        "**Δ relativa** = (modelo − oficial) / oficial. **Banda** es el rango publicado "
+        "cuando la fuente da uno; si no, «encaja» usa una tolerancia de ±15% alrededor del "
+        "valor central, suficiente para detectar signo y orden de magnitud, no calibración "
+        "fina. Ningún ✅ o 🔽 es un aprobado o un suspenso: son diagnósticos."
+    )
+
+    st.subheader("Cómo se compara cada indicador, y qué mirar con cuidado")
+    for key, row in table.iterrows():
+        flagged = "⚠️ " if row["note"].startswith("⚠️") else ""
+        with st.expander(f"{row['Encaja']} {flagged}{row['Indicador']}"):
+            st.markdown(
+                f"- **Modelo:** {row['Modelo']}  ·  **Oficial:** {row['Oficial (BdE)']}"
+                f"  ·  **Δ** {row['Δ relativa']}\n"
+                f"- **Periodo de la cifra oficial:** {row['Periodo']}\n"
+                f"- **Fuente:** {row['Fuente']}\n"
+                f"- **Cómo se igualan las bases:** {row['basis']}"
+                + (f"\n- {row['note']}" if row["note"] else "")
+            )
+        _ = key
+
+    st.divider()
+    st.markdown(texts.BDE_FORECAST_PANEL)
+
+
 def how_it_works_tab() -> None:
     st.markdown(texts.MODEL_EXPLANATION)
 
@@ -388,13 +468,20 @@ def main() -> None:
 
     baseline_frame, scenario_frame = run(seed, ticks, lever, params, momentum)
 
-    tab_explore, tab_compare, tab_help = st.tabs(
-        ["📈 Explorar una política", "⚖️ Comparar políticas", "❓ Cómo funciona el modelo"]
+    tab_explore, tab_compare, tab_bde, tab_help = st.tabs(
+        [
+            "📈 Explorar una política",
+            "⚖️ Comparar políticas",
+            "🏛️ Contraste con el BdE",
+            "❓ Cómo funciona el modelo",
+        ]
     )
     with tab_explore:
         explore_tab(lever, params, baseline_frame, scenario_frame)
     with tab_compare:
         compare_tab(seed, ticks, momentum)
+    with tab_bde:
+        bde_tab(seed, ticks, momentum, lever, params)
     with tab_help:
         how_it_works_tab()
 

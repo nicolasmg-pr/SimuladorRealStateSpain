@@ -308,8 +308,8 @@ Two indicators, defined once in `metrics.py` (per zone and national), reported e
    mortgage rate, quarterly annuity) divided by median gross **disposable** household
    income of the zone (gross × `DISPOSABLE_FACTOR`). Lower = more affordable.
    Real-Spain reference ≈ 0.35–0.40 in 2024–25 [BdE Síntesis 1.5; BdE Informe Anual 2025
-   — both registered in docs/sources.md]. Not (yet) a §9 validation target; reference
-   value shown in the UI for sanity.
+   — both registered in docs/sources.md]. Not a §9 validation target; it is one row of the
+   BdE contrast (`benchmarks.py`, §12).
 2. **Purchase access share** (`buyer_access`) — share of the zone's non-owner households
    (tenants + seekers) whose bank limit `max_price()` (LTV + DSTI + upfront ITP/fees
    screen, §5, no state guarantee) reaches the zone price index. Emergent from the same
@@ -320,3 +320,28 @@ Rationale: effort is the comparable-to-reality series (validatable against BdE);
 access is the distributional one (moves when credit, prices or incomes shift who can
 buy at all). Neither uses the guarantee boost — the indicator measures unassisted access;
 guarantee policies show up as the gap they close in `buyer_access`.
+
+## 12. Contrast against published BdE figures
+
+`benchmarks.py` + the app's "Contraste con el BdE" tab. **Diagnostic, not a validation
+gate** — §9 is the gate. Three rules, because a comparison table reads as authoritative
+whether or not it deserves to:
+
+1. **There is no BdE housing forecast to compare against.** BdE's quarterly projection
+   tables contain zero housing rows — no house prices, no residential investment, no starts,
+   no household disposable income, no mortgage rate (verified row by row,
+   docs/external-forecasts.md §1). Only *actuals and structural diagnostics* are comparable.
+   Forward-looking Spanish price paths exist, but from BBVA/CaixaBank/S&P/IMF-EBA, not the
+   central bank. Never present a BdE contrast as a forecast comparison.
+2. **Bases are converted explicitly, in code.** The model is 1:`metrics.SCALE` and quarterly;
+   each row declares its conversion in `basis` and applies it in its own `model` callable.
+   A comparison on mismatched bases is worse than no comparison, so the arithmetic is pinned
+   in `tests/test_benchmarks.py` rather than trusted.
+3. **The model clock is not a calendar.** 60 ticks is "≈15 years of a Spain-like market", not
+   2011–2026, so rows compare the model's *settled phase* against BdE's own multi-year window
+   (2021–2025) — never tick-to-year. Growth-rate rows carry an extra caveat: the baseline is a
+   steady state and 2025 was Spain's strongest year in 18, so they are expected low. Contrast
+   a boom against a boom scenario, not against the baseline.
+
+Rows whose model side is a calibrated *input* rather than a result (household formation,
+supply elasticity) are labelled as such: they verify the scale conversion, not the model.

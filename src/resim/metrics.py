@@ -51,9 +51,13 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
 
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)
-    # construction flow vs household formation (model-spec §9 target 4)
+    # construction flow vs household formation (model-spec §9 target 4). All three are
+    # model-scale per-tick counts; benchmarks.py re-inflates them with SCALE.
     row["completions"] = state.tick_events.get("completions", 0)
+    row["starts"] = state.tick_events.get("starts", 0)
     row["formation"] = state.tick_events.get("formation", 0)
+    # per-tick ratio. NOT the same as the ratio of multi-year sums BdE reports (Jensen);
+    # benchmarks.py computes that separately from the `completions` / `formation` columns.
     row["completion_ratio"] = row["completions"] / max(1, row["formation"])
     # who owns the rental stock — cross-check against the 85–92% individual share
     # [investor-small §1]. An input nowhere: this is emergent (model-spec §9).
@@ -166,6 +170,15 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
 
     row["price_national"] = float(
         sum(state.zones[z].price_index * zone_weights[z] for z in ZoneType)
+    )
+    row["rent_national"] = float(sum(state.zones[z].rent_index * zone_weights[z] for z in ZoneType))
+    # household-weighted national growth, per tick. The zone series already exist; these are
+    # the national aggregates the published Spanish figures (INE IPV, BdE) are quoted on.
+    row["price_growth_national"] = sum(
+        row[f"price_growth_{z.value}"] * zone_weights[z] for z in ZoneType
+    )
+    row["rent_growth_national"] = sum(
+        row[f"rent_growth_{z.value}"] * zone_weights[z] for z in ZoneType
     )
     row["price_to_income"] = row["price_national"] / (median_income * DISPOSABLE_FACTOR)
     row["purchase_effort"] = _annual_debt_service(

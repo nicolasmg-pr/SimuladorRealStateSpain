@@ -654,6 +654,7 @@ class Engine:
         for c in bundle.construction:
             if c.is_public:
                 public_starts[c.zone] += c.n_units
+        started = 0
         for c in bundle.construction:
             n = c.n_units
             if not c.is_public:
@@ -661,6 +662,7 @@ class Engine:
                 # (builders, trades and land compete locally, not nationally)
                 n = max(0, n - int(pol.crowding_out_share * public_starts[c.zone]))
             if n > 0:
+                started += n
                 state.pipeline.append(
                     (
                         state.tick + (pol.public_delivery_lag if c.is_public else lag),
@@ -669,6 +671,9 @@ class Engine:
                         c.is_public,
                     )
                 )
+        # starts net of crowding out — the visados-equivalent flow, comparable to the
+        # ≈140k/yr BdE reports (benchmarks.py). Completions arrive `lag` ticks later.
+        state.tick_events["starts"] = started
 
         arrivals = [p for p in state.pipeline if p[0] <= state.tick]
         state.pipeline = [p for p in state.pipeline if p[0] > state.tick]
