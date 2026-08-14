@@ -182,6 +182,36 @@ The tenant–owner wealth gap is the single largest balance-sheet fact in the Sp
 | Rent→own transition anchors | first purchase age 38–41.8; deposit-saving time 3.6–9 yr; Gen Z w/ mortgage 7% | years; % | sector studies (IFEMA/Fotocasa/press); range kept | medium |
 | COVID arrears spike | 5 → 15 (landlord-association claim, pandemic peak) | % of contracts in arrears | ASVAL (landlord viewpoint; not independently confirmed) | low |
 
+### 6b. The acceptance threshold is not a constant (added 2026-08-14)
+
+The `max_rent_burden ~ U(0.30, 0.40)` row above is a *screening* norm. What Spanish households
+actually end up paying moved a long way inside a decade, and that movement is the evidence for
+the sharing margin in `agents/household.search_burden` (model-spec §5).
+
+| Series (EPF microdata, Funcas 104 ch.6) | 2015 | 2017 | 2019 | 2021 | 2022 |
+|---|---|---|---|---|---|
+| Mean rent effort, % of consumption basket | 26.5 | 26.0 | 27.0 | 31.7 | 29.7 |
+| — under-35s | 24.0 | 24.5 | 26.6 | 29.7 | 30.4 |
+| Renting households above 30% | 33.0 | 31.1 | 33.5 | 43.1 | 38.2 |
+| Above 30% **including utilities** (Ley 12/2023 *sobreesfuerzo*) | 52.3 | 48.2 | 50.6 | 61.6 | 60.5 |
+| Mean monthly rent paid, € | 404 | 428 | 476 | 505 | 516 |
+
+Mean rent spend rose **+27.7%** over 2015–2022 against household income **+16.6%** (single
+earner) to ≈22% (two or more). Vulnerable households (<€13,000 annual spend) reached 40.6% on
+rent alone and **51.1% including utilities** — the observed ceiling the model uses. Four in ten
+Spanish tenants exceed 40% of disposable income, ≈2× the EU average [Eurostat via ch.2], and
+the absorption channels named are shared flats, sublet rooms and later emancipation [ch.4].
+
+Two things this also pins:
+- **The 2022 rent cap worked on the within-contract channel**: mean rent spend grew **+2.1% in
+  2022** under the 2% cap, against **+11.2% in 2019**. That is the cleanest available
+  before/after on `within_contract_update`.
+- **Territorial spread of effort**: Ceuta/Melilla 35.0%, País Vasco 33.0%, Baleares 32.6%,
+  Madrid 31.8%, Cataluña 31.7% at the top; Murcia 21.6%, Extremadura 20.2% at the bottom.
+  Monthly spend Madrid €675 vs Extremadura €277. Rental incidence by municipality size:
+  22.3% (>100k), 19.5% (50–100k), 15.2% (20–50k), 11.1% (<10k). By nationality of the main
+  earner: Spanish 11.6%, rest of EU 45.3%, rest of world 66.3%.
+
 ## 7. Open questions
 
 1. **Tenant mobility is the weakest parameter.** No official Spanish series for annual tenant

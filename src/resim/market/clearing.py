@@ -5,9 +5,16 @@ affordable listing in their zone; bids scatter around the ask; the highest bid a
 above the reserve wins at that bid. Bidding wars emerge when several buyers land on
 one listing; sticky asks emerge because failed listings decay slowly.
 
-Rentals: queue matching — applicants sorted by willingness, each takes the cheapest
-listing they accept; rent = posted ask (landlords post, tenants accept — the Spanish
-rental market is posted-price, not auction).
+Rentals: queue matching — applicants sorted by willingness, each takes the BEST listing
+they can afford; rent = posted ask (landlords post, tenants accept — the Spanish rental
+market is posted-price, not an auction).
+
+A queue-auction markup on top of the ask was tried and removed: measured effect ≈0, because
+assortative matching already puts each applicant on a listing at the top of their
+affordability, leaving no headroom to bid up. The consequence is structural and worth stating
+plainly — the clearing rent equals the winning applicant's willingness to pay, so the only
+route for the rent index to outrun income growth is through the *level* of burden households
+accept, which is what the sharing margin in agents/household.py does. See model-spec §5.
 
 `settle` is the only writer of ownership/occupancy/balances.
 """
@@ -179,6 +186,7 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
             if sitting is not None:
                 sitting.status = HouseholdStatus.SEEKER
                 sitting.unit_id = None
+                sitting.ticks_searching = 0  # a fresh spell, not the old one
             unit.occupant_id = None
             unit.tenure = Tenure.VACANT
             unit.rent = 0.0
@@ -195,6 +203,7 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
                     seller.mortgage_ticks_left = 0
                     seller.status = HouseholdStatus.SEEKER
                     seller.unit_id = None
+                    seller.ticks_searching = 0
                 seller.wealth += max(0.0, proceeds)
 
         # buyer side
@@ -236,6 +245,7 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
                         old.rent = 0.0
             buyer.status = HouseholdStatus.OWNER
             buyer.unit_id = unit.id
+            buyer.ticks_searching = 0  # housed: the search spell ends
             unit.occupant_id = buyer.id
             unit.tenure = Tenure.OWNER_OCCUPIED
         elif tr.buyer_id == LARGE_INVESTOR_ID:
@@ -271,3 +281,4 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
         unit.contract_start = state.tick
         tenant.status = HouseholdStatus.TENANT
         tenant.unit_id = unit.id
+        tenant.ticks_searching = 0  # housed: the search spell ends

@@ -39,12 +39,20 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     owners = sum(1 for h in hhs if h.status is HouseholdStatus.OWNER)
     tenants = sum(1 for h in hhs if h.status is HouseholdStatus.TENANT)
     seekers = n_hh - owners - tenants
+    row["households"] = n_hh  # model scale; × SCALE for national counts
     row["ownership_rate"] = owners / n_hh
     row["tenant_share"] = tenants / n_hh
     row["seeker_share"] = seekers / n_hh
     row["transactions"] = len(trades)
     row["new_leases"] = len(rentals)
     row["mortgage_rate"] = state.macro.mortgage_rate
+    # how the purchase was paid for. Spain 2023: 973,637 sales against 381,560 new mortgage
+    # deeds ⇒ 60.8% of purchases carried no registered mortgage [INE via Funcas 104 ch.3],
+    # against the 30–40% cash share the model's dossiers record [bank §6]. Emergent here:
+    # households paying out of wealth, investors and the non-resident overlay.
+    row["cash_purchase_share"] = (
+        float(np.mean([t.cash for t in trades])) if trades else float("nan")
+    )
 
     incomes = np.array([h.income for h in hhs])
     median_income = float(np.median(incomes)) if len(incomes) else 1.0
@@ -88,6 +96,13 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["rent_burden_mean"] = float(np.mean(burdens_all)) if burdens_all else 0.0
     row["rent_overburden_share"] = (
         float(np.mean([b > 0.40 for b in burdens_market])) if burdens_market else 0.0
+    )
+    # the 30% line, the other threshold the Spanish literature reports on: EPF 2022 puts
+    # 38.2% of renting households above it (2015: 33.0%; 2021: 43.1%) and 60.5% above it once
+    # utilities are added — the Ley 12/2023 "sobreesfuerzo" definition, which this model has
+    # no utilities to compute [Romero-Jordán, Funcas 104 ch.6 cuadros 2 and 4]
+    row["rent_burden_over_30_share"] = (
+        float(np.mean([b > 0.30 for b in burdens_market])) if burdens_market else 0.0
     )
     row["rent_overburden_share_all"] = (
         float(np.mean([b > 0.40 for b in burdens_all])) if burdens_all else 0.0

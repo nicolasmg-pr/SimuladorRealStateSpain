@@ -172,8 +172,11 @@ class Engine:
                         hh.mortgage_ticks_left = n_left
                 state.stock.add(unit)
 
-            # vacant stock on top
-            n_vacant = int(round(n_hh * (stk.units_per_household - 1.0)))
+            # vacant stock on top. Per-zone, not national: the Spanish empty stock sits where
+            # demand is weakest (half of it in municipalities under 20k inhabitants, which hold
+            # 28% of the population), so a uniform ratio puts the vacancy ladder the wrong way
+            # round [INE Censo 2021 via Funcas 104 ch.1 — see ZoneConfig.units_per_household].
+            n_vacant = int(round(n_hh * (zcfg.units_per_household - 1.0)))
             for _ in range(n_vacant):
                 quality = float(rng.lognormal(0.0, 0.15))
                 state.stock.add(
@@ -185,14 +188,16 @@ class Engine:
                         occupant_id=None,
                         tenure=Tenure.VACANT,
                         last_sale_price=zs.price_index * quality,
-                        withheld=bool(rng.random() < 0.35),  # 2nd homes etc. [guess]
+                        # off-market share rises as local demand weakens: 2nd homes, holdouts
+                        # and stock empty for want of location and condition [ZoneConfig]
+                        withheld=bool(rng.random() < zcfg.withheld_share),
                     )
                 )
 
             # tourist-rental (VUT) segment, on top of the residential stock. Without it the
             # tourist-restriction lever has nothing to phase out and reads as a no-op: the
             # only other route into Tenure.SEASONAL is rent-cap evasion.
-            n_seasonal = int(round(n_hh * stk.units_per_household * zcfg.seasonal_share))
+            n_seasonal = int(round(n_hh * zcfg.units_per_household * zcfg.seasonal_share))
             for _ in range(n_seasonal):
                 quality = float(rng.lognormal(0.0, 0.15))
                 state.stock.add(
@@ -719,6 +724,12 @@ class Engine:
         income_growth = cfg.market.long_run_growth  # nominal wage anchor, /tick
         for hh in state.households.values():
             hh.income *= 1.0 + income_growth
+            # search spell: counted here, at the end of the tick, so a household formed this
+            # tick starts at 0 and only a *failed* search increments it. Reset by settle()
+            # when the household is housed — the escalation is a spell, not a history
+            # (agents/household.search_burden: the sharing margin).
+            if hh.status is HouseholdStatus.SEEKER:
+                hh.ticks_searching += 1
             saving = sr * hh.income / 4.0
             if hh.status is HouseholdStatus.TENANT and hh.unit_id is not None:
                 rent_y = state.stock.units[hh.unit_id].rent * 12.0

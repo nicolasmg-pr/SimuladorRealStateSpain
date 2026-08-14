@@ -152,6 +152,45 @@ class LandRelease(Intervention):
 
 
 @dataclass(frozen=True)
+class HouseholdFormation(Intervention):
+    """Exogenous demographic path — household formation is an input, not a result.
+
+    The baseline holds formation flat at the observed ≈240k/yr. The INE household projection
+    2022–2037 is not flat: it is front-loaded and then fades, >215k/yr in 2023–27, 190k/yr in
+    2028–32 and 140k/yr in 2033–37, as average household size falls 2.48 → 2.36 and the
+    population goes 47.4M → 51.7M [INE Proyección de hogares via Funcas 104 ch.1 §3].
+    Use `ine_household_projection()` to lay the three steps out over a run; this class is the
+    single step (and doubles as the "what if formation is X" lever).
+    """
+
+    name: str = "household_formation"
+    start_tick: int = 0
+    formation_per_tick: int = 27  # ≈216k/yr real at 1:2,000
+    formation_income_factor: float | None = None  # None = leave the baseline value
+
+    def apply(self, config: SimConfig) -> SimConfig:
+        changes: dict = {"formation_per_tick": self.formation_per_tick}
+        if self.formation_income_factor is not None:
+            changes["formation_income_factor"] = self.formation_income_factor
+        return replace(config, population=replace(config.population, **changes))
+
+
+def ine_household_projection(start_tick: int = 0) -> tuple[HouseholdFormation, ...]:
+    """The INE 2022–2037 formation path as three consecutive steps of 20 ticks (5 years).
+
+    215k → 190k → 140k new households/yr at 1:`metrics.SCALE`, i.e. 27 → 24 → 18 per tick.
+    Rounded to integers because formation is a Poisson count; the rounding costs ≤2k/yr.
+    Interventions are applied in order by `Scenario.config_at`, so a later step overrides an
+    earlier one and the sequence reads as a path [INE via Funcas 104 ch.1 §3 gráfico 7].
+    """
+    return (
+        HouseholdFormation(start_tick=start_tick, formation_per_tick=27),
+        HouseholdFormation(start_tick=start_tick + 20, formation_per_tick=24),
+        HouseholdFormation(start_tick=start_tick + 40, formation_per_tick=18),
+    )
+
+
+@dataclass(frozen=True)
 class RateShock(Intervention):
     """Euríbor path shift — the 2022–23 signature reproducer."""
 

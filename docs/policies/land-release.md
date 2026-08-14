@@ -118,6 +118,28 @@ Several CCAA (Madrid Ley 1/2020, others) replaced licences with **declaración r
   balance sheets after 2008 (IESE) — mass release can amplify bust dynamics in elastic zones
   (also Glaeser-Gyourko-Saiz: elastic places overbuild more in bubbles, per Montalvo's survey).
 
+## 3b. The stalled-planning stock (Funcas 104 ch.4 and ch.8)
+
+Added 2026-08-14. Two figures that bound what "release more land" can mean in Spain:
+
+- **6.78M dwellings** of already-planned but unexecuted capacity — 9.35M planned, 27.5%
+  executed — on *suelo urbano no consolidado* and *urbanizable delimitado/sectorizado*, i.e.
+  land with approved planning that has been stalled for ~20 years. That is **25.5% of the
+  existing 26.6M park**, and it excludes undelimited land entirely. Regional spread is wide:
+  Murcia 73.4% of its park, Castilla-La Mancha 58.1%, Cataluña 13.5%, Barcelona effectively
+  none [Ministerio de Vivienda SIU 2023 + INE Censo, ch.4 cuadro 1]. Ezquiaga adds ≈1.4M
+  dwellings' worth of land financed during the bubble that was never built.
+- Meanwhile the **urban land price index has been flat at ≈55 (2007=100) since 2013 while the
+  house price index went 64 → 98** [ch.8 gráfico 3]. Developers are cautious buying land at
+  current sale prices, and public land earmarked for protected housing being ceded to
+  free-market investment is named as a cause of the widening gap.
+
+So the binding constraint is **execution, not classification** — which is exactly why this
+lever's validation target is "no short-run price effect" and why `land_release_lag` is
+20–60 ticks. A second brake the chapter names: labour. The sector reports scarcity of workers
+while >120,000 unemployed people come from construction (EPA), which is a placement failure,
+not a headcount one.
+
 ## 4. Effect-size range
 
 | Quantity | Range | Basis |

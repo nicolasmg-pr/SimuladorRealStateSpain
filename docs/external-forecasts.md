@@ -19,7 +19,7 @@ path sit inside the range other forecasters project". The second is not a pass/f
 gate — see the honesty note in §6 on how badly the 2026 panel under-forecast.
 
 **Implemented in code as of 2026-08-11.** The comparable BdE numbers from §2 are wired into
-`src/resim/benchmarks.py` and surfaced in the app's "🏛️ Contraste con el BdE" tab: 13
+`src/resim/benchmarks.py` and surfaced in the app's "🏛️ Contraste oficial" tab: 21
 indicators, model side against published side, with each row's basis conversion stated and
 tested (`tests/test_benchmarks.py`, and model-spec §12 for the three rules governing it).
 The §4 forecast panel below is shown in that tab as reference text only — deliberately not

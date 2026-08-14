@@ -112,6 +112,23 @@ asks without a global auctioneer).
   rent-cap §2 Monràs]).
 - Tenants accept if rent ≤ max_burden × income (max_burden ~ U(0.30, 0.40)
   [household-tenant §6]); else queue/share/stay.
+- **The sharing margin.** A SEEKER's accepted burden rises with the length of its current
+  search spell — `max_burden × (1 + 0.04 × ticks_searching)`, capped at 0.55 — and resets the
+  moment it is housed. Sitting tenants keep their drawn threshold. Rationale: the acceptance
+  threshold is *not* a fixed constant in Spain. Mean rent effort rose 26.5% (2015) → 31.7%
+  (2021) → 29.7% (2022) of the consumption basket and the share of renting households above
+  the 30% line 33.0% → 43.1% → 38.2% [EPF, Funcas 104 ch.6]; 4 in 10 tenants exceed 40% of
+  disposable income, ≈2× the EU average [Eurostat via ch.2]; and the absorption channel is
+  explicit — shared flats, sublet rooms, later emancipation [ch.4]. The ceiling is an observed
+  level (vulnerable tenants: 40.6% on rent alone, 51.1% including utilities, ch.6 cuadro 3);
+  the per-tick pace is a guess with range 0.02–0.06.
+- **The contract clears at the ask, and that is a binding structural fact.** A queue-auction
+  markup on top of the ask was implemented and removed: its measured effect was ≈0, because
+  assortative matching already places each applicant on a listing at the top of what they can
+  afford, leaving no headroom to bid up. So the clearing rent equals the winning applicant's
+  willingness to pay, which is a share of income — and the *only* route for the rent index to
+  outrun income growth is the level of burden households accept, i.e. the sharing margin above.
+  This is why §9 target 7's rent leg fails: see §10 and docs/validation.md.
 - **Insider/outsider split**: sitting tenants' rent moves only by the update cap;
   all price discovery happens at rotation (new contracts) [investor-small §3]. Reported as
   `insider_outsider_wedge` — a **rent-level** ratio, not a rent/income one. Matching is
@@ -168,6 +185,14 @@ implied margin rise without bound as prices rise: measured in this model it reac
 (tensioned), 59% (secondary) and **103% (rural)**, which pinned starts against the capacity
 ceiling at ≈184k/yr real against Spain's ≈110–130k. Volume, not margin, carries the signal.
 
+Empirical signature, and an independent check on the whole rule: the Spanish index of urban
+land price sat at 55 in 2023 against 100 in 2007, while the house price index recovered from
+64 (2013–15) to 98 — land flat for a decade while house prices climbed [MITMA/INE via Funcas
+104 ch.8 gráfico 3]. Behind it sits planned-but-unexecuted land for **6.78M dwellings**, 25.5%
+of the existing park, stalled in approved planning for 20 years [Ministerio de Vivienda SIU
+2023 via Funcas 104 ch.4 cuadro 1] — which is also why the land-release lever must show no
+short-run price effect: the binding constraint is execution, not classification.
+
 Unsold completed inventory is **re-priced every tick** at a markdown that widens with holding
 time (2%/tick, capped at 25% — guess). Developers carry debt against stock and cut to clear;
 letting a completion fall out of the market instead creates permanently dead supply.
@@ -209,6 +234,16 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Large-investor yield hurdle | prime net 3.8–4.0 + political-risk premium | %/yr | CBRE [investor-large §6] | high |
 | Actual tenant default incidence | 0.03–0.07 /yr; perceived = ×1.5–3 markup (guess) | prob/yr | Arag/OESA [investor-small §6] | medium / guess |
 | Vacancy (urban baseline) | 6–9% of stock | % stock | INE [investor-small §6] | medium |
+| Vacancy by municipality size (empty/park, Censo 2021) | <5k hab 24.6 / 10–20k 15.6 / 20–40k 13.1 / 40–150k ≈11.5 / 150–500k ≈8 / >3M 6.3; national 13.2 | % of local park | INE Censo via Funcas 104 ch.1 cuadro 1 | medium |
+| Dwellings per household by zone | T 1.075 / S 1.124 / R 1.242 (national anchor 1.12) | dwellings/household | derived from the row above | medium |
+| Withheld (non-mobilisable) share of the vacant pool | T 0.39 / S 0.63 / R 0.81 | share of zone vacant stock | gradient from Funcas 104 ch.1 §2; levels calibrated | guess (levels) |
+| Average dwelling size | 90 | m² | Afi via Funcas 104 ch.5 | medium |
+| Accepted rent burden under search | base × (1 + 0.02–0.06 /tick), ceiling 0.55 | fraction of gross income | EPF/Eurostat via Funcas 104 ch.2, ch.6 | mechanism high, pace guess |
+| Household formation projection | 215k (2023–27) → 190k (2028–32) → 140k (2033–37) | households/yr | INE Proyección de hogares via Funcas 104 ch.1 | high |
+| Cash (unmortgaged) purchases | 0.30–0.40 [bank §6] vs 0.608 implied by INE 2023 (973,637 sales / 381,560 mortgages) | share of purchases | Funcas 104 ch.3 | disputed — range |
+| Social rental stock | 1.0% (OECD) / 1.7% (Housing Europe-MIVAU) / 2.5% (Provivienda); EU 7–9.3% | % of stock | Funcas 104 ch.6, ch.8 | medium |
+| Landlord IRPF reduction on residential rent | 50% general, 60% rehabilitated, 70% tensioned/young, 90% if rent cut ≥5%; cost ≈€1,039M/yr | fraction of net rental income | Ley 12/2023, AIReF via Funcas 104 ch.7 | high — NOT modelled |
+| Vacancy-tax instrument | IBI surcharge 50–150% on ≥4 dwellings empty ≥2 yr ⇒ ≈0.1–0.8% of market value/yr | fraction of value/yr | Ley 12/2023 via Funcas 104 ch.7 | high |
 | Public social-rental stock | 1.5–3.3% of stock | % stock | MIVAU/Provivienda [government §6] | medium |
 | Emancipation/formation age anchor | first purchase ≈41y; buyers 25–44 ≈ 62% | years | Fotocasa [household-owner §6] | medium |
 
@@ -251,13 +286,29 @@ result is reported:
 5b. **Stock ownership cross-checks** (emergent, not inputs): individuals hold 85–92% of the
    rental stock [investor-small §1]; public rental ≈8% of the rental stock (1.7% of total
    stock); the household-share-weighted zone supply elasticity stays in 0.45–0.58.
+5c. **Rent-burden second threshold**: the share of market tenants above **30%** of income must
+   exceed the >40% share and is reported alongside it, because the Spanish literature quotes
+   both lines and on different bases — 38.2% of renting households above 30% of their
+   *consumption basket* (EPF 2022), 4 in 10 above 40% of *disposable income* (Eurostat)
+   [Funcas 104 ch.2, ch.6]. Reported, not gated: the model measures burden on gross income.
+5d. **Vacancy geography** (emergent): full-stock vacancy must rank **rural > secondary >
+   tensioned**, with rural 15.6–24.6%, secondary 8.1–13.1% and national 10–15% — the INE
+   Censo-2021 empty-dwelling ladder by municipality size [Funcas 104 ch.1 cuadro 1]. Half the
+   Spanish empty stock is in municipalities under 20,000 inhabitants holding 28% of the
+   population, and provinces growing slower than the 3.1% national household rate hold >60%
+   of it. A model that spreads vacancy evenly gets this backwards and mislocates the whole
+   vacancy-tax lever. The per-zone dwellings-per-household ladder that produces it must
+   weight to the national anchor in `StockConfig`, and its *mobilisable* part
+   ((upH − 1) × (1 − withheld_share)) is held equal across zones on purpose — see §10.
 6. **Price-cycle amplitude**: demand boom + credit easing produces multi-year price
    growth 8–13%/yr; credit crunch produces volume collapse (−40…−85% lending) with
    price declines arriving slowly (−30…−45% over ≥5 years) [bank §4, household-owner §4].
 7. **Hold-out episode (out-of-sample)**: 2021–2025 run-up — formation ≈240k/yr vs
    completions ≈90k/yr + rate shock 2022–23 + easing 2024–25 ⇒ prices +8–13%/yr
    sustained, transactions record-high, rents +8–11%/yr asking. Fit free parameters on
-   pre-2021 moments only.
+   pre-2021 moments only. **The rent leg fails** and is tracked as a strict xfail at its real
+   magnitude: measured over 20 seeds the boom rent response is +0.0%/yr ± 0.3pp. The price and
+   volume legs pass. Do not report any boom-time rent claim from this model (§10).
 8. **Rent-cap credibility test** (Phase 7 gate): sweeping supply-response elasticity
    0→2 must span Jofre-Monseny (rents −4…−5%, tenancies 0), Monràs (−5%, −10%), and
    Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4].
@@ -272,7 +323,12 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   the model cannot capture housing→GDP→housing loops (2008 amplification understated).
 - **Zone types, not geography**: no within-zone heterogeneity, no specific cities; zone
   multipliers on costs/prices are guesses (flagged).
-- **No location premium — the zone price ladder does not hold.** Households bid only in
+- **No location premium — the zone price ladder does not hold.** *(Calibration evidence for
+  the fix now exists: Madrid/Barcelona private-sector wages +45% against the rest of urban
+  Spain, cost of living +20%, purchasing-power-adjusted gain +21%, and 35.7% of 20–34s living
+  in the five largest functional urban areas [BdE Forte-Campos et al. via Funcas 104 ch.5];
+  rent gradient Madrid €10.7/m² vs Extremadura €4.4/m² [SEF via ch.6]. Still a mechanism
+  decision, not a recalibration — see docs/funcas-104.md §5.)* Households bid only in
   their own zone and nothing makes a location intrinsically worth more, so each zone's price
   is pinned by the credit ceiling of the households in it and relative prices converge on
   relative *incomes* (1.15/1.0/0.80) rather than on a location premium. Measured: the
@@ -286,11 +342,45 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
 - **Quality/size ladder simplified** to a scalar quality tier; composition drift under
   caps (smaller flats, §rent-cap) only partially representable.
 - **Informal market** (unregistered contracts, room rentals) only as evasion shares.
-- **Rent growth cannot outrun income growth.** Tenants accept rent up to a hard share of
-  income and there is no sharing/overcrowding margin, so boom-time rent inflation is capped
-  near the exogenous income anchor (measured ≈+0.7%/yr in the hold-out boom against a real
-  +8–11%). `SEEKER` nominally means "sharing meanwhile" but absorbs no rent. The model's
-  boom rent response is a floor, not an estimate.
+- **Rent growth cannot outrun income growth.** The contract clears at the winning
+  applicant's willingness to pay, which is a share of income, and income grows at the
+  exogenous anchor — so the rent index cannot structurally outrun it. Measured over 20 seeds,
+  the hold-out boom response is **+0.0%/yr ± 0.3pp** against a real +8–11% (§9.7, now a strict
+  xfail; the previous `> 0` assertion on 5 seeds passed on luck). The sharing margin (§5)
+  raises the *level* of accepted burden — measured: market-tenant overburden 27.4% → 29.2% —
+  but not the growth rate. Spain's own numbers are the counterexample: rent spend +27.7%
+  against household income +16.6/22% over 2015–2022, Madrid rents +39% 2015–2022 against +26%
+  in other European capitals [Funcas 104 ch.6, ch.2]. **Do not use this model to size any
+  rent-inflation claim.**
+- **Rents are priced per whole average dwelling, so tenant burden is overstated.** Every
+  tenant rents one 90 m² unit at asking level. Spain's renters do not: EPF puts average rent
+  actually paid at €516/month in 2022 (Madrid €675, Extremadura €277) against the model's
+  ≈€1,350, and a young median earner in Spain crosses the one-third threshold at 30 m² and
+  half their income at 45 m² [Funcas 104 ch.5, ch.6]. There is no small-dwelling, room or
+  shared-flat segment, so the rent *level* row of the official contrast reads ≈2.6× high and
+  the >30%-of-income share reads ≈59% against 38.2%. Levels of rent burden are not comparable
+  to published Spanish figures; changes in them are.
+- **Almost every purchase is mortgage-financed** (measured cash share 3.2%). Spain's own
+  contrast is 973,637 sales against 381,560 new mortgage deeds in 2023 ⇒ 60.8% unmortgaged,
+  and the model's own dossiers assume 30–40% [Funcas 104 ch.3, bank §6]. Credit policy —
+  rates, LTV, DSTI, guarantees — therefore bites harder in the model than in Spain. Fixing it
+  needs the household wealth distribution and the inheritance channel to move together.
+- **No second-home or other-province demand stream.** 50,000–60,000 purchases/yr, ≈10% of
+  transactions, stable for a decade, on top of the ≈10% non-resident share the model does
+  carry [MITMA via Funcas 104 ch.1]. Non-local demand is understated by roughly that much.
+- **No age or nationality structure.** Renting is steeply graded on both: 42.7% of
+  under-35-headed households rent against 7.5% of over-65s (83% of whom own outright), and
+  66.3% of households whose main earner was born outside Europe rent against 11.6% of
+  Spanish-headed ones [EPF via Funcas 104 ch.6]. Migration is the largest component of
+  household formation and lands almost entirely in the rental market; the model draws new
+  households from one pool.
+- **No landlord income taxation**, so the IRPF reduction on residential rent (50% general,
+  up to **90% when a new contract cuts the rent 5%**, ≈€1,039M/yr, judged effective by AIReF)
+  cannot be represented [Funcas 104 ch.7]. That is the one Spanish lever that pays landlords
+  to lower rents, and it interacts with the rent cap.
+- **No utilities**, so the Ley 12/2023 *sobreesfuerzo* definition (rent + community charges +
+  water + energy) cannot be computed — the threshold that puts 60.5% of Spanish renting
+  households above 30%, against 38.2% on rent alone [Funcas 104 ch.6].
 - **Pre-2008 regime** (appraisal inflation, 100%+ LTP, no pre-sales discipline) is NOT
   modelled; do not validate against 1997–2007 without a regime switch [developer §7.8].
 - **Enforcement intensity** of caps poorly measured [government §7.1] — compliance is a
@@ -321,11 +411,14 @@ access is the distributional one (moves when credit, prices or incomes shift who
 buy at all). Neither uses the guarantee boost — the indicator measures unassisted access;
 guarantee policies show up as the gap they close in `buyer_access`.
 
-## 12. Contrast against published BdE figures
+## 12. Contrast against published official figures
 
-`benchmarks.py` + the app's "Contraste con el BdE" tab. **Diagnostic, not a validation
-gate** — §9 is the gate. Three rules, because a comparison table reads as authoritative
-whether or not it deserves to:
+`benchmarks.py` + the app's "Contraste oficial" tab. **Diagnostic, not a validation
+gate** — §9 is the gate. Most rows are Banco de España; the rest are INE series (Censo, EPF)
+compiled in Funcas *Estudios* 104 (docs/funcas-104.md), which is where the vacancy-geography,
+rent-burden, rent-level, cash-purchase and latent-demand rows come from. Every row names its
+own source and none of them is a forecast. Three rules, because a comparison table reads as
+authoritative whether or not it deserves to:
 
 1. **There is no BdE housing forecast to compare against.** BdE's quarterly projection
    tables contain zero housing rows — no house prices, no residential investment, no starts,

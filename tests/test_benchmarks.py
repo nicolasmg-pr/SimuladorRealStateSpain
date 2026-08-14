@@ -41,6 +41,15 @@ def synthetic_frame(**overrides) -> pd.DataFrame:
         "purchase_effort": 0.37,
         "price_to_income": 7.5,
         "vacancy_market_tensioned": 0.07,
+        "vacancy_secondary": 0.12,
+        "vacancy_rural": 0.19,
+        "vacancy_rate": 0.13,
+        "ownership_rate": 0.72,
+        "rent_burden_over_30_share": 0.35,
+        "rent_national": 500.0,
+        "cash_purchase_share": 0.35,
+        "seeker_share": 0.06,
+        "households": 10_000.0,
     }
     columns.update(overrides)
     return pd.DataFrame(

@@ -35,6 +35,10 @@ class HouseholdState:
     mortgage_payment: float = 0.0  # €/quarter
     mortgage_ticks_left: int = 0
     is_foreign_cash: bool = False  # non-resident overlay buyer
+    # consecutive ticks spent as a SEEKER without finding a home. Drives the rent-burden
+    # escalation in agents/household.py (the sharing margin) — reset by clearing.settle the
+    # moment the household is housed, so it measures the current search spell, not a history.
+    ticks_searching: int = 0
     # U(0,1) drawn once from the engine's seeded Generator when the household is created.
     # Means-tested eligibility (rent subsidy) compares it against the eligible share, so
     # decide() stays pure AND reproducible — Python's hash() is salted per process and

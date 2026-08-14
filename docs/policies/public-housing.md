@@ -190,6 +190,33 @@ Springer JHBE 2016, https://link.springer.com/article/10.1007/s10901-016-9513-6)
   cost per new public rental unit of **~120,000–200,000 EUR** is our derived range —
   label: guess (derived from module prices and subsidy caps, no audited per-unit source).
 
+## 3b. Scale, speed and the Spanish baseline (Funcas 104 ch.2, ch.6, ch.8)
+
+Added 2026-08-14.
+
+- **Baseline stock.** Social rental is 1% of the Spanish stock (OECD 2023, ch.6) or 2.5%
+  (Provivienda, ch.8), against 7% across developed countries and 9.3% in the EU. The model's
+  `public_rental_share` = 0.017 sits between the two Spanish readings; the documented range
+  widens to 0.010–0.025.
+- **Historical counterfactual.** 29% of the park built since the 1980s was created under
+  public protection programmes, which combined below-market prices with interest subsidies and
+  tax relief — and those dwellings became fungible with free-market stock after a holding
+  period, which is why the parque público never accumulated [ch.4].
+- **Speed is not a law of nature.** Canada's Rapid Housing Initiative delivered **>10,000
+  dwellings in six months** by collapsing administrative steps into a single window [ch.2].
+  The model's `public_delivery_lag` range of 12–32 ticks (3–8 years) reflects Spanish practice,
+  not a physical bound; a streamlined-delivery scenario belongs at the bottom of that range.
+- **Land is the input that decides the rent.** Ley del Suelo reserves 40% of weighted
+  buildability on rural-land actions and 20% on urban renewal for protected housing, plus a
+  5–15% municipal land cession (historically 10%) — but regional law may let developers
+  substitute a cash payment, so the reserve only becomes housing where there is political will
+  [ch.4 note 3]. Current pipeline for comparison: SEPES activating public land for >16,840
+  affordable dwellings, and a plan for 184,000 affordable rental homes via MIVAU, Sareb and
+  the Fondo Social [ch.8].
+- **Warning kept from the same source**: public supply helps distributionally but only relieves
+  aggregate scarcity if it adds to total supply — which is what `crowding_out_share` is for
+  [ch.2].
+
 ## 4. Effect-size range
 
 The model must be able to reproduce all of the following, not a chosen point:

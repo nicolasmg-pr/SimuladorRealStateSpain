@@ -53,8 +53,37 @@ class ZoneConfig:
     supply_elasticity: float
     # non-resident cash demand present [Registradores concentration, household-owner §6]
     foreign_overlay: bool
+    # dwellings per household IN THIS ZONE: occupied plus EMPTY, excluding tourist rentals
+    # (held separately in `seasonal_share`). Sets the zone's initial vacant pool, of which
+    # `withheld_share` is off-market. Derived from the INE Censo-2021 empty-dwelling ladder by
+    # municipality size — empty as a share of the local park: ≤5k hab 24.6%, 5–10k 17.8%,
+    # 10–20k 15.6%, 20–40k 13.1%, 40–150k ≈11.5%, 150–500k ≈8%, 500k–1M 7.0%, >3M 6.3%
+    # (national 13.2% of a 24.96M park) [INE Censo 2021 / viviendas por intensidad de uso,
+    # via Funcas Estudios 104 ch.1 cuadro 1 — medium]. Zones map to municipality-size bands:
+    # tensioned ≈ >300k, secondary ≈ 20k–300k, rural ≈ <20k, so upH = 1/(1−empty share).
+    # The ORDERING (rural ≫ secondary > tensioned) is the sourced claim and the reason this
+    # is per-zone at all: half the Spanish empty stock sits in municipalities under 20k
+    # inhabitants holding 28% of the population, i.e. vacancy is where demand is not.
+    units_per_household: float = 1.07
+    # share of the zone's initial vacant pool that is WITHHELD — off the market, so no
+    # landlord can let it: second homes, strategic holdouts, and above all stock that is
+    # empty because it is in the wrong place and in the wrong condition. Funcas 104 ch.1 is
+    # explicit that the Spanish empty stock "can hardly serve as an umbrella" for unmet
+    # demand: provinces growing slower than the 3.1% national household rate hold >60% of it
+    # while the fastest-growing (>4.7%) hold 5%, and much of it needs substantial
+    # rehabilitation [INE/Funcas 104 ch.1 — the GRADIENT is sourced, the levels are a guess].
+    # Without the gradient the model lets rural vacancy absorb latent demand (measured:
+    # seeker share 6.2% → 5.2%), i.e. it reproduces the umbrella the source rules out.
+    #
+    # LEVELS ARE CALIBRATED, and deliberately so: they hold the *mobilisable* vacant stock,
+    # (upH − 1) × (1 − withheld_share), at the 0.0455 per household that was already
+    # calibrated against the §9 moments before the empty stock was recognised zone by zone.
+    # So recognising it changes what the model *counts*, not what the market can *use* —
+    # which is precisely the source's claim. Solve (upH − 1)(1 − w) = 0.0455 per zone.
+    withheld_share: float = 0.35
     # tourist-rental (VUT) stock at init, as a share of the zone's residential stock. Held
-    # OUTSIDE `units_per_household`, which is documented as excluding second homes — so these
+    # OUTSIDE `units_per_household`, which counts occupied plus empty dwellings only (INE
+    # classifies tourist and second-home use as separate categories) — so these
     # are additional dwellings, and converting them back (tourist-restriction lever) genuinely
     # adds housing. National weighted ≈1.8%, matching 329,764 VUT (INE, Nov 2025) against
     # 18.54M dwellings; the tensioned value is the central-Barcelona district figure of
@@ -107,12 +136,23 @@ class PopulationConfig:
 class StockConfig:
     """The initial housing stock: how many units, of what quality, where, owned by whom."""
 
-    # dwellings incl. vacant, excl. 2nd homes [Censo-derived — guess]. This is what sets
-    # the initial vacant stock (units_per_household − 1); vacancy itself is emergent and
-    # validated against the urban 6–9% Censo figure [INE via investor-small §6 — medium].
-    units_per_household: float = 1.07
+    # NATIONAL ANCHOR for dwellings per household, excl. tourist rentals. The value the
+    # engine applies is per-zone (`ZoneConfig.units_per_household`), because the empty stock
+    # is not spread evenly — this field is the household-share-weighted mean those zone values
+    # must reproduce, asserted in tests/test_validation.py. 1.12 ≈ weighted mean of the
+    # INE-derived zone ladder (1.075 / 1.124 / 1.242); the empty-only national basis is
+    # 1 + 3.29M empty / 18.9M households = 1.174 [INE Censo 2021 via Funcas 104 ch.1 — medium].
+    # Vacancy itself stays emergent, validated against the 6–9% urban Censo figure in the
+    # tensioned zone and against the rural ≫ urban ordering [INE via investor-small §6].
+    units_per_household: float = 1.12
     median_value: float = 170_000.0  # € national median main residence [EFF2024 — high]
-    avg_size_m2: float = 80.0  # m² average dwelling [Censo approx — guess]
+    # m² average dwelling. Used as the developer's build size, so it scales hard cost per
+    # dwelling: 90 m² × 1,105–1,323 €/m² ⇒ ≈100–130k € of hard cost [Afi's national average
+    # dwelling size, Funcas Estudios 104 ch.5 gráfico 4 note — medium; was an 80 m² guess].
+    # Consequence measured, docs/validation.md: rural new build (0.5 × 170,000 = 944 €/m²)
+    # falls below the sourced hard-cost floor of 1,080 €/m², so the rural zone only builds
+    # once prices have risen ≈15% — which is realistic, and tightens the zone price ladder.
+    avg_size_m2: float = 90.0
     # individuals' share of rental stock; range .85–.92 [investor-small §1 — high].
     # NOT an input: it is an emergent cross-check, reported as `small_landlord_rental_share`
     # in metrics.py and asserted in tests/test_validation.py.
@@ -274,6 +314,8 @@ class SimConfig:
                 land_share=0.45,  # 40–50
                 supply_elasticity=0.25,  # metro core: little developable land left
                 foreign_overlay=True,
+                units_per_household=1.075,  # INE: 6.3–7.7% empty in >300k-hab municipalities
+                withheld_share=0.39,  # strongest demand: most of the empty stock is usable
                 seasonal_share=0.028,  # central-district VUT share, 2.8–2.9
             ),
             ZoneConfig(
@@ -289,6 +331,8 @@ class SimConfig:
                 land_share=0.30,  # 25–35
                 supply_elasticity=0.50,  # national average
                 foreign_overlay=False,
+                units_per_household=1.124,  # INE: 11.1–13.1% empty in 20k–300k-hab
+                withheld_share=0.63,
                 seasonal_share=0.010,
             ),
             ZoneConfig(
@@ -304,6 +348,8 @@ class SimConfig:
                 land_share=0.20,  # 15–25
                 supply_elasticity=1.00,  # abundant land: supply answers price
                 foreign_overlay=False,
+                units_per_household=1.242,  # INE: 15.6–24.6% empty in <20k-hab
+                withheld_share=0.81,  # weak demand + rehabilitation need: mostly unusable
                 seasonal_share=0.005,
             ),
         )

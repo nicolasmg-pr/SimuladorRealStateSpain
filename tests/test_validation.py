@@ -14,7 +14,9 @@ from resim import metrics
 from resim.cli import build_scenario
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
-from resim.scenario import RateShock, Scenario
+from resim.metrics import SCALE
+from resim.scenario import RateShock, Scenario, ine_household_projection
+from resim.state import HouseholdStatus
 
 
 @pytest.fixture(scope="module")
@@ -44,6 +46,12 @@ def baseline_moments():
                     > tail["price_rural"].mean()
                 ),
                 "tenant_ranking": True,  # checked per-zone below via rent levels
+                "vacancy_t": tail["vacancy_tensioned"].mean(),
+                "vacancy_s": tail["vacancy_secondary"].mean(),
+                "vacancy_r": tail["vacancy_rural"].mean(),
+                "vacancy_national": tail["vacancy_rate"].mean(),
+                "burden_over_30": tail["rent_burden_over_30_share"].mean(),
+                "seeker": tail["seeker_share"].mean(),
             }
         )
     return {k: float(np.mean([r[k] for r in rows])) for k in rows[0]}
@@ -156,19 +164,14 @@ def test_vacancy(baseline_moments):
     assert 0.03 <= baseline_moments["vacancy_market_t"] <= 0.10
 
 
-def test_holdout_2021_2025_runup():
-    """Target 7 (out-of-sample episode): formation ≈260k/yr against completions
-    ≈90k/yr plus the 2024–25 easing must produce a sustained price boom with
-    record transactions and non-falling contract rents. Free parameters were NOT
-    fitted to this episode.
+def _holdout_boom(seeds):
+    """The 2021–25 episode: formation ≈264k/yr, output ≈90k/yr, easing from tick 20.
 
-    Averaged over 5 seeds. Per-seed, rent growth in the boom window spans −1.1% to +3.0%/yr
-    and the volume ratio 1.11 to 1.31, so every one of these three assertions is inside the
-    single-seed noise band — the one-seed version of this test passed on the seed it was
-    written with, not on the model's behaviour.
+    Free parameters are NOT fitted to this episode. Returns per-seed annualised tensioned
+    price growth, rent growth and the boom/pre-boom transaction ratio.
     """
     price, rent, vol = [], [], []
-    for seed in (3, 5, 7, 8, 9):
+    for seed in seeds:
         cfg = SimConfig.baseline(seed=seed, ticks=40)
         cfg = dataclasses.replace(
             cfg,
@@ -193,11 +196,132 @@ def test_holdout_2021_2025_runup():
         vol.append(
             frame["transactions"].iloc[boom].mean() / frame["transactions"].iloc[4:12].mean()
         )
+    return price, rent, vol
 
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Known gap, docs/validation.md 'Rent growth cannot outrun income': the clearing "
+    "rent equals the winning applicant's willingness to pay, which is a share of income, and "
+    "income grows at the exogenous anchor — so the rent index cannot reproduce the real "
+    "+8–11%/yr of 2021–25. Measured over 20 seeds: +0.0%/yr ±0.3pp, i.e. indistinguishable "
+    "from zero. The sharing margin (agents/household.search_burden) raises the LEVEL of "
+    "accepted burden but not the growth rate. Remove this xfail when a mechanism lands.",
+)
+def test_holdout_boom_rent_growth():
+    """Target 7, rent leg: the 2021–25 boom must produce +8–11%/yr asking-rent growth.
+
+    Asserted at +4%/yr — half the low end of the target — so the xfail is about the
+    mechanism, not about the last percentage point. The previous version of this test
+    asserted only `> 0` on 5 seeds and passed on luck: the 20-seed mean is 0.0 ± 0.3pp and
+    only 8 of 20 seeds come out positive at all.
+    """
+    _, rent, _ = _holdout_boom((3, 5, 7, 8, 9, 11, 13, 17, 19, 23))
+    assert float(np.mean(rent)) > 0.04
+
+
+def test_holdout_2021_2025_runup():
+    """Target 7 (out-of-sample episode): formation ≈260k/yr against completions
+    ≈90k/yr plus the 2024–25 easing must produce a sustained price boom with
+    record transactions. The rent leg is separate, above, and fails.
+
+    Averaged over 5 seeds. Per-seed the volume ratio spans 1.11 to 1.31, so a one-seed
+    version of this test would pass on the seed it was written with rather than on the
+    model's behaviour.
+    """
+    price, _, vol = _holdout_boom((3, 5, 7, 8, 9))
     assert float(np.mean(price)) > 0.04  # sustained boom (real: 8–13% on asking basis;
     # model index is a contract/transaction basis, structurally slower)
     assert float(np.mean(vol)) > 1.15  # record transaction volumes
-    # Rents rise, but only just (≈+0.7%/yr against a real +8–11% asking). Rent growth in this
-    # model is bounded by income growth: the acceptance threshold is a hard share of income
-    # with no sharing/overcrowding margin to absorb more. See docs/validation.md.
-    assert float(np.mean(rent)) > 0.0
+
+
+def test_vacancy_ladder(baseline_moments):
+    """Vacancy is highest where demand is weakest — rural ≫ secondary > tensioned.
+
+    Empty dwellings as a share of the local park, INE Censo 2021 by municipality size:
+    24.6% in municipalities under 5,000 inhabitants against 6.3% in Madrid, national 13.2%
+    [Funcas 104 ch.1 cuadro 1]. Half the empty stock sits in municipalities under 20,000
+    inhabitants, which hold 28% of the population. A model that spreads vacancy evenly gets
+    this ladder backwards (measured before the fix: rural was the LOWEST at 5.6%), and with
+    it the whole geography of the vacancy-tax lever.
+
+    Asserted on the full-stock basis, which includes withheld units: the source's empty
+    dwellings are exactly the stock that is not available, not the frictional turnover.
+    """
+    assert baseline_moments["vacancy_r"] > baseline_moments["vacancy_s"]
+    assert baseline_moments["vacancy_s"] > baseline_moments["vacancy_t"]
+    assert 0.156 <= baseline_moments["vacancy_r"] <= 0.246
+    assert 0.081 <= baseline_moments["vacancy_s"] <= 0.131
+    assert 0.10 <= baseline_moments["vacancy_national"] <= 0.15
+
+
+def test_zone_stock_ratios_hold_their_anchors():
+    """Two invariants on the per-zone dwellings-per-household ladder.
+
+    1. Its household-weighted mean reproduces the national anchor in `StockConfig`, the same
+       contract the supply elasticities are held to.
+    2. The *mobilisable* part — (upH − 1) × (1 − withheld_share) — is deliberately equal
+       across zones: recognising the empty stock zone by zone changes what the model counts,
+       not what its market can use, which is precisely what Funcas 104 ch.1 argues (that
+       stock "can hardly serve as an umbrella" for unmet demand). If a future calibration
+       moves the mobilisable stock, it should do so on purpose and for a reason.
+    """
+    cfg = SimConfig.baseline()
+    weighted = sum(z.household_share * z.units_per_household for z in cfg.zones)
+    assert abs(weighted - cfg.stock.units_per_household) < 0.01, f"drifted to {weighted:.3f}"
+    by_zone = {z.zone: z.units_per_household for z in cfg.zones}
+    assert by_zone[ZoneType.RURAL] > by_zone[ZoneType.SECONDARY] > by_zone[ZoneType.TENSIONED]
+    usable = [(z.units_per_household - 1.0) * (1.0 - z.withheld_share) for z in cfg.zones]
+    assert max(usable) - min(usable) < 0.004, f"mobilisable stock diverged: {usable}"
+
+
+def test_rent_burden_thresholds_are_ordered(baseline_moments):
+    """The >30% share must exceed the >40% share, and both must be reported.
+
+    The Spanish literature quotes both lines — 38.2% of renting households above 30% of
+    their consumption basket in 2022 [EPF, Funcas 104 ch.6], 4 in 10 above 40% of disposable
+    income [Eurostat via ch.2]. The model reports both so neither can be quoted as the other.
+    """
+    assert baseline_moments["burden_over_30"] > baseline_moments["overburden"]
+
+
+def test_search_burden_escalates_and_is_capped():
+    """The sharing margin: a household that keeps failing to find a home accepts more rent.
+
+    Mechanism and ceiling are sourced (agents/household.py); what this pins is that the rule
+    is monotone, starts at the drawn threshold, and cannot run away.
+    """
+    from resim.agents.household import MAX_RENT_BURDEN_CEILING, search_burden
+    from resim.state import HouseholdState
+
+    hh = HouseholdState(
+        id=1,
+        zone=ZoneType.TENSIONED,
+        income=30_000.0,
+        wealth=0.0,
+        status=HouseholdStatus.SEEKER,
+        max_rent_burden=0.35,
+    )
+    assert search_burden(hh) == pytest.approx(0.35)
+    hh.ticks_searching = 4
+    assert 0.35 < search_burden(hh) < MAX_RENT_BURDEN_CEILING
+    hh.ticks_searching = 400
+    assert search_burden(hh) == pytest.approx(MAX_RENT_BURDEN_CEILING)
+
+
+def test_ine_household_projection_is_a_declining_path():
+    """The INE 2022–2037 projection is front-loaded, not flat: 215k → 190k → 140k/yr.
+
+    `Scenario.config_at` applies interventions in order, so a later step overrides an earlier
+    one; this pins that the path is read as a path and lands on the published figures at
+    1:2,000 scale [INE via Funcas 104 ch.1 §3].
+    """
+    base = SimConfig.baseline(ticks=60)
+    scenario = Scenario(name="ine", baseline=base, interventions=ine_household_projection())
+    formation = [
+        scenario.config_at(t).population.formation_per_tick for t in (0, 19, 20, 39, 40, 59)
+    ]
+    assert formation == [27, 27, 24, 24, 18, 18]
+    per_year = [f * 4 * SCALE for f in (27, 24, 18)]
+    assert per_year == [216_000, 192_000, 144_000]
+    assert base.population.formation_per_tick == 30  # the baseline itself stays flat

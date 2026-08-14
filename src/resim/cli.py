@@ -17,6 +17,7 @@ from .config import SimConfig
 from .engine import Engine
 from .scenario import (
     DemandSubsidy,
+    HouseholdFormation,
     LandRelease,
     PublicHousing,
     RateShock,
@@ -25,6 +26,7 @@ from .scenario import (
     TouristRestriction,
     TransactionTax,
     VacancyTax,
+    ine_household_projection,
 )
 
 LEVERS = {
@@ -37,7 +39,12 @@ LEVERS = {
     "demand-subsidy": DemandSubsidy,
     "land-release": LandRelease,
     "rate-shock": RateShock,
+    "household-formation": HouseholdFormation,
 }
+
+# Multi-step paths, which are not a single Intervention. Kept apart from LEVERS so the
+# "one lever = one Intervention class" reading of that table stays true.
+PATHS = {"ine-demography": ine_household_projection}
 
 
 def config_hash(config: SimConfig) -> str:
@@ -49,6 +56,8 @@ def build_scenario(name: str, seed: int, ticks: int, **lever_kwargs) -> Scenario
     base = SimConfig.baseline(seed=seed, ticks=ticks)
     if name == "baseline":
         return Scenario(name="baseline", baseline=base)
+    if name in PATHS:
+        return Scenario(name=name, baseline=base, interventions=PATHS[name](**lever_kwargs))
     lever_cls = LEVERS[name]
     return Scenario(name=name, baseline=base, interventions=(lever_cls(**lever_kwargs),))
 
@@ -56,7 +65,9 @@ def build_scenario(name: str, seed: int, ticks: int, **lever_kwargs) -> Scenario
 def main() -> None:
     """Parse args, build a Scenario, run it, write results to runs/."""
     parser = argparse.ArgumentParser(description="Run resim headless.")
-    parser.add_argument("scenario", choices=sorted(LEVERS), default="baseline", nargs="?")
+    parser.add_argument(
+        "scenario", choices=sorted(LEVERS) + sorted(PATHS), default="baseline", nargs="?"
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ticks", type=int, default=60)
     parser.add_argument("--out", type=Path, default=Path("runs"))

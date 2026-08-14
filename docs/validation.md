@@ -1,12 +1,14 @@
 # Phase 6 — Calibration & validation report
 
-Baseline = `SimConfig.baseline()`, 60 ticks, seeds {1,2,3}, last 20 ticks averaged.
+Baseline = `SimConfig.baseline()`, 60 ticks, seeds {1..5}, last 20 ticks averaged.
 Enforced continuously by `tests/test_validation.py` — no scenario result is reported unless
 that suite passes (engineering standard, `plan.md`).
 
-Revised 2026-08-10 after the model audit. The audit changed enough of the mechanics that
-every number below was re-measured; the previous revision's figures are not comparable. What
-changed and why is in "Audit corrections" at the end.
+Revised 2026-08-14 after reading Funcas *Estudios* 104 (`docs/funcas-104.md`). Four mechanics
+changed — vacancy geography, the non-mobilisable empty stock, dwelling size, and a sharing
+margin in tenant behaviour — so every number below was re-measured on 5 seeds. What changed
+and why is in "Funcas 104 revision"; the previous "Audit corrections" section is kept below it
+for provenance.
 
 ## Direct calibration
 
@@ -17,7 +19,13 @@ share, Housing Europe/MIVAU social-rental stock.
 
 Free parameters (calibrated, labeled `guess`): buyer participation level and its two
 sensitivities, overbid dispersion, ask decay, seeker wealth, tightness pressure, hazard
-scale, inventory markdown, zone land-availability split.
+scale, inventory markdown, zone land-availability split, per-zone withheld share (its
+gradient is sourced, its levels are not) and the search-burden escalation pace (0.02–0.06,
+mechanism and ceiling sourced).
+
+Added from Funcas *Estudios* 104 (2024): per-zone dwellings-per-household from the INE
+Censo-2021 empty-dwelling ladder, 90 m² average dwelling size, and the INE household
+projection as a scenario path. See "Funcas 104 revision" below.
 
 Two parameters are now *derived* rather than fitted, which removes two degrees of freedom:
 - the developer's start-volume coefficient — the rule is a constant-elasticity form, so
@@ -27,30 +35,33 @@ Two parameters are now *derived* rather than fitted, which removes two degrees o
 
 ## Validation targets vs baseline (model-spec §9)
 
-3-seed means, last 20 of 60 ticks.
+5-seed means, last 20 of 60 ticks.
 
 | # | Target | Empirical range | Model | Pass |
 |---|---|---|---|---|
-| 1 | Ownership rate | 70–74% (EFF2024, declining) | 70.4% | ✓ (bottom of band) |
-| 1b | Non-owner share (tenant + seeker ≈ ceded/sharing) | 24–31% | 29.6% (23.7 + 6.0) | ✓ |
-| 2 | Price-to-income (disposable basis, BdE) | 7–8 | 7.64 | ✓ |
+| 1 | Ownership rate | 70–74% (EFF2024); 75.3–76.4% (MITMA/EPF, Funcas 104) | 70.1% | ✓ (bottom of every band) |
+| 1b | Non-owner share (tenant + seeker ≈ ceded/sharing) | 24–31% | 29.9% (24.1 + 5.8) | ✓ |
+| 2 | Price-to-income (disposable basis, BdE) | 7–8 | 7.58 | ✓ |
 | 2b | Price *level* ranking T > S > R | — | holds | ✓ |
-| 2c | Price-to-**income** ranking T > S > R | — | 8.19 / 6.79 / **7.22** | ✗ **see "Zone price ladder"** |
-| 3 | Transactions / households / yr | 2.5–3.6% | 3.57% | ✓ (top of band) |
-| 4 | Completions vs formation | 40–70% | 58.6% | ✓ **now measured** |
-| 5 | Market-tenant overburden (>40%) | 27–33% | 27.3% | ✓ (bottom of band) |
-| 5b | Insider/outsider wedge > 0 | — | +10.4% | ✓ **now measured** |
-| 6 | Vacancy (market basis, tensioned) | 3–10% (Censo urban 6–9 incl. 2nd homes) | 4.2% | ✓ |
-| 6b | Rate shock: volume falls, prices sticky | 2023: sales −11%, prices +4% | vol −7.5%, price −1.9% | ✓ direction, magnitude qualified |
-| 7 | Hold-out 2021–25 run-up | prices +8–13%/yr (asking), record volumes, rents up | +5–6%/yr (transaction basis), volumes +15%+, contract rents > 0 | ✓ qualified |
-| — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.6% | ✓ **new cross-check** |
-| — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 6.8% | ✓ **new cross-check** |
-| — | National supply elasticity (zone-weighted) | 0.45–0.58 | 0.49 | ✓ **new cross-check** |
+| 2c | Price-to-**income** ranking T > S > R | — | 8.03 / 6.82 / **7.40** | ✗ **see "Zone price ladder"** |
+| 3 | Transactions / households / yr | 2.5–3.6% | 3.64% | ✓ (top of band) |
+| 4 | Completions vs formation | 40–70% | 59.4% | ✓ |
+| 5 | Market-tenant overburden (>40%) | 27–33% | 29.2% | ✓ (mid-band, was 27.3%) |
+| 5b | Insider/outsider wedge > 0 | — | +10.2% | ✓ |
+| 5c | Share of market tenants > 30% of income | reported, not gated (EPF 38.2% on a consumption basket) | 58.7% | reported — **see "Rent levels"** |
+| 5d | Vacancy ranking R > S > T, with levels | R 15.6–24.6%, S 8.1–13.1%, national 10–15% (INE Censo by municipality size) | 18.2 / 12.3 / 10.0; national 12.6% | ✓ **new, was inverted** |
+| 6 | Vacancy (market basis, tensioned) | 3–10% (Censo urban 6–9 incl. 2nd homes) | 4.3% | ✓ |
+| 6b | Rate shock: volume falls, prices sticky | 2023: sales −11%, prices +4% | direction holds (magnitude qualified) | ✓ |
+| 7 | Hold-out 2021–25: prices, volumes | prices +8–13%/yr (asking), record volumes | +4.3%/yr (transaction basis), volumes +22% | ✓ qualified |
+| 7r | Hold-out 2021–25: **rents** | +8–11%/yr asking | **+0.0%/yr ± 0.3pp (20 seeds)** | ✗ **strict xfail — see "Rent growth"** |
+| — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.4% | ✓ |
+| — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 7.3% | ✓ |
+| — | National supply elasticity (zone-weighted) | 0.45–0.58 | 0.49 | ✓ |
+| — | Zone dwellings/household weight to the national anchor | 1.12 ± 0.01 | 1.12 | ✓ **new invariant** |
 
-Targets 3, 4 and 5 are now asserted on their **sourced** bands. The previous revision needed
-a +0.6pp widening on target 3 and recorded target 4 as "✓ by construction" without measuring
-it — both were artefacts of the developer start rule pinning starts against the capacity
-ceiling (see "Audit corrections", D1).
+Targets 3, 4 and 5 are asserted on their **sourced** bands. Two targets now fail and both are
+strict xfails, so the suite reports the moment a mechanism fixes either: the zone price ladder
+(2c) and the hold-out rent leg (7r).
 
 ## Zone price ladder — the one failing target
 
@@ -90,6 +101,77 @@ the suite reports the moment a mechanism fixes it. **Until it is fixed, no cross
 comparative claim from this model should be reported** — within-zone results and national
 aggregates are unaffected.
 
+## Funcas 104 revision (2026-08-14)
+
+Source: Funcas, *Estudios* 104, *Mercado inmobiliario y política de la vivienda en España*
+(2024). Full reading note, figure by figure, in `docs/funcas-104.md`. Four mechanics changed;
+each was measured before and after.
+
+**F1 — vacancy was spread evenly across zones, and the ladder came out backwards.** The model
+had one national `units_per_household` = 1.07, which produced rural as the *least* vacant zone
+(5.6% against 10.1% tensioned). The INE Censo-2021 ladder runs the other way and steeply:
+24.6% of the local park empty in municipalities under 5,000 inhabitants against 6.3% in
+Madrid, 13.2% nationally; half the empty stock sits in municipalities under 20,000
+inhabitants holding 28% of the population; provinces growing slower than the 3.1% national
+household rate hold >60% of it. `units_per_household` is now per zone (1.075 / 1.124 / 1.242,
+weighting to a national 1.12) and the ladder inverts to 18.2 / 12.3 / 10.0% with a national
+12.6%, all inside the source's bands. This matters beyond realism: the vacancy-tax lever acts
+on stock the model was putting in the wrong places.
+
+**F2 — recognising that stock must not hand it to the market.** With F1 alone, the extra rural
+vacancy absorbed latent demand (seeker share 6.2% → 5.2%) — exactly the "umbrella" Funcas ch.1
+argues does not exist, because the empty stock is where demand is not and much of it needs
+substantial rehabilitation. `withheld_share` is now per zone (0.39 / 0.63 / 0.81) and
+deliberately calibrated so the *mobilisable* stock, (upH − 1) × (1 − withheld), is unchanged
+at 0.0455 per household in every zone. So the revision changes what the model counts, not what
+its market can use. Pinned by `test_zone_stock_ratios_hold_their_anchors`; the gradient is
+sourced, the levels are not, and they are labelled accordingly.
+
+**F3 — dwelling size 80 → 90 m².** 80 was a `guess`; 90 m² is Afi's national average (ch.5).
+It is the developer's build size, so hard cost per dwelling rises 12.5%. Measured effect is
+small but one-directional and worth stating: rural new build is priced at 0.5 × 170,000 over
+90 m² = 944 €/m², **below** the sourced hard-cost floor of 1,080 €/m², so the rural zone only
+builds after prices have risen ≈15%. That is realistic (little new build happens in cheap
+rural Spain) and it tightens the zone price ladder further: T/R went 1.85× → 1.80×.
+
+**F4 — a sharing margin in tenant behaviour.** The accepted rent burden was a fixed draw,
+U(0.30, 0.40), for the whole run. Spain's is not fixed: mean rent effort rose 26.5% (2015) →
+31.7% (2021) → 29.7% (2022) of the consumption basket, the share above the 30% line 33.0% →
+43.1% → 38.2% (EPF, ch.6), 4 in 10 tenants exceed 40% of disposable income (Eurostat, ch.2),
+and the absorption channel is named explicitly — shared flats, sublet rooms, later
+emancipation (ch.4). A SEEKER's threshold now escalates with its search spell (+4%/tick,
+ceiling 0.55, reset on being housed). Measured: market-tenant overburden 27.4% → 29.2%, i.e.
+off the bottom of its band and into the middle; rent level +2%; latent demand slightly lower.
+It does **not** fix boom-time rent growth — see below.
+
+**F5 — a queue auction was tried and removed.** Letting excess rental demand clear above the
+posted ask (rent = min(willingness, ask × (1 + g·ln(applicants/listing)))) measured ≈0 at
+every gain tried. The reason is structural and is now written into `clearing.py` and
+`model-spec` §5: assortative matching already puts each applicant on a listing at the top of
+what they can afford, so there is no headroom to bid up. Kept out of the code — an inert
+mechanism is worse than none (the audit's D8 lesson).
+
+**F6 — the hold-out rent target was passing on luck, and now fails honestly.** The old test
+asserted `mean rent growth > 0` on 5 seeds and got +0.39%. Two independent perturbations (F1,
+F3) flipped it negative, which is the signature of an assertion inside its own noise band. Re-
+measured on 20 seeds: **+0.0%/yr ± 0.3pp**, with only 8 of 20 seeds positive at any escalation
+setting. It is now a separate strict xfail asserting the *real* target (+4%/yr, half the low
+end of the sourced +8–11%), so the suite reports the moment a mechanism fixes it, and the
+price and volume legs stay as ordinary passing assertions.
+
+**F7 — three new diagnostics that expose gaps rather than close them.** Reported in
+`benchmarks.py`, not gated:
+
+| Row | Official | Model | Reading |
+|---|---|---|---|
+| Cash (unmortgaged) purchases | 60.8% (INE 2023); 30–40% assumed in the dossiers | **3.2%** | The model finances nearly every purchase. Credit policy bites harder here than in Spain. |
+| Average rent paid | €516/month (EPF 2022) | **≈€1,350** | Basis differs (asking, whole 90 m² dwelling vs all sitting contracts of every size) but not by this much: there is no small-dwelling or shared-flat segment. |
+| Latent demand | 1.6M potential households (Ezquiaga) | 1.27M | Same order; bases are asymmetric (Spain's 18.9M households excludes them, the model's count includes them). |
+
+Not attempted: the second-home/other-province purchase stream (≈10% of Spanish transactions),
+age and nationality structure in tenure, landlord income taxation, and utilities. All are
+listed in `model-spec` §10 with their figures.
+
 ## Honest qualifications
 
 - **Index bases matter.** The price index is a quality-adjusted *transaction* index
@@ -106,23 +188,32 @@ aggregates are unaffected.
   postponement is not modelled (household-owner §7.7 flags the split of moving triggers into
   forced vs opportunistic as unresolved). Expect the volume response to stay understated
   until that lands.
-- **Rent growth is bounded by income growth.** In the hold-out boom the asking rent index
-  grows ≈+0.7%/yr (5-seed mean) against a real +8–11%/yr. The cause is structural, not a
-  parameter: tenants accept rent up to a hard share of income (`max_rent_burden` ~ U(0.30,
-  0.40)), incomes grow at the exogenous 2%/yr anchor, and there is **no sharing or
-  overcrowding margin** for demand to absorb more. Real Spain absorbed above-income rent
-  growth through later home-leaving, more sharing and rising burdens. `SEEKER` exists as a
-  "sharing meanwhile" state but plays no rent-absorbing role. Treat the model's boom-time
-  rent response as a floor, and do not use it to size rent-inflation claims.
+- **Rent growth is bounded by income growth** (target 7r, now a strict xfail). The clearing
+  rent equals the winning applicant's willingness to pay, which is a share of income, and
+  income grows at the exogenous 2%/yr anchor. Measured over 20 seeds the hold-out boom
+  response is +0.0%/yr ± 0.3pp against a real +8–11%/yr. The sharing margin added in this
+  revision (F4) raises the accepted *level* — overburden 27.4% → 29.2% — but cannot change the
+  growth rate, and a queue auction on top of the ask measured ≈0 because matching is already
+  assortative (F5). **Do not use this model to size any rent-inflation claim.**
+- **Rent levels are not comparable to published Spanish figures; changes in them are.** Every
+  model tenant rents one whole 90 m² dwelling at asking level, so the national rent index
+  (≈€1,350/month) sits ≈2.6× the EPF average rent actually paid (€516 in 2022), and the share
+  of market tenants above 30% of income reads 58.7% against EPF's 38.2% of the consumption
+  basket. Spain's renters use a margin the model does not have: a young median earner there
+  crosses one third of income at 30 m² and half at 45 m² (Funcas 104 ch.5). The >40% market
+  overburden target survives this because it was calibrated on the same basis; the absolute
+  rent and >30% rows were not, and are reported as diagnostics.
 - **Tourist-restriction magnitude is conservative and noisy.** 5-seed means: rents −0.85%,
   prices −0.88%, against the dossier's implied −1.9% / −5.3% (Garcia-López et al. 2020
   reversed). Direction is right and the phase-out works (seasonal stock 183 → 15 units), but
   only `vut_conversion_share` = 0.30 of phased-out units return to the long-term market
   (sourced range .10–.50), and the per-seed spread is −6.0% to +3.2% — wider than the effect.
   Any claim from this lever needs a multi-seed mean.
-- **Ownership and overburden both sit at the bottom of their bands**, price-to-income and
-  transactions near the top. The model is internally consistent but leaves little headroom;
-  a parameter sweep should treat these four as jointly constrained rather than independent.
+- **Ownership sits at the bottom of its band**, price-to-income and transactions near the
+  top; overburden moved to mid-band with the sharing margin. Funcas 104 widens the ownership
+  question rather than settling it: EPF 2022 says 76.4% of households own, MITMA 75.3% of the
+  park, EFF 70–74%. On all three bases the model's 70.1% is the low end. The four moments are
+  jointly constrained — a parameter sweep should not treat them as independent.
 - **`landlord_required_spread` was deliberately NOT re-fitted.** Overburden initially came out
   1.5pp below its band and the sensitivity screen names this spread as the dominant lever for
   it. But 0.02 is *directly observed* (tensioned-zone yield 4.7–5.6 against a ~3% bond), and
@@ -266,7 +357,13 @@ Defects found and fixed. Each was verified by measurement before and after, not 
 
 ## Known gaps
 
-- Zone price ladder compression (blocking for cross-zone claims — see above).
+- Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
+- Rent level and cash-purchase share, both exposed by the Funcas 104 contrast rows (F7).
+- No second-home/other-province demand stream, no age or nationality structure in tenure, no
+  landlord income taxation, no utilities — figures and consequences in `docs/funcas-104.md` §4.
+- Zone price ladder compression (blocking for cross-zone claims — see above). Calibration
+  evidence for the location-amenity fix now exists (Funcas 104 ch.5: Madrid/Barcelona wages
+  +45%, cost of living +20%, net +21%); the mechanism decision does not.
 - Sensitivity screen needs re-running post-audit.
 - Formal Morris screening + Sobol indices not yet run (light OAT only).
 - Latin-hypercube moment fitting not needed yet — hand calibration hits the targets — but

@@ -138,6 +138,30 @@ scratch `sources/policy-vacancy-tax.md`. All effect estimates kept as ranges.
   Empirically C.D. Howe finds **no rent decline** in Vancouver: mobilization ≠ measured
   price relief, at least at city scale over 5 years.
 
+## 3b. Where the empty stock actually is (Funcas 104 ch.1, INE Censo 2021)
+
+Added 2026-08-14. This is the strongest constraint on what the lever can achieve, and it is
+geographic, not behavioural.
+
+- Empty dwellings as a share of the local park: **24.6%** in municipalities under 5,000
+  inhabitants, 15.6% at 10–20k, 13.1% at 20–40k, ≈11.5% at 40–150k, ≈8% at 150–500k, **6.3%**
+  in Madrid. National 13.2% of a 24.96M park (3.29M dwellings; the chapter text cites 3.8M on
+  a wider definition).
+- Municipalities under 20,000 inhabitants hold **50% of the empty stock** with 28% of the
+  population. Provinces whose household count grew slower than the 3.1% national rate hold
+  **>60%** of it; the fastest-growing provinces (>4.7%) hold **5%**.
+- The chapter's own conclusion: this stock "can hardly serve as an umbrella" for unmet demand
+  — wrong location, and much of it needing substantial rehabilitation.
+
+Consequences for this lever, both already in the model (`ZoneConfig.units_per_household`,
+`ZoneConfig.withheld_share`, see `docs/funcas-104.md`): a national vacancy tax mobilises stock
+where demand is weakest, so the units it frees are not the units the tensioned market needs;
+and a tax whose bite is calibrated on tensioned-zone vacancy is calibrated on the 6–7% tail of
+the distribution, not on the 20%+ mass. The Ley 12/2023 instrument itself is confirmed by
+ch.7: a **50–150% IBI surcharge** on owners of four or more residential dwellings empty ≥2
+years without justification, i.e. ≈0.1–0.8% of market value per year at typical IBI rates —
+the low half of this model's `vacancy_tax_rate` range.
+
 ## 4. Effect-size range
 
 All ranges, never points; Spanish causal evidence is absent — international estimates

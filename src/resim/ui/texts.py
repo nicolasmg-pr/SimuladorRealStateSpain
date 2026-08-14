@@ -514,6 +514,13 @@ medido, una banda de sobrevaloración, una elasticidad de oferta. Eso sí es com
 lo que hay en esta tabla: las cifras nacionales del modelo frente a la cifra oficial de la
 misma variable.
 
+La mayoría de las filas son del BdE. El resto son series del INE (Censo y Encuesta de
+Presupuestos Familiares) recopiladas en Funcas, *Estudios* 104, *Mercado inmobiliario y
+política de la vivienda en España* (2024): vivienda vacía por tamaño de municipio, esfuerzo
+del alquiler, gasto medio en alquiler, compras sin hipoteca y demanda embalsada. Cada fila
+lleva su fuente; ninguna es una previsión. El detalle de qué es y qué no es cada cifra está
+en `docs/funcas-104.md`.
+
 Tres cosas distintas, a propósito separadas:
 
 - **`docs/validation.md`** — ¿la base reproduce la historia? **Es una puerta**: ningún

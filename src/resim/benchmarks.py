@@ -1,4 +1,9 @@
-"""Contrast between what the model produces and what Banco de España actually publishes.
+"""Contrast between what the model produces and the official published Spanish figures.
+
+Most rows are Banco de España; the rest are INE series (Censo, EPF) as compiled in Funcas
+*Estudios* 104, *Mercado inmobiliario y política de la vivienda en España* (2024) — see
+docs/funcas-104.md for what each of those figures is and is not. Every row names its own
+source; none of them is a forecast.
 
 **Read this first: BdE publishes no housing forecast.** Its quarterly macro projection
 tables contain zero housing rows — no house prices, no residential investment, no starts,
@@ -109,6 +114,20 @@ def _transactions_share(frame: pd.DataFrame, config: SimConfig) -> float:
 
 def _zone_weighted_supply_elasticity(_frame: pd.DataFrame, config: SimConfig) -> float:
     return sum(z.household_share * z.supply_elasticity for z in config.zones)
+
+
+def _latent_demand(frame: pd.DataFrame, _config: SimConfig) -> float:
+    """Households in the model with no dwelling of their own, at national scale.
+
+    The comparable published figure is Ezquiaga's deficit of ≈1.6M *potential* young
+    households: people who would head a household at the 2002–08 age structure and do not,
+    because they cannot afford to leave home or are sharing. Basis warning, in both
+    directions: Spain's 18.9M households does NOT count them, while the model's household
+    count DOES (a SEEKER is an existing model household without a unit). The like-for-like
+    Spanish ratio is therefore 1.6/(18.9+1.6) ≈ 7.8%.
+    """
+    tail = frame.tail(WINDOW)
+    return float((tail["seeker_share"] * tail["households"]).mean()) * SCALE
 
 
 # HICP 2025, used to put BdE's *real* asking-rent growth on the model's nominal basis
@@ -296,6 +315,128 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         note="No comparable con los 3,8M absolutos del censo: ese total incluye segundas "
         "residencias y parque retenido, que el modelo contabiliza aparte.",
     ),
+    Benchmark(
+        key="vacancy_rural",
+        label="Vivienda vacía (zona rural, todo el parque vacío)",
+        official=0.195,
+        band=(0.156, 0.246),
+        unit="% del parque",
+        fmt=".1%",
+        period="Censo 2021, municipios <20.000 hab.",
+        source="INE Censo 2021 vía Funcas 104 cap. 1, cuadro 1",
+        basis="vacantes de la zona (incluido parque retenido) / parque de la zona",
+        model=lambda f, c: _mean(f, "vacancy_rural"),
+        note="La mitad del parque vacío español está en municipios de menos de 20.000 "
+        "habitantes, que reúnen el 28% de la población: el vacío está donde no hay demanda. "
+        "Aquí sí entra el parque retenido, porque es precisamente el que la fuente describe "
+        "como no movilizable (mala localización y necesidad de rehabilitación).",
+    ),
+    Benchmark(
+        key="vacancy_secondary",
+        label="Vivienda vacía (ciudad secundaria)",
+        official=0.115,
+        band=(0.081, 0.131),
+        unit="% del parque",
+        fmt=".1%",
+        period="Censo 2021, municipios 20.000–300.000 hab.",
+        source="INE Censo 2021 vía Funcas 104 cap. 1, cuadro 1",
+        basis="vacantes de la zona (incluido parque retenido) / parque de la zona",
+        model=lambda f, c: _mean(f, "vacancy_secondary"),
+    ),
+    Benchmark(
+        key="vacancy_national",
+        label="Vivienda vacía (nacional)",
+        official=0.132,
+        band=None,
+        unit="% del parque",
+        fmt=".1%",
+        period="Censo 2021 (3,29M de un parque de 24,96M)",
+        source="INE Censo 2021 vía Funcas 104 cap. 1, cuadro 1",
+        basis="vacantes / parque total del modelo",
+        model=lambda f, c: _mean(f, "vacancy_rate"),
+        note="El texto del capítulo cita 3,8M de viviendas vacías; el cuadro suma 3,29M. Se "
+        "usa el cuadro, que es el que da el desglose por tamaño de municipio.",
+    ),
+    Benchmark(
+        key="ownership_rate",
+        label="Hogares en propiedad",
+        official=0.75,
+        band=(0.70, 0.77),
+        unit="% de hogares",
+        fmt=".1%",
+        period="2022–2023",
+        source="EPF 2022 (76,4%) vía Funcas 104 cap. 6; MITMA 75,3% cap. 8; EFF2024 70–74%",
+        basis="mismo indicador, hogares del modelo",
+        model=lambda f, c: _mean(f, "ownership_rate"),
+        note="Tres fuentes y tres bases: EPF y ECV miden hogares (76,4% y 17,7% en alquiler, "
+        "5,8% cedidas), la EFF da 70–74% y el 75,3% del cap. 8 es sobre parque. El modelo "
+        "queda en el borde bajo de todas ellas.",
+    ),
+    Benchmark(
+        key="rent_burden_over_30",
+        label="Inquilinos con alquiler > 30% de sus ingresos",
+        official=0.382,
+        band=(0.31, 0.44),
+        unit="% de hogares en alquiler",
+        fmt=".1%",
+        period="2022 (2015: 33,0% · 2019: 33,5% · 2021: 43,1%)",
+        source="EPF vía Romero-Jordán, Funcas 104 cap. 6, cuadro 2",
+        basis="inquilinos de mercado con alquiler/renta > 0,30",
+        model=lambda f, c: _mean(f, "rent_burden_over_30_share"),
+        note="⚠️ Bases distintas: la fuente mide el alquiler sobre la CESTA DE CONSUMO y el "
+        "modelo sobre la renta bruta, así que el modelo debería quedar por debajo. Con "
+        "suministros básicos incluidos (el «sobreesfuerzo» de la Ley 12/2023) la fuente sube "
+        "al 60,5%, algo que el modelo no puede calcular: no tiene gastos de energía ni agua.",
+    ),
+    Benchmark(
+        key="rent_level",
+        label="Gasto medio mensual en alquiler",
+        official=516.0,
+        band=(476.0, 560.0),
+        unit="€/mes",
+        fmt=",.0f",
+        period="2022 (2019: 476 € · 2021: 505 €; SEF 2021 ≈520 €)",
+        source="EPF vía Funcas 104 cap. 6, cuadro 2",
+        basis="índice de alquiler nacional del modelo (€/mes de una vivienda estándar)",
+        model=lambda f, c: _mean(f, "rent_national"),
+        note="Contraste de NIVEL, no de crecimiento: sirve para ver si el ancla de alquiler "
+        "del modelo (precio × rentabilidad bruta por zona) está en el orden correcto. La "
+        "dispersión territorial real es enorme: Madrid 675 € frente a Extremadura 277 €.",
+    ),
+    Benchmark(
+        key="cash_purchases",
+        label="Compras sin hipoteca",
+        official=0.608,
+        band=(0.30, 0.61),
+        unit="% de compraventas",
+        fmt=".1%",
+        period="2023 (973.637 compraventas, 381.560 hipotecas)",
+        source="INE vía Carbó y Rodríguez, Funcas 104 cap. 3",
+        basis="proporción de operaciones marcadas `cash` en el modelo",
+        model=lambda f, c: _mean(f, "cash_purchase_share"),
+        note="⚠️ La banda cubre un desacuerdo real, no ruido: los expedientes del modelo "
+        "asumen 30–40% de compras al contado [bank §6] y el contraste INE implica 60,8%. Las "
+        "dos series no cuentan lo mismo (la de hipotecas son escrituras nuevas sobre "
+        "vivienda, no incluye subrogaciones ni desfases de registro), pero el orden de "
+        "magnitud importa: si la mitad del mercado no pasa por el banco, la política de "
+        "crédito muerde menos de lo que este modelo supone.",
+    ),
+    Benchmark(
+        key="latent_demand",
+        label="Demanda embalsada (hogares potenciales sin vivienda)",
+        official=1_600_000.0,
+        band=None,
+        unit="hogares",
+        fmt=",.0f",
+        period="2022",
+        source="Ezquiaga, Funcas 104 cap. 4 (EFF: hogares <35 años, 15% en 2002 → <6% en 2022)",
+        basis="hogares del modelo en estado SEEKER × 2.000",
+        model=_latent_demand,
+        note="⚠️ Bases asimétricas: los 18,9M de hogares españoles NO incluyen esos 1,6M "
+        "hogares potenciales, mientras que el recuento de hogares del modelo SÍ incluye a sus "
+        "SEEKER. La ratio comparable española es 1,6/(18,9+1,6) ≈ 7,8%. Es la contrapartida "
+        "del parque vacío: coexisten porque el vacío está donde no hay demanda.",
+    ),
 )
 
 
@@ -326,7 +467,7 @@ def contrast(frames: pd.DataFrame | list[pd.DataFrame], config: SimConfig) -> pd
                 "key": b.key,
                 "Indicador": b.label,
                 "Modelo": format(model_value, b.fmt),
-                "Oficial (BdE)": format(b.official, b.fmt),
+                "Oficial (publicado)": format(b.official, b.fmt),
                 "Banda": (
                     f"{format(b.band[0], b.fmt)} – {format(b.band[1], b.fmt)}" if b.band else "—"
                 ),

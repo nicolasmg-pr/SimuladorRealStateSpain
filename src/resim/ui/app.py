@@ -346,8 +346,8 @@ def compare_tab(seed: int, ticks: int, momentum: float) -> None:
 
 
 def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) -> None:
-    """Model output against the figures Banco de España actually publishes."""
-    st.subheader("Contraste con el Banco de España")
+    """Model output against the official published figures (BdE, INE/EPF via Funcas 104)."""
+    st.subheader("Contraste con las cifras oficiales publicadas")
     st.markdown(texts.BDE_INTRO)
 
     scenario_label = "base (sin política)" if lever == "ninguna" else lever
@@ -387,7 +387,7 @@ def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) ->
             [
                 "Indicador",
                 "Modelo",
-                "Oficial (BdE)",
+                "Oficial (publicado)",
                 "Banda",
                 "Δ relativa",
                 "Encaja",
@@ -409,7 +409,7 @@ def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) ->
         flagged = "⚠️ " if row["note"].startswith("⚠️") else ""
         with st.expander(f"{row['Encaja']} {flagged}{row['Indicador']}"):
             st.markdown(
-                f"- **Modelo:** {row['Modelo']}  ·  **Oficial:** {row['Oficial (BdE)']}"
+                f"- **Modelo:** {row['Modelo']}  ·  **Oficial:** {row['Oficial (publicado)']}"
                 f"  ·  **Δ** {row['Δ relativa']}\n"
                 f"- **Periodo de la cifra oficial:** {row['Periodo']}\n"
                 f"- **Fuente:** {row['Fuente']}\n"
@@ -472,7 +472,7 @@ def main() -> None:
         [
             "📈 Explorar una política",
             "⚖️ Comparar políticas",
-            "🏛️ Contraste con el BdE",
+            "🏛️ Contraste oficial",
             "❓ Cómo funciona el modelo",
         ]
     )
