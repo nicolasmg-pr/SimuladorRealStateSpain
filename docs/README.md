@@ -16,4 +16,10 @@ Does not belong:
 - Screenshots or binary files
 - Secrets. Never.
 
+One exception to "no binary files": a primary source PDF the model is calibrated against may
+be kept here when it is not reliably retrievable from a stable URL, and only alongside a
+markdown reading note that extracts every figure we actually use. Today that is
+`Estudios104_3.pdf` (Funcas, Estudios 104, 2024) with `funcas-104.md`. The note is the
+artefact; the PDF is the receipt.
+
 Each file: one topic. If pasted from the web, include source URL and date.
