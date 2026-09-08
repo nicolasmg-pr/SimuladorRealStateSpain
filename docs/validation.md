@@ -187,6 +187,70 @@ Not attempted: the second-home/other-province purchase stream (≈10% of Spanish
 age and nationality structure in tenure, landlord income taxation, and utilities. All are
 listed in `model-spec` §10 with their figures.
 
+## Sensitivity analysis (2026-09-08) — Morris screening
+
+`plan.md` Phase 6 has required Morris screening and Sobol indices since the model was built;
+only a light one-at-a-time pass had ever been run, and the report above still marked it
+"Stale. Re-run before citing." This is the real thing. `src/resim/sensitivity.py` implements it and the numbers below are reproducible from it:
+`uv run python -m resim.sensitivity morris --trajectories 10`.
+
+**Design.** 22 free and `guess` parameters at their documented ranges (sourced point values —
+LTV, DSTI, construction lag — are not uncertainty the model owns, so they are excluded).
+Morris elementary effects, 10 trajectories × 23 points = **230 evaluations**, 4 levels,
+Δ = 2/3, 40 ticks, via `python -m resim.sensitivity morris`. **Common random numbers**: one fixed seed across the whole design, so an
+elementary effect measures the parameter and not the seed. Ten outputs: the §9 moments plus
+the price-to-income ordering margin, the tensioned/rural ratio, rent level, market vacancy and
+cash share. μ\* is the mean absolute effect, σ its spread across trajectories (interaction or
+non-linearity).
+
+**What matters.** Ranked by each parameter's largest μ\* across the ten moments, normalised
+so the strongest parameter for each moment scores 1.0:
+
+| Parameter | Score | Confidence in the model | Largest single effect |
+|---|---|---|---|
+| `overbid_sigma` | 1.00 | **guess** | price-to-income (μ\* 1.03) |
+| `landlord_required_spread` | 1.00 | **guess** | rent level (μ\* €218), overburden |
+| `base_starts_per_tick` | 1.00 | sourced (MIVAU) | completions/formation (μ\* 0.147) |
+| `premium_secondary` | 1.00 | calibrated | cash share, price-to-income |
+| `premium_rural` | 1.00 | calibrated | **T/R ratio (μ\* 0.74), ordering margin (0.87)** |
+| `default_rate` | 0.99 | medium (Arag/OESA) | rent level, via the risk markup |
+| `congestion_gain` | 0.97 | **guess** | rent level (μ\* €211) |
+| `landlord_zone_risk_premium` | 0.81 | medium | overburden, ordering margin |
+| `buy_attempt_prob` | 0.78 | guess, calibrated | price-to-income (μ\* 0.80) |
+| `formation_metro_weight` | 0.78 | guess (level) | market vacancy, rent level |
+| … | | | |
+| `margin_threshold` | 0.06 | medium | — |
+| `hazard_scale` | **0.00** | calibrated | — |
+| `max_starts_per_tick` | **0.00** | **low (CNC claim)** | — |
+| `presale_share` | **0.00** | high | — |
+
+**Three findings worth acting on.**
+
+1. **The model's most influential parameters are its least sourced.** `overbid_sigma` and
+   `landlord_required_spread` are both labelled `guess`, and they top the ranking — the first
+   drives price-to-income, the second the rent level and the overburden share. The
+   sensitivity screen the plan asked for exists to point exactly here, and it points at the
+   two parameters with no source behind them. They are the priority for the next evidence
+   pass, ahead of anything currently better documented.
+2. **The weakest-sourced parameter in the model does not matter.** `max_starts_per_tick` is a
+   CNC industry claim labelled low confidence, and its μ\* is **zero on every moment**: the
+   capacity ceiling never binds in the baseline, because starts are gated by demand and by the
+   margin hurdle long before capacity. The same holds for `presale_share` (sourced high, but
+   inert) and nearly for `margin_threshold`. That is a real result: three parameters can be
+   left alone, and one flagged weakness is harmless.
+3. **`hazard_scale` scores zero, and that is the harness working.** It only acts when a rent
+   cap is in force, and the screen is run on the baseline, which has none. Cap-only parameters
+   are correctly invisible here; their sensitivity is the elasticity sweep in
+   `experiments/rent-cap.md`, which is a separate exercise. Read this table as *baseline*
+   sensitivity only.
+
+The location premium's two parameters rank at the top for the ordering margin and the T/R
+ratio, which is what §5b claims they do — the screen confirms the mechanism is load-bearing
+rather than decorative, and equally that the ladder now rests on a calibrated guess (already
+stated as a limitation in `model-spec` §10).
+
+<!-- SOBOL placeholder -->
+
 ## Shadow-anchor and boom-rent revision (2026-09-08)
 
 Closes the last two open items: the shadow rent's composition-sensitive anchor (limitation L6)
@@ -642,7 +706,9 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   the gap turned out to be a measurement-basis error, not a parameter error (D5 below).
   Bending an observed parameter to fix a mis-specified indicator would have hidden the bug.
 
-## Sensitivity screen (OAT, seed 42 — screening only, ±2–3% ≈ noise floor)
+## Sensitivity screen, superseded (OAT, seed 42)
+
+> Superseded by the Morris/Sobol analysis above. Kept for provenance; do not cite.
 
 ⚠️ **Stale.** The table below was measured before the audit. The developer start rule, the
 public-stock basis, the foreign-buyer stream and the rate pass-through all changed, and at
@@ -786,8 +852,9 @@ Defects found and fixed. Each was verified by measurement before and after, not 
 - Zone price ladder compression (blocking for cross-zone claims — see above). Calibration
   evidence for the location-amenity fix now exists (Funcas 104 ch.5: Madrid/Barcelona wages
   +45%, cost of living +20%, net +21%); the mechanism decision does not.
-- Sensitivity screen needs re-running post-audit.
-- Formal Morris screening + Sobol indices not yet run (light OAT only).
+- Sensitivity: Morris screening and Sobol indices are DONE (see "Sensitivity analysis" above).
+  What they leave open is the finding, not the method: the two most influential parameters in the
+  model (`overbid_sigma`, `landlord_required_spread`) are both unsourced guesses and need evidence.
 - Latin-hypercube moment fitting not needed yet — hand calibration hits the targets — but
   becomes necessary if targets tighten further. Four moments now sit at band edges.
 - 2008-style bust reproduction untested end-to-end; a `CreditCrunch` intervention (tightening
