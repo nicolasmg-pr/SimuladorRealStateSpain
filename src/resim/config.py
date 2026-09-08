@@ -47,15 +47,28 @@ class ZoneConfig:
     land_share: float
     # long-run price elasticity of starts IN THIS ZONE. Land availability is what separates
     # the zones: a tensioned metro core cannot answer a price rise with much new supply, a
-    # rural municipality can. Without this gradient nothing holds the zone price ladder
-    # apart — every zone converges on its own households' credit ceiling and the T/R price
-    # ratio collapses (measured: 3.2× → 1.85× over 60 ticks, with rural ending LESS
-    # affordable than the secondary city). Household-share-weighted average is held at the
-    # sourced national 0.45–0.58 [Caldera&Johansson/BdE]; the split across zones is a
-    # Saiz-style land-availability gradient [guess — developer §7.3, weakest evidence block]
+    # rural municipality can. It is NOT what holds the zone price ladder apart — adding this
+    # gradient moved the tensioned/rural ratio by 0.04, and `location_premium` is what does
+    # the work (model-spec §5b). It is kept because zone-targeted supply policy (land
+    # release) behaves differently by zone, which a uniform elasticity cannot show.
+    # Household-share-weighted average is held at the sourced national 0.45–0.58
+    # [Caldera&Johansson/BdE]; the split across zones is a Saiz-style land-availability
+    # gradient [guess — developer §7.3, weakest evidence block]
     supply_elasticity: float
     # non-resident cash demand present [Registradores concentration, household-owner §6]
     foreign_overlay: bool
+    # multiplier on what a household will pay for a standard dwelling HERE, normalised to 1.0
+    # in TENSIONED (model-spec §5b). A discount on the low-amenity zones, not a metro bonus:
+    # bids are clipped by the credit limit, so a bonus is inert, while a discount binds on
+    # willingness rather than ability — a rural household that could borrow €137k does not
+    # offer it for a rural dwelling. Calibrated to the observed price gradient (Tinsa 2026Q1
+    # provincial €/m²: Madrid 3,565 / Barcelona 2,772 vs Ciudad Real 776 / Zamora 881, i.e.
+    # metro/rural ≈ 3.5–4.5), which the zone `price_multiplier` ladder 1.6/0.9/0.5 also
+    # reflects; the wage gradient (De la Roca & Puga 2017: Madrid +46% vs the median city,
+    # +55% vs rural) is why such a premium is sustainable, and part of it already sits in
+    # `income_multiplier`. Value calibrated, direction and existence sourced
+    # [kb-refresh-2026-09 §5; docs/validation.md location-premium revision — guess (level)]
+    location_premium: float = 1.0
     # dwellings per household IN THIS ZONE: occupied plus EMPTY, excluding tourist rentals
     # (held separately in `seasonal_share`). Sets the zone's initial vacant pool, of which
     # `withheld_share` is off-market. Derived from the INE Censo-2021 empty-dwelling ladder by
@@ -378,6 +391,7 @@ class SimConfig:
                 land_share=0.45,  # 40–50
                 supply_elasticity=0.25,  # metro core: little developable land left
                 foreign_overlay=True,
+                location_premium=1.0,  # numeraire: the metro is what the others are priced against
                 units_per_household=1.075,  # INE: 6.3–7.7% empty in >300k-hab municipalities
                 withheld_share=0.39,  # strongest demand: most of the empty stock is usable
                 seasonal_share=0.025,  # weights to INE May-2026 341k VUT (was .028 ≈ 374k)
@@ -395,6 +409,7 @@ class SimConfig:
                 land_share=0.30,  # 25–35
                 supply_elasticity=0.50,  # national average
                 foreign_overlay=False,
+                location_premium=0.85,
                 units_per_household=1.124,  # INE: 11.1–13.1% empty in 20k–300k-hab
                 withheld_share=0.63,
                 seasonal_share=0.010,
@@ -412,6 +427,7 @@ class SimConfig:
                 land_share=0.20,  # 15–25
                 supply_elasticity=1.00,  # abundant land: supply answers price
                 foreign_overlay=False,
+                location_premium=0.45,
                 units_per_household=1.242,  # INE: 15.6–24.6% empty in <20k-hab
                 withheld_share=0.81,  # weak demand + rehabilitation need: mostly unusable
                 seasonal_share=0.005,

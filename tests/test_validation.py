@@ -51,6 +51,8 @@ def baseline_moments():
                     > tail["price_secondary"].mean()
                     > tail["price_rural"].mean()
                 ),
+                "price_ratio_tr": (tail["price_tensioned"] / tail["price_rural"]).mean(),
+                "price_ratio_ts": (tail["price_tensioned"] / tail["price_secondary"]).mean(),
                 "tenant_ranking": True,  # checked per-zone below via rent levels
                 "vacancy_t": tail["vacancy_tensioned"].mean(),
                 "vacancy_s": tail["vacancy_secondary"].mean(),
@@ -82,23 +84,30 @@ def test_price_ordering(baseline_moments):
     assert baseline_moments["price_ranking"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known gap, docs/validation.md 'Zone price ladder': no location-amenity term, so "
-    "relative zone prices converge on relative credit ceilings (i.e. relative incomes, "
-    "1.15/1.0/0.80) instead of a location premium. T/R falls 3.2x -> 1.9x over 60 ticks and "
-    "rural price-to-income overtakes the secondary city. Needs a spatial-preference "
-    "mechanism, not a parameter change — remove this xfail when one lands.",
-)
 def test_price_to_income_ordering(baseline_moments):
     """Target 2 (second half): price-to-income must rank T > S > R, not just price levels.
 
-    The price-level ordering (2b) survives the ladder compression; this one does not, which
-    is why it was worth separating. Left as a strict xfail so the suite tells us the moment
-    a spatial mechanism fixes it.
+    A strict xfail until the location premium landed (model-spec §5b): with nothing making a
+    location intrinsically worth more, rural demand had no ceiling of its own, rural prices
+    ran to twice replacement cost and rural price-to-income (7.4) passed the secondary city
+    (6.7). Now 8.5 / 6.3 / 4.8 on 3 seeds.
     """
     assert baseline_moments["pti_tensioned"] > baseline_moments["pti_secondary"]
     assert baseline_moments["pti_secondary"] > baseline_moments["pti_rural"]
+
+
+def test_zone_price_ladder_holds(baseline_moments):
+    """The tensioned/rural price ratio must still be a ladder at the end of a 60-tick run.
+
+    It is the model's own initial gradient (`price_multiplier` 1.6 / 0.9 / 0.5 ⇒ 3.2) that has
+    to survive its dynamics; before the location premium it decayed to 1.9. Spain's provincial
+    extremes are wider still (Madrid €3,565/m² against Ciudad Real €776, ≈4.6 — Tinsa 2026Q1),
+    but the model's zones are broad aggregates (a tensioned zone holding 45% of households is
+    not Madrid province), so the target is that the ladder holds, not that it reaches the
+    provincial spread. Asserted loosely: seed spread on this ratio is ±0.1.
+    """
+    assert baseline_moments["price_ratio_tr"] > 2.6
+    assert baseline_moments["price_ratio_ts"] > 1.3
 
 
 def test_transaction_volume(baseline_moments):

@@ -4,6 +4,9 @@ Baseline = `SimConfig.baseline()`, 60 ticks, seeds {1..5}, last 20 ticks average
 Enforced continuously by `tests/test_validation.py` — no scenario result is reported unless
 that suite passes (engineering standard, `plan.md`).
 
+Revised 2026-09-08, third pass ("Location-premium revision" below): the zone price ladder
+holds and the price-to-income ordering is restored, closing the model's oldest known gap.
+
 Revised 2026-09-08, second pass ("Tensioned-tightness revision" below): the rent-cap gate's
 supply leg is met — metro-weighted formation, a shadow rent landlords compare the cap against,
 hazard scale re-fitted; every §9 moment re-measured on 5 seeds.
@@ -179,6 +182,96 @@ price and volume legs stay as ordinary passing assertions.
 Not attempted: the second-home/other-province purchase stream (≈10% of Spanish transactions),
 age and nationality structure in tenure, landlord income taxation, and utilities. All are
 listed in `model-spec` §10 with their figures.
+
+## Location-premium revision (2026-09-08)
+
+Closes the model's oldest known gap: the zone price ladder. Mechanism specified in
+`model-spec` §5b before it was coded, per the engineering standard.
+
+**L1 — the recorded diagnosis was wrong, and the wrong diagnosis ruled out the fix.** Every
+earlier draft said relative zone prices "converge on relative credit ceilings, i.e. relative
+incomes". Measured, that is not what happens: the median non-owner's credit limit runs at
+0.19–0.47 of the tensioned price and 0.58–0.69 of the rural price for the whole run, so the
+median household can buy nothing anywhere and prices are set by the upper tail. What actually
+drives the collapse is that **rural demand has no ceiling of its own**. Rural starts at
+€85,000 against a €97,200 hard cost — below replacement, so no developer builds there; its
+capacity is capped at 4.8 starts a tick against 4.9 households formed; and migration is
+downward-only, so every household priced out of a metro is added to rural demand with no
+counterflow. Rural prices climb to **twice replacement cost** (€85k → €198k, +133%, P/I 4.1 →
+8.4) while tensioned rises 34%, and the ladder closes from below. This matters beyond
+book-keeping: the old diagnosis implied a willingness-to-pay term could not work, since
+willingness is clipped by the credit screen. It cannot work *upward*. It works downward.
+
+**L2 — the premium is a discount on the low-amenity zones.** `ZoneConfig.location_premium`
+multiplies purchase willingness, normalised to 1.0 in TENSIONED. A bonus on the metro would be
+inert — bids are clipped at the bank limit, so a household told to pay more pays its ceiling.
+A discount binds on willingness rather than ability: a rural household that could borrow €137k
+does not offer it for a rural dwelling. Screened S ∈ {0.7, 0.8, 0.85, 0.9, 1.0} × R ∈ {0.4,
+0.45, 0.5, 0.55, 0.7, 1.0}, first on 1 seed then on 3 against every §9 gate:
+
+| S | R | T/R (from 3.21) | T/S | P/I T / S / R | P/I national | gates failing |
+|---|---|---|---|---|---|---|
+| 1.00 | 1.00 (none) | 1.90 | 1.48 | 8.4 / 6.7 / **7.4** | 7.74 | P/I ordering |
+| 0.90 | 0.50 | 2.69 | 1.55 | 8.3 / 6.4 / 5.2 | 7.26 | none |
+| **0.85** | **0.45** | **2.99** | **1.64** | **8.5 / 6.3 / 4.8** | **7.26** | **none** |
+| 0.85 | 0.40 | 3.09 | 1.60 | 8.3 / 6.3 / 4.5 | 7.10 | none |
+| 0.80 | 0.40 | 3.14 | 1.62 | 8.2 / 6.1 / 4.4 | 7.02 | ownership |
+
+**0.85 / 0.45** chosen: the widest P/I ordering margin among the pairs that hold the ladder,
+with national P/I and purchase effort closest to their published values. Calibration target is
+the *price* gradient, not the wage gradient — Tinsa 2026Q1 provincial €/m² Madrid €3,565 and
+Barcelona €2,772 against Ciudad Real €776 and Zamora €881. The model lands at 2.99 rather than
+that 3.5–4.5 because its zones are broad aggregates: a tensioned zone holding 45% of households
+is not Madrid province, and the provincial figures are the extremes of a distribution the model
+represents by three means. What the premium has to do is stop the ladder decaying, and it does.
+
+**L3 — baseline moments, 5 seeds, last 20 of 60 ticks** (previous value in brackets):
+
+| Moment | Now | Before | Gate |
+|---|---|---|---|
+| T/R price ratio, tick 60 | **2.87** | 1.80 | initial 3.21 |
+| P/I tensioned / secondary / rural | **8.35 / 6.24 / 4.78** | 8.30 / 6.82 / 7.20 | ordering required |
+| P/I national | 7.15 | 7.70 | 7.0–8.2 ✓ |
+| Ownership | 69.3% | 70.0% | 69–75 ✓ (at the floor) |
+| Transactions /yr | 3.6% | 3.7% | 2.6–3.8 ✓ |
+| Completions / formation | 51% | 57% | 40–70 ✓ |
+| Market-tenant overburden | 28.2% | 29.5% | 26–34 ✓ |
+| Insider/outsider wedge | +12.0% | +8.6% | >0 ✓ |
+| Vacancy T / S / R | 8.7 / 11.8 / 18.1% | 8.7 / 12.5 / 17.8% | ladder ✓ |
+| Market vacancy tensioned | 3.1% | 2.9% | 2–10 ✓ |
+| **Cash purchases** | **18.7%** | 3.1% | 23–46 (still below) |
+| Purchase effort | 33.7% | 36.3% | 35–40 ✗ below |
+
+Every §9 gate holds and the two strict xfails on the ladder are now ordinary passing tests
+(`test_price_to_income_ordering`, plus a new `test_zone_price_ladder_holds`).
+
+**L4 — an unplanned cross-validation, and an honest cost.** Cash purchases went **3.1% →
+18.7%** against a 23–46% target, without anything in the change touching wealth, credit or the
+cash rule. Discounted willingness simply brings more purchases within reach of the buyer's own
+savings. That a mechanism introduced for the price ladder independently moves an unrelated
+failing diagnostic two-thirds of the way to its band is the strongest evidence available that
+the premium is capturing something real rather than fitting one moment. The cost is on the
+other side of the same coin: the national price index falls, so purchase effort drops to 33.7%
+against BdE's 35–40% and ownership sits at 69.3%, below the EFF band's own 70% floor (the §9
+gate has 1pp of tolerance and still passes). Both are reported "below" in the official
+contrast. They are the price of a correct *relative* structure and should not be tuned away by
+re-inflating the metro, which the credit screen makes impossible anyway.
+
+**L5 — the rent cap still spans the studies, a little more tightly.** Re-measured on the new
+baseline (3 seeds): elasticity 0 → contract rents −4.5%, contracts −1.0%; elasticity 2 → rents
+−3.2%, contracts −8.0%. Still Jofre-Monseny at one end and Monràs at the other, and
+`test_rent_cap_supply_response_spans_monras` (≤ −5%) passes, but the supply response is weaker
+than the −11.6% measured before the premium, because a cheaper rural zone gives withdrawing
+landlords a better outside option.
+
+**L6 — limitation found while testing: a long cap gradually unbinds.** The shadow rent tracks
+median renter paying capacity, which under a cap grows at ≈0.2%/yr rather than the 2% income
+anchor, because the cap changes *who* is renting (composition), while the frozen reference
+index is indexed at IRAV 1.5%/yr. The reference therefore overtakes the shadow about ten ticks
+after activation and the cap stops binding. Within the 16-tick window the studies cover — and
+the window every result above is measured on — the cap binds throughout. **Do not run cap
+scenarios much beyond 40 ticks post-activation without re-checking that the cap still binds.**
+A composition-robust anchor is the fix and is not attempted here.
 
 ## Tensioned-tightness revision (2026-09-08)
 

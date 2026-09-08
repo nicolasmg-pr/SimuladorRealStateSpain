@@ -149,7 +149,13 @@ class Households:
                 )
             )
             wants_to_buy = buy_draw[i] < pop.buy_attempt_prob * participation
-            budget = limit * shade_draw[i] * (1.0 + momentum) * own_vs_rent
+            # location premium (model-spec §5b): what the dwelling's LOCATION is worth to the
+            # household, normalised to 1.0 in the tensioned zone. It discounts willingness in
+            # the low-amenity zones; without it nothing stops a rural household from bidding
+            # its full credit limit and the zone price ladder closes from below.
+            budget = (
+                limit * shade_draw[i] * (1.0 + momentum) * own_vs_rent * zone_cfg.location_premium
+            )
             can_buy = budget >= 0.6 * median_price  # cheapest habitable segment [guess]
             if wants_to_buy and can_buy:
                 intents.append(
@@ -177,7 +183,6 @@ class Households:
                     max_rent = hh.max_rent_burden * hh.income / 12.0
                     max_rent += self._rent_subsidy(state, hh)
                     intents.append(RentApplication(agent_id=hh.id, zone=hh.zone, max_rent=max_rent))
-            _ = zone_cfg  # zone config reserved for future household heterogeneity
         return intents
 
     def _rent_subsidy(self, state: WorldState, hh) -> float:

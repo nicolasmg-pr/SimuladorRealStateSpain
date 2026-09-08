@@ -174,6 +174,61 @@ asks without a global auctioneer).
   **Public rents are excluded from all four.** They are administered, not market signals;
   including them makes the parque social read as a market price cut.
 
+## 5b. Location premium: why a metro dwelling is worth more than a rural one
+
+A dwelling is a claim on a location as much as on a structure. Two dwellings of the same
+quality in Madrid and in Teruel are not the same good, and the model has to say so explicitly,
+because nothing else in it does: households bid only in their own zone, so without a stated
+location value the zones are three copies of one market differing only in their households'
+incomes.
+
+**Rule.** Each zone carries a `location_premium` (`ZoneConfig`), a multiplier on what a
+household is willing to pay for a standard unit there, normalised to 1.0 in `TENSIONED`:
+
+```
+budget = credit_limit · shade · (1 + momentum) · own_vs_rent · location_premium(zone)
+```
+
+It is a **discount on the low-amenity zones**, not a bonus on the metro, and that direction is
+the whole mechanism. A bonus would do nothing: bids are clipped by the bank's credit limit
+(§4 step 5), so a household told to pay more simply pays its ceiling. A discount binds
+regardless of credit — a rural household that *could* borrow €137k does not offer it for a
+rural dwelling, because the location is not worth it. Willingness, not ability, is what
+separates the zones.
+
+**Why the model needs it, measured.** Without it the tensioned/rural price ratio decays
+3.20 → 1.84 over 60 ticks and rural price-to-income (8.4) passes the secondary city (7.4) and
+approaches the metro (8.9) — the ordering §9 target 2 requires, inverted. The mechanism behind
+that decay is *not* the median credit ceiling the earlier drafts of this file blamed: the
+median non-owner's limit runs at 0.19–0.47 of the tensioned price and 0.58–0.69 of the rural
+price throughout, so the median household can buy nothing anywhere and prices are set by the
+upper tail of the distribution. What actually happens is that rural demand has no ceiling of
+its own. Rural starts below replacement cost (€85,000 against a €97,200 hard cost), so no
+developer builds there; its capacity is capped at 4.8 starts a tick against 4.9 households
+formed; and the migration rule (§4 step 2) is downward-only, so every household priced out of
+a metro is added to rural demand with no counterflow. Rural prices therefore climb to twice
+replacement cost, which is where the ladder goes.
+
+**What the premium is calibrated to.** The observed price gradient, not the wage gradient —
+the two are different quantities and only the first is a price. Tinsa 2026Q1 provincial €/m²:
+Madrid €3,565 and Barcelona €2,772 against Ciudad Real €776 and Zamora €881, i.e. metro/rural
+≈ 3.5–4.5; capitals Madrid €4,600 against Palencia €1,256 [kb-refresh-2026-09 §5]. The wage
+gradient is the *reason* such a premium can be sustained, and it is corroborating rather than
+calibrating evidence: Madrid earnings +46% against the median Spanish city and +55% against
+rural, elasticity of earnings to city size 0.0455 [De la Roca & Puga, REStud 2017]; Madrid and
+Barcelona private-sector wages +45% against the rest of urban Spain, +21% after cost of living
+[BdE Forte-Campos et al. via Funcas 104 ch.5]. Part of that wage gap is already in the model
+as `income_multiplier` (1.15 / 1.0 / 0.80); the premium carries what is left, which is the
+part households pay for the location itself.
+
+**What it is not.** It is not a second income gradient (that is `income_multiplier`), not a
+supply constraint (that is `supply_elasticity`, measured to move the ratio by 0.04), and not a
+migration rule. Migration stays downward-only and rent-triggered; making it respond to the
+price gap net of amenity is the natural next mechanism and is **not** part of this decision.
+The premium is applied to purchase willingness only, not to the rent-acceptance threshold: the
+30–40% screening band is a sourced behavioural norm [household-tenant §6] and rents follow
+prices through the zone yield ladder without it.
+
 ## 6. Expectations
 
 **Adaptive extrapolation with momentum** (this is what produces cycles):
@@ -275,6 +330,7 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | ITP surcharge, non-residents | +0.90 over a 10% base = the "100% tax on non-EU buyers" bill (announced Jan 2025, stalled Mar 2026, folded into the stalled Jul 2026 omnibus decree); Baleares non-resident ban rejected Feb 2026 | fraction of price | Reuters/US News; Congreso [transaction-tax Update 2026-09-08]; `PolicyConfig.itp_foreign_delta` | proposal, not law |
 | ICO guarantee wealth cap | €150,000 net wealth, added by the Jul 2026 adenda (with ≤35 y and ≤7.5×IPREM); line extended to 31 Dec 2027; uptake 8,549 ops / €206.6M guarantees to Oct 2025 (≈10% of €2.5bn) | € | BOE-A-2026-14404 (2 Jul 2026) [demand-subsidy Update 2026-09-08]; `PolicyConfig.guarantee_wealth_cap` | high |
 | Tourist-rental (VUT) stock | 341,001 dwellings, May 2026 (−10.7% y/y; 1.28% of INE's 26.6M total stock); model seasonal units weight to ≈345k | dwellings | INE Estadística experimental de viviendas turísticas, 24 Jun 2026 | medium |
+| Location premium | T 1.00 (numeraire) / S 0.85 / R 0.45 — multiplier on purchase willingness (§5b). Screened S∈{0.8,0.85,0.9,1.0} × R∈{0.4,0.45,0.5,0.55,0.7,1.0} on 1 then 3 seeds against every §9 gate; 0.85/0.45 is the pair that holds the ladder with every gate inside band | dimensionless | price gradient Tinsa 2026Q1 (provincial €/m² Madrid 3,565 vs Ciudad Real 776); wage gradient De la Roca & Puga REStud 2017, BdE via Funcas 104 ch.5 [kb-refresh-2026-09 §5] | direction sourced / level calibrated |
 | Households (level) | 19,874,860 at 1 Jul 2026 (ECP) — the 1:2,000 anchor | households | INE ECP 2T 2026 | high |
 | Formation zone weights | T 0.55 / S 0.286 / R 0.164 (None = household shares 0.45/0.35/0.20). Screened 0.45–0.65 on 3 seeds: 0.55 puts the tensioned queue at ≈1 applicant per listing (was 0.5) with every §9 moment in band | share of new households | EC Country Report 2026 Annex 16 (Madrid+Barcelona ≈27% of household growth), INE ECP; level calibrated [validation.md tensioned-tightness] | medium (direction) / guess (level) |
 | Shadow-rent anchor | median renter paying capacity (burden × income) over non-owners, ratio to the asking index fixed at cap activation, smoothing = `price_index_smoothing` 0.3 | €/month, standard unit | mechanism (§5); no free parameter beyond the smoothing it shares with the price index | mechanism high |
@@ -309,7 +365,9 @@ result is reported:
 1. **Tenure shares**: owner 70–74% (EFF basis; ECV 2025 gives 73.3% owners, 20.2% renting,
    6.5% ceded), tenant 24–27% national; tenant share ranking T > S > R [household-tenant §6].
 2. **Price-to-income**: national 7–8 (2024–26 window); T > S > R
-   [household-owner §6].
+   [household-owner §6]. Both legs pass since the location premium (§5b): 8.35 / 6.24 / 4.78
+   with national 7.15, and the tensioned/rural price ratio holds at 2.87 against its initial
+   3.21 instead of decaying to 1.80 [validation.md L1–L3].
 3. **Transaction volume**: 2.5–3.6% of households transacting/yr [household-owner §1].
 4. **Construction volume**: completions ≈ 40–70% of household formation (2021–25 gap)
    [developer §1]. Measured as `completion_ratio` — this must be *measured*, not asserted
@@ -367,25 +425,22 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   the model cannot capture housing→GDP→housing loops (2008 amplification understated).
 - **Zone types, not geography**: no within-zone heterogeneity, no specific cities; zone
   multipliers on costs/prices are guesses (flagged).
-- **No location premium — the zone price ladder does not hold.** *(Calibration evidence for
-  the fix now exists: Madrid/Barcelona private-sector wages +45% against the rest of urban
-  Spain, cost of living +20%, purchasing-power-adjusted gain +21%, and 35.7% of 20–34s living
-  in the five largest functional urban areas [BdE Forte-Campos et al. via Funcas 104 ch.5];
-  rent gradient Madrid €10.7/m² vs Extremadura €4.4/m² [SEF via ch.6]; De la Roca & Puga
-  (REStud 2017): Madrid earnings +46% vs the median city and +55% vs rural, elasticity of
-  earnings to city size 0.0455, half of it accruing with experience; Tinsa 2026Q1 €/m²
-  gradient Madrid capital €4,600 vs Palencia €1,256, Madrid province €3,565 vs Ciudad Real
-  €776 (4.6×) [kb-refresh-2026-09 §5]. Still a mechanism decision, not a recalibration — see
-  docs/funcas-104.md §5.)* Households bid only in
-  their own zone and nothing makes a location intrinsically worth more, so each zone's price
-  is pinned by the credit ceiling of the households in it and relative prices converge on
-  relative *incomes* (1.15/1.0/0.80) rather than on a location premium. Measured: the
-  tensioned/rural price ratio decays 3.18× → 1.89× over 60 ticks and rural price-to-income
-  overtakes the secondary city, inverting §9 target 2. Supply elasticity is not the cause —
-  a zone land-availability gradient moved the ratio by 0.04. **Do not report cross-zone
-  comparative results until a spatial-preference mechanism exists**; within-zone and national
-  aggregates are unaffected. Tracked as a strict xfail; see docs/validation.md
-  "Zone price ladder" for the candidate fixes.
+- **The zone price ladder is held by a calibrated premium, not by geography.** It used to
+  collapse (tensioned/rural 3.2 → 1.8 over 60 ticks, rural price-to-income overtaking the
+  secondary city); §5b's location premium fixes it (2.99 on 3 seeds, ordering 8.5 / 6.3 / 4.8)
+  and both strict xfails are gone. But the premium's *level* is a calibrated guess, not a
+  measurement: only its direction and existence are sourced. The model reaches a 3.0
+  tensioned/rural ratio where Spain's provincial extremes run 3.5–4.5, and it should — its
+  zones are broad aggregates, not provinces — so **cross-zone ratios are structurally right
+  and quantitatively soft**. Report the ordering and the direction of zone differences; do not
+  quote the ratio as a prediction. Its cost is visible in two national levels: purchase effort
+  33.7% against BdE's 35–40% and ownership 69.3% against an EFF floor of 70%.
+- **A long rent cap gradually stops binding.** The shadow rent (§5b, §5) tracks median renter
+  paying capacity, which grows at ≈0.2%/yr under a cap because the cap changes who is renting,
+  while the frozen reference index is indexed at IRAV (1.5%/yr). The reference overtakes the
+  shadow roughly ten ticks after activation. Every reported cap result is measured on the
+  16-tick window the empirical studies cover, where the cap binds throughout; beyond ≈40 ticks
+  post-activation, re-check that it still binds [validation.md L6].
 - **Foral territories** absent from AEAT-based sources [investor-small §7].
 - **Quality/size ladder simplified** to a scalar quality tier; composition drift under
   caps (smaller flats, §rent-cap) only partially representable.
