@@ -700,23 +700,49 @@ class Engine:
                     1.0 - cfg.policy.cap_reference_discount
                 )
 
-            # shadow rent: what a standard unit would fetch with no cap. Equal to the asking
-            # index while the market is free. Under a cap the asking index is the cap itself,
-            # so landlords fall back on what the zone's renters can pay — the median paying
-            # capacity of non-owner households (_record_tightness), scaled by its ratio to the
-            # index on the tick the cap switched on (the last free observation), smoothed like
-            # the price index. It moves with incomes and the sharing margin, not with the cap.
-            # Without it the withdrawal decision goes inert within ~4 ticks (validation.md).
-            capacity = state.tick_events.get("renter_capacity", {}).get(zone)
-            if cap_here and capacity:
-                if zs.shadow_anchor is None:
-                    zs.shadow_anchor = old_r / max(capacity, 1e-9)
-                    zs.shadow_rent = old_r
-                zs.shadow_rent = (1 - s) * zs.shadow_rent + s * zs.shadow_anchor * capacity
-            else:
-                zs.shadow_anchor = None
-                zs.shadow_rent = zs.rent_index
+            zs.capped_here = cap_here
         state.tick_events["sales_by_zone"] = sales_by_zone
+        self._update_shadow_rents(state)
+
+    def _update_shadow_rents(self, state: WorldState) -> None:
+        """What a standard unit would fetch in each zone with NO cap in force.
+
+        Free market: the shadow *is* the asking index. Under a cap the asking index is the cap
+        itself, so it cannot serve — a landlord reading it sees no loss and stops withdrawing
+        (model-spec §5b). The counterfactual therefore takes its **level** from the last free
+        observation (the index on the tick before the cap switched on) and its **growth** from
+        the model's exogenous nominal income anchor, `MarketConfig.long_run_growth`. The
+        assumption is stated in one line — absent the cap, rents would have grown at the
+        long-run anchor — and it is the only part that is assumed; the level is observed.
+
+        Two richer anchors were built and rejected, and their failure modes are why this one is
+        deliberately dumb (docs/validation.md, shadow-anchor revision):
+
+        - *Median renter paying capacity.* Composition-sensitive: the non-owner pool is
+          refreshed with poorer new households, so its median grows ≈1.5%/yr against a 3.2%/yr
+          free-market rent, the gap to the IRAV-indexed reference closes, and the cap quietly
+          stops binding after ~10 ticks.
+        - *The untreated zones' rent index*, the studies' own treated-vs-control
+          identification. Contaminated by the effect it measures, and explosively: the cap
+          displaces demand into the control zones, their rents rise, that lifts the shadow,
+          which widens the gap and drives more exits. Measured over 80 ticks the gap reached
+          **+122%** and tensioned lettings collapsed from 89 to 10 per tick.
+
+        Against those, an exogenous path is bounded and honest: the reference grows at IRAV
+        (1.5%/yr) and the shadow at the income anchor (2%/yr), so a long cap becomes gradually
+        *more* binding at 0.5pp/yr — which is what indexing rents below wages does in reality.
+        The cost is that the shadow ignores the cycle: in a boom the true counterfactual would
+        rise faster and the model understates the cap's bite, in a slump the reverse.
+        """
+        anchor = state.config.market.long_run_growth
+        for zone in ZoneType:
+            zs = state.zones[zone]
+            if zs.capped_here:
+                zs.shadow_rent *= 1.0 + anchor
+                zs.shadow_growth = anchor
+            else:
+                zs.shadow_rent = zs.rent_index
+                zs.shadow_growth = zs.expected_rent_growth
 
     # -- 8 ------------------------------------------------------------------
 

@@ -28,14 +28,31 @@ from .base import Intent, ListForRent, WithdrawRental
 EXIT_SPLIT = {"sale": 0.5, "seasonal": 0.35, "vacant": 0.15}
 
 # per-listing hazard → annual contract-flow elasticity mapping (see decide()). Re-fitted
-# 2026-09-08 after the shadow rent and the metro-weighted formation landed: at 3.0,
-# elasticity 2 gives new contracts −12.6% (σ 8pp, 3 seeds) and rents −4.6% over the 16
-# post-cap ticks — Monràs & García-Montalvo's −10% at −5%, reaching toward Pérez García's
-# −13% — while elasticity 0 gives −5.6% rents and +2% contracts (Jofre-Monseny). The
-# previous 1.75 was fitted before the August 2026 audit on a baseline that no longer exists;
-# on the current one it reached only −5% at elasticity 2 [docs/validation.md,
-# tensioned-tightness revision; docs/experiments/rent-cap.md]
-HAZARD_SCALE = 3.0
+# 2026-09-08 with the exogenous shadow anchor and the shadow-based growth wedge, which
+# together made every gap larger and never zero (the old wedge read `expected_rent_growth`,
+# an expectation formed on CAPPED asks, and clamped to 0 whenever capped asks fell — so the
+# term silently switched itself off exactly when a cap was biting). Measured on 3 seeds over
+# the 16 post-cap ticks: elasticity 0 → rents −4.9%, contracts −0.7% (Jofre-Monseny);
+# elasticity 1 → −4.4% / −4.8%; elasticity 2 → −4.4% / **−14.0%**, which reaches Pérez
+# García's −13% inside the 0–2 dial where the previous fit needed ≈2.7 and was documented as
+# out of range. Rents stay in the studies' −4…−6% across the whole dial
+# [docs/validation.md shadow-anchor revision; docs/experiments/rent-cap.md]
+HAZARD_SCALE = 0.7
+
+# how hard queue congestion pushes asking rents up: ask × (1 + gain × clip(applicants per
+# listing − 1, −0.5, 3)). THE parameter that decides whether rents can outrun incomes in a
+# boom, because it is the only channel through which scarcity, rather than income, reaches
+# the asking index [model-spec §9 target 7r]. Swept on the hold-out boom's 10 seeds:
+#   0.05 → boom rents +3.6%/yr ± 0.8 (10/10 seeds positive)   ← kept
+#   0.15 → +4.9% ± 1.4   ·   0.25 → +6.9% ± 4.9   ·   0.40 → +5.0% ± 6.4 (non-monotone)
+# Left at its original 0.05 deliberately. Raising it to 0.15 buys 1.3pp of boom rent growth
+# and costs a **22% higher baseline rent level** on the diagnostic that was already the
+# model's worst (€1,352 → €1,648 against an EPF €516) plus a weaker rent-cap supply response
+# (contracts at elasticity 2: −13.6% → −7.4%, no longer reaching Monràs's −10%). The boom
+# target it would have been bought for is already met without it, by the tightness
+# recalibration and the location premium. Recorded rather than tuned
+# [Barcelona ≈65 contacts per listing, rent-cap §3 — mechanism sourced, level a guess]
+CONGESTION_GAIN = 0.05
 
 # EXIT_SPLIT was written at this level of seasonal evasion; the seasonal branch scales
 # proportionally when the parameter is swept away from it [Incasòl — medium]
@@ -114,7 +131,9 @@ class SmallLandlords:
             )
             # queue congestion pushes asks up (65 families/listing in Barcelona,
             # rent-cap §3); slack markets push them down
-            pressure = 1.0 + 0.05 * float(np.clip(tightness.get(unit.zone, 1.0) - 1.0, -0.5, 3.0))
+            pressure = 1.0 + CONGESTION_GAIN * float(
+                np.clip(tightness.get(unit.zone, 1.0) - 1.0, -0.5, 3.0)
+            )
             market_ask *= pressure
             ask = max(floor, market_ask)
 
@@ -129,9 +148,12 @@ class SmallLandlords:
                     # the PV shortfall of the capped stream: today's level gap plus the
                     # growth wedge (capped rents grow at IRAV, market at expectations)
                     # over a ~5-year holding horizon
+                    # the free stream grows at the SHADOW's rate, not at the asking index's:
+                    # under a cap `expected_rent_growth` is an expectation formed on capped
+                    # asks, and feeding it back in double-counts the cap (model-spec §5b)
                     growth_wedge = max(
                         0.0,
-                        4.0 * zs.expected_rent_growth - cfg.policy.within_contract_update,
+                        4.0 * zs.shadow_growth - cfg.policy.within_contract_update,
                     )
                     gap = np.log(fundamental_ask / cap) + 5.0 * growth_wedge
                     # HAZARD_SCALE maps the per-listing quarterly exit hazard onto the

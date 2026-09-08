@@ -1,12 +1,12 @@
 # Experiment 1 — Catalonia-style rent cap (Phase 7)
 
-> **Status 2026-09-08 (second pass): gate met again.** The table below is the original
-> 2026-08-07 measurement and is kept for provenance; it stopped reproducing after the August
-> audit and Funcas revision (see "Re-measurement 2026-09-08" at the end). The tensioned-
-> tightness revision (`docs/validation.md`) restored the credibility test with three changes —
-> metro-weighted household formation, a shadow rent landlords compare the cap against, and a
-> re-fitted hazard scale. **Current numbers are in "Re-measurement 2026-09-08, after the
-> tightness revision" at the end of this file; quote those.**
+> **Status 2026-09-08 (final pass): gate met, all three studies inside the dial.** The table
+> below is the original 2026-08-07 measurement, kept for provenance only. Two later revisions
+> supersede it (`docs/validation.md` T1–T7, S1–S5): the tensioned-tightness fix restored the
+> supply leg, and the shadow-anchor revision then re-fitted the exit hazard so Monràs's −10%
+> and Pérez García's −13% both fall inside the 0–2 elasticity range, where the earlier fit
+> needed ≈2.7. **Quote the table in "Re-measurement 2026-09-08, final" at the end of this
+> file.**
 
 ## Design
 
@@ -143,3 +143,31 @@ rather than above it. New in this table: the secondary zone's contract rents ris
 elasticity 2 (priced-out seekers migrating down the ladder), a small version of Catalonia's
 non-tensioned +9.4%. Partial coverage (`coverage` < 1) is measured in `docs/validation.md` T7
 and is not reportable on the pooled rent yet.
+
+
+## Re-measurement 2026-09-08, final (shadow-anchor revision)
+
+Same design, 5 seeds (1–5). `HAZARD_SCALE` 0.7, exogenous shadow anchor, shadow-based growth
+wedge, `CONGESTION_GAIN` 0.05. ± is the seed standard deviation.
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | seasonal units gained | Δ sale prices |
+|---|---|---|---|---|---|
+| 0.0 | −4.9% ± 1.4 | −4.3% | **+0.9%** ± 3.3 | 0 | −4.2% |
+| 0.5 | −4.5% ± 1.8 | −3.9% | −1.7% ± 3.3 | +5.8 | −4.8% |
+| 1.0 | −4.3% ± 1.8 | −3.7% | −5.2% ± 1.8 | +12.3 | −5.2% |
+| 1.5 | −4.2% ± 1.9 | −3.6% | −8.7% ± 3.4 | +18.9 | −5.7% |
+| 2.0 | −4.2% ± 1.9 | −3.6% | **−13.6%** ± 2.8 | +24.0 | −5.8% |
+
+Credibility test — the first time all three studies land inside the exposed range:
+
+- **Jofre-Monseny, Martínez-Mazza & Segú (2023)** — rents −4/−5%, no supply effect:
+  elasticity 0 (−4.9%, +0.9%). ✓
+- **Monràs & García-Montalvo (2023; CEPR 2025, IV ≈2.0)** — rents −5%, contracts −10%:
+  between elasticity 1.5 and 2. ✓
+- **Pérez García (2026)** — −13% tenancies: elasticity 2 (−13.6%). ✓ The "no robust price
+  effect" reading still needs the second dial (compliance ≈0.25 or discount ≈0), since rents
+  fall 4–5% at every elasticity here.
+
+Ownership rises +0.5 to +0.9pp under every cap (withdrawn units sold to tenants) and the
+capped zone's queue tightens from 1.08 to 1.19–1.90 applicants per listing. Partial coverage
+is reported by regulatory segment in `docs/validation.md` T7, never on the pooled rent.

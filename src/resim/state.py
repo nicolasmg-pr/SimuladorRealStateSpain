@@ -57,7 +57,11 @@ class ZoneState:
     # under a cap it is inferred from the applicant queue (engine._update_indices). This is
     # what landlords compare the cap against when deciding to withdraw a unit.
     shadow_rent: float = 0.0
-    shadow_anchor: float | None = None  # index / queue-clearing ratio fixed at cap activation
+    # per-tick growth of the shadow: the zone's expected rent growth while the market is
+    # free, the exogenous income anchor while a cap is on (the asking-based expectation is
+    # a capped-market observable and must not stand in for a free-market one)
+    shadow_growth: float = 0.0
+    capped_here: bool = False  # a rent cap was in force in this zone as of the last tick
     rent_transacted: float = 0.0  # €/month, median new-contract rent (SERPAVI-like)
     price_growth: list[float] = field(default_factory=list)  # trailing per-tick growth
     rent_growth: list[float] = field(default_factory=list)
