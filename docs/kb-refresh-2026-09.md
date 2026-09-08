@@ -220,7 +220,9 @@ above baseline** at every elasticity and new tenancies **+2 to +3%**, against th
    before the cap and 1.1–1.5 after it, against ≈65 contacts per listing in Barcelona. With
    60–80 leftover listings per tick, landlord withdrawals (≈60 units over 16 ticks at elasticity
    2, half of them sold) shrink the slack but not the number of contracts signed. The tenancy
-   leg of §9.8 fails and is now a strict xfail. The fix is a tightness recalibration of the
+   leg of §9.8 fails and is now a strict xfail. **(Closed later the same day: the tensioned-tightness
+and shadow-anchor revisions restored it and all three studies now sit inside the 0–2 dial —
+docs/validation.md T1–T7 and S1–S5.)** The fix is a tightness recalibration of the
    tensioned zone — the mobilisable vacant stock ((upH − 1) × (1 − withheld), held at 0.0455
    per household in every zone by the Funcas revision) or the zone split of formation — which
    moves ownership, market vacancy and overburden together and needs its own measured

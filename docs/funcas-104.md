@@ -122,8 +122,10 @@ Measured consequences of 1–4 are in `docs/validation.md` ("Funcas 104 revision
 3. **Rent growth still cannot outrun income growth.** Spain 2015–2022: rent spend +27.7%
    against household income +16.6% (single earner) to ~22% (two or more) (ch.6 cuadro 2);
    Madrid rents +39% 2015–2022 against +26% in other European capitals (ch.2 §2); young
-   wages +25% against rent inflation 20pp higher (ch.2 gráfico 5). The model produces
-   0.0% ± 0.3pp in the hold-out boom. The sharing margin raises the *level* of accepted
+   wages +25% against rent inflation 20pp higher (ch.2 gráfico 5). The model produced
+   0.0% ± 0.3pp in the hold-out boom **at the time of this note**; since the 2026-09-08 tightness
+   and location-premium revisions it produces +3.6%/yr ± 0.8 and the target passes, at ≈40% of the
+   sourced magnitude (docs/validation.md, "Shadow-anchor and boom-rent revision"). The sharing margin raises the *level* of accepted
    burden but not the growth rate, because the clearing rent equals the winning applicant's
    willingness to pay and that is a share of income. Now a strict xfail at the real target
    magnitude instead of a `> 0` assertion that passed on luck.
