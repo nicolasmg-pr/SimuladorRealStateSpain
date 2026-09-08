@@ -164,6 +164,8 @@ supply pipeline (~40–95k units over years) is small against ~19M primary resid
 | Seasonal/room-rental regulation | CCAA / state attempts | State bill failed; Catalan decree status (unverified) | Would close main rent-cap evasion channel | — |
 | Eviction procedural shields | State | Gran-tenedor vulnerability pre-conditions annulled (STC 26/2025); COVID-era moratoria extensions continue (end-date unverified) | Eviction duration/cost for landlords | — |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Enforcement intensity of rent caps** in tensioned zones: sanction counts, inspection rates,
@@ -185,3 +187,98 @@ supply pipeline (~40–95k units over years) is small against ~19M primary resid
    none confirmed as of 08-2026.
 9. **STC 190/2025 and 41/2026 contents** (later TC rulings on Ley 12/2023) — fetch the BOE texts to
    confirm nothing further was annulled beyond STC 79/2024 and 26/2025.
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page; **(verified)** / **(unverified)** as
+in report B. Government claims and counter-readings are kept side by side.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| Declared tensioned zones | **317 municipalities in 5 CCAA**: Cataluña 271, Euskadi 18, Navarra 21, Galicia 2, Asturias 5. Q2 2026 additions — Asturias (5th CCAA, first use): Llanes, Cabrales, Gijón (La Arena, Cimadevilla), Avilés (La Magdalena), Gozón (Luanco); Galicia: Santiago de Compostela; P.Vasco: Basauri; valid 3 yrs (to Jul 2029) (V). Q1 2026: Pasaia, Zestoa, Arrasate (3 yrs from 27 Apr 2026) (V). Euskadi list of 18: Donostia, Errenteria, Barakaldo, Irun, Lasarte-Oria, Zumaia, Astigarraga, Bilbao, Usurbil, Vitoria-Gasteiz, Galdakao, Hernani, Lezo, Tolosa, Arrasate, Pasaia, Zestoa, Basauri (V) | BOE 27 Apr & 29 Jul 2026 | https://boe.es/diario_boe/txt.php?id=BOE-A-2026-16532 ; https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-9175 ; https://eremutentsionatua.euskadi.eus/webzte00-municipios/es/ ; https://civio.es/el-boe-nuestro-de-cada-dia/2026/07/29/nuevas-zonas-tensionadas-santiago-de-compostela-basauri-y-cinco-municipios-de-asturias/ |
+| Population under rent regulation | ≈9.3M people (MIVAU, 29 Jul 2026) (unverified); §6 row had >8.28M (trackers) — keep both | Jul 2026 | MIVAU via Civio (above) (unverified) |
+| Catalonia renewal + expansion | procedures opened 21 Jul 2026 (public info extended 19 Aug; BOE pending): extend 118 of the 140 (Mar 2024) beyond Mar 2027; drop 22 (Lleida, Reus, Granollers, Mollet); add 53 (Martorell, Sant Andreu de la Barca) → 271 now, ~302–324 if approved; ~90% of Catalan population. Govern claims −1.3% rents in zones vs +9.5% outside | Jul–Aug 2026 | https://habitatge.gencat.cat/ca/normativa/zones-de-mercat-residencial-tensionat/ (V, gencat; govern.cat 403) |
+| Rent-cap enforcement, Catalonia | 529 sanction files (74% ex officio); fines up to €90k (serious) / €900k (very serious) | 22 Apr 2026 | https://govern.cat/salapremsa/notes-premsa/818064/ (title verified; 403 on fetch) |
+| VPO production | definitivas 5,215 (+74.5% y/y, ~60% Cataluña, best Q1 since 2012); provisionales 4,048 (+24%) — first verified point behind the §6 "order 10⁴/yr (unverified)" row | 2026Q1, pub. 11 Jun 2026 | MIVAU via https://www.lamoncloa.gob.es/serviciosdeprensa/notasprensa/vivienda-agenda-urbana/Paginas/2026/110626-viviendas-protegidas-2026.aspx (V) |
+| National rent-update cap (RDL 8/2026, 20 Mar) | 2% cap to 31 Dec 2027 + 2-yr extension **lapsed**: rejected by Congress 28 Apr; derogation BOE 30 Apr 2026. IRAV regime unchanged | Apr 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-6545 ; https://www.iberley.es/noticias/el-congreso-rechaza-rd-ley-8-2026-20-marzo-alquiler-prorrogas-36398 (verified) |
+| ICO purchase guarantee | formalisation deadline 31 Dec 2027; new net-wealth cap €150k; ≤35 yrs; income ≤7.5×IPREM. Uptake 31 Oct 2025: 8,549 ops, €206.6M guarantees, €1.09bn financed, avg €127.7k; press 10,453 ops / €255.8M (~10% of €2.5bn) (unverified) | adenda 23 Jun, BOE 2 Jul 2026; in force | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-14404 (verified) |
+| ICO social-housing promotion facility | €2bn → €375M (Dec 2025 PRTR simplification); fees €31M → €6.9M; loan transferability eased | adendas 31 Jul; BOE 5 Sep 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18677 (verified) |
+| Public operator (Casa 47 / Sepes) | operational 7 Sep 2026: 800 homes now, +1,500 "soon"; 2,800 licensed Q1 2026; ~2,500 in licensing; **42,000 homes + 2,500 plots from Sareb** (§6 row: 40,000 + 2,400 — keep both counts); rent ≤30% income; 14-yr contracts (to 75); Plan 2026-30 €7bn; €100M anti-speculation buy fund | Sep 2026 | https://www.lamoncloa.gob.es/presidente/actividades/paginas/2026/070926-sanchez-acto-vivienda.aspx (verified) |
+| Catalan ITP / gran tenedor (Ley 11/2026 medidas fiscals) | TPO 20% on whole-building acquisitions **by any buyer** (exempt ≤4 dwellings for family use); gran tenedor = ≥5 in Cataluña / ≥10 Spain-wide, incl. natural persons, usage rights & co-ownership counted; "rent" = all charges (no fee pass-through); room rentals under cap + bonds; cédula in all ads; error-regularisation before sanction | DOGC 13 Jul, in force 14 Jul 2026; gran-tenedor rules for contracts from 31 Jul | https://exnovo.law/cataluna-novedades-en-transmisiones-de-edificios-grandes-tenedores-y-alquiler-residencial-a-julio-2026/ (law-firm; DOGC unverified) |
+| Competence over Ley 12/2023 | STC 53/2026 (8 Jul; BOE 3 Aug 2026): Govern de Cataluña recurso dismissed; arts 12, 18.5–6, 23, 24, DF7 upheld (149.1.13 CE); earlier annulments (arts 16, 27.1 §3, 27.3, DT1) stand | 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-16928 (verified) |
+| TC admission v. Catalan Ley 11/2025 (seasonal/room cap) | recurso PP 2415-2026 admitted 9 Jun; BOE 16 Jun 2026; no suspension; arts 2.2, 3.8, 5.5, 5.6, 5.8, 5.9, 5.14, 5.15, 8.1 | Jun 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13028 (title verified) |
+| Regional supply laws | Madrid Ley 2/2026 (BOCM 15 Jun; BOE 28 Jul): +20% buildability, +30% density, +2 floors on VPO plots; tertiary→VPO rental up to 30%; land ≤30% of VPO price; 2-yr licence / 3-yr build windows; target 18,000 VPO (press) (verified). Canarias Ley 7/2026 (31 Jul; BOC 14 Aug; in force 15 Aug): "vivienda asequible incentivada" rent ≤120% VPO, ≤120 m², income ≤7×IPREM, 7-yr protection (20 on public land); tertiary→residential 30% protected / 70% asequible; unfinished buildings 50% protected (verified); arts 11–12: stays ≤31 days or on tourist channels presumed tourist; seasonal contracts must document tenant motive; fines €1,501–30,000 (unverified) | Jun–Aug 2026 | https://www.boe.es/eli/es-md/l/2026/06/11/2 ; https://www.gobiernodecanarias.org/boc/2026/163/2922.html ; https://alquilerviviendavacacional.com/contrato-de-temporada-canarias-ley-7-2026/ |
+| EU frame | Affordable Housing Plan (16 Dec 2025); SGEI Decision (EU) 2025/2630 in force 8 Jan 2026 (separate social + affordable categories); Housing Alliance 12 May 2026; EIB €6bn 2026; pan-EU platform "in 2026" (not launched); STR Reg. 2024/1028 applies since 20 May 2026 — Spain relies on regional codes post-STS 620/2026 | 2025–26 | https://housing.ec.europa.eu/european-affordable-housing-plan_en (verified); https://eur-lex.europa.eu/EN/legal-content/summary/online-short-term-accommodation-rental-services-data-collection-and-sharing.html |
+
+### New evidence (Tier 2)
+
+- **Omnibus housing RDL** — draft (69 pp) circulated 21 Jul; pulled from the 28 Jul Consejo de
+  Ministros on 27 Jul (Junts wants landlord tax breaks + anti-okupa; Podemos rejects the Suelo
+  reform); minister 2 Sep: "text ready", aiming for September; fallback = ordinary bill. Contents
+  (press, unverified): seasonal + room rentals into LAU (seasonal ≤12 months with written cause,
+  else 5/7-yr LAU); extraordinary extension of contracts expiring before 30 Jun 2028 (~630k
+  contracts/yr, ~4M people); room rents sum ≤ whole-flat cap (tensioned zones only); VUT VAT;
+  SOCIMI 15→25%; Casa 47 tanteo/retracto on bulk sales; youth tenant IRPF deduction; vacant-home
+  mobilisation; Ley del Suelo reform folded in.
+  https://www.que.es/2026/07/27/nuevo-decreto-vivienda-2026-cambios/ ;
+  https://www.eldiario.es/politica/gobierno-aplaza-septiembre-decreto-alquileres-rechazo-junts-primer-borrador_1_13408800.html
+- **€90M transfer to CCAA** that apply the law / freeze rents (announced 2 Sep 2026; Navarra €6.6M;
+  uses: build, rehab, land purchase) (unverified).
+  https://www.infobae.com/espana/agencias/2026/09/02/ministra-anuncia-la-transferencia-de-90-millones-a-las-ccaa-que-aplican-la-ley-de-vivienda/
+- **Non-EU buyer 100% tax; SOCIMI 25%; LAU seasonal bill (Sumar/ERC)**: no progress; all subsumed
+  in the stalled decree (press). https://parlamento.ai/r/socimi-inversion-extranjera-espana-2026
+- **Refusing CCAA**: Valencia, Andalucía, Madrid, Murcia, CyL — 0 municipalities; Valencia studying
+  Burjassot/La Pobla requests (press).
+  https://valenciaplaza.com/valenciaplaza/comarca-y-empresa/crecen-los-municipios-del-pspv-que-piden-ser-zona-residencial-tensionada-frente-al-rechazo-del-consell .
+  EC Country Report 2026 Annex 16 (V, PDF): Ley 12/2023 "not applied by some regions"; public rental
+  stock 318k = 1.5–1.7% of households (EU 6–7%).
+  https://housing.ec.europa.eu/document/download/3c0b5ce5-67e0-4e4a-a5e2-fede25ea3e07_en?filename=2026%20ES%20Housing%20Annex.pdf
+- **Comunitat Valenciana VPO price module** +7% → €2,568/m² útil (from €2,400), DOGV ~14 Aug 2026
+  (unverified). https://www.eldiario.es/comunitat-valenciana/generalitat-valenciana-vuelve-encarecer-precio-vivienda-protegida-fija-tope-2-568-euros-metro-cuadrado_1_13448272.html
+- **PP pledge, 23 Jul 2026**: ITP 4% first home ≤40 yrs in all PP CCAA (from 6–10%; €12k saving
+  on €200k); IRPF purchase deductions; 100% guarantees ≤40 — no enactments found (unverified).
+  https://www.moncloa.com/2026/07/23/feijoo-impuestos-vivienda-plan-infraestructuras-3404115
+- **Tourist use**: Málaga — 3-yr suspension of new VUT/hotel/hostel licences on residential land,
+  whole municipality (Pleno 16 Jul 2026, PGOU mod. no. 28 initial approval; effective 25 Jul;
+  existing licences untouched) (unverified) https://bookcheckin.com/blog/licencia-turistica-malaga .
+  Catalonia — Parlament rejected repeal of DL 3/2023 (30 Jun 2026); Nov 2028 HUT deadline stands for
+  262 municipalities; one 5-yr extension for uncompensated investment (unverified)
+  https://registroviajero.com/blog/cataluna-hutb-2028-zona-tensionada/
+- **IBI vacancy surcharge, 2026 ordinances**: 50% in Madrid, Barcelona, València, Sevilla; 150%
+  Donostia (unverified). https://guiafiscal.es/patrimonio/ibi/
+- **Not found Jul–Sep 2026**: PERTE vivienda industrializada changes (still May 2025, €1.3bn); Bono
+  Alquiler Joven beyond KB; new national vacancy tax; Baleares non-resident purchase ban (rejected
+  Feb 2026); Sevilla/Palma changes; EU Housing Summit date.
+- **Lever-holder view, updated.** STC 53/2026 settles the competence question on the tensioned-zone
+  regime in the state's favour, so **the binding veto point on national rent measures is now
+  Congress convalidation, not the courts**: RDL 8/2026 was struck on 28 Apr and the omnibus decree
+  is stalled on Junts/Podemos. The CCAA switch on zones is unchanged (5 CCAA in, 5 refusing), and
+  the TC still polices the Catalan seasonal/room cap (2415-2026, no suspension). §3 rule 5 should
+  read: courts trim, Congress kills.
+- **Model mapping**: `RentCap.coverage` (317 municipalities; ≈9.3M people unverified ≈ 19% of
+  49.8M residents — derived, not a source figure); `TransactionTax.investor_delta` /
+  `foreign_delta` (Catalan 20% whole-building TPO enacted; 100% non-EU tax still a proposal);
+  `DemandSubsidy.guarantee_wealth_cap` (€150k, BOE 2 Jul 2026); INE projection vintages in
+  `scenario.INE_HOUSEHOLD_PROJECTIONS` ("2024-2039" vs "2026-2041").
+
+### Open questions moved
+
+- **Q1 (enforcement intensity)** — first count: 529 Catalan sanction files (74% ex officio);
+  compliance share still unknown.
+- **Q3 (IBI surcharge uptake)** — 2026 ordinance list for five capitals (unverified); no census.
+- **Q4 (100% tax / SOCIMI reform)** — still pending; both now ride on the stalled decree.
+- **Q5 (VPO series)** — one verified quarterly point (2026Q1); full series still to fetch.
+- **Q6 (tensioned-zone map) — answered** via BOE 29 Jul 2026 (317 municipalities / 5 CCAA);
+  Catalan expansion to ~302–324 pending BOE.
+- **Q7 (eviction moratorium end-date)** — no digest item; open.
+- **Q8 (non-resident ITP surcharge)** — none found; Baleares purchase ban rejected Feb 2026.
+- **Q9 (later STC contents)** — STC 53/2026 fetched; STC 190/2025 and 41/2026 still unfetched.
+- **New**: (10) omnibus decree convalidation odds and final contents; (11) Catalan expansion BOE
+  timing; (12) Govern −1.3% vs +9.5% against Incasòl +1.6% / +9.4% and Brainsre −72% listings —
+  three readings, no point value; (13) net public supply finance after the ICO facility cut
+  (€2bn → €375M) against Plan Estatal €7bn.

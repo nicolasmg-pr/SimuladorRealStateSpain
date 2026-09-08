@@ -151,6 +151,8 @@ not a headcount one.
 | Permit lag (licencia de obra mayor) | 3–25 months across cities/regimes; declaración responsable ≈ 0–1 month | sector guides; ASPRIMA/Ayto. Madrid |
 | Permit-lag reduction achievable by reform | −17.5 months (24.7 → 7.2) in Madrid; carry-cost saving ≈ €50k/unit (~2/3 financing) | ASPRIMA/Ayto. Madrid (interested parties, no counterfactual); effect on completions unquantified |
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (all randomness via the engine's seeded Generator;
@@ -177,3 +179,51 @@ disputed magnitudes stay as ranges per bias-control convention):
 Validation target: replaying 1998–2007 with `land_release_units` at +30% of zoned stock must
 NOT suppress the price boom by more than ~10% (Garriga decomposition), or the supply block is
 overpowered.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A4, A5, B). Flags as in the digest.
+
+**New evidence**
+
+- **CNMC E/CNMC/001/25**, 29 Jun 2026 (cnmc.es, verified; competition-authority viewpoint):
+  land up to **45% of the final price**; Spain has "one of the most restrictive land-use regimes
+  in the OECD"; 9 recommendation blocks; no timeline estimates. Compare Uriel et al. 25% → 46%
+  land share 1995–2008 (§3).
+- Labour (SEPE/CNC via Infobae 7 Sep 2026, article verified): **80% of construction vacancies
+  hard to fill, 18.6% unfilled; 22% of the workforce retires within a decade**; CNC deficit
+  ≈700k workers; industrialised construction 2–3% of output. Against §3b's >120k unemployed from
+  construction (EPA): headcount-shortage (sector) vs placement-failure (Funcas) readings, both
+  kept.
+- BBVA Research deficit path (via idealista 5 Apr 2026, article verified): **562k (2024) → 669k
+  (2025) → 747k (2026) → ≈794k (2027)**; completions cover ≈48% of new households. Report D notes
+  press recirculation (11–15 Aug) of a 28 Jul Observatorio putting the deficit ≈885k by 2027 —
+  two BBVA figures, both recorded.
+- INE household projection 2026–41 (17 Jun 2026, verified): +2,184,048 households (≈145.6k/yr);
+  first block 2026–31 = 1,024,156 (**≈205k/yr**, 1.04%/yr) vs 1,667,063 in the superseded
+  2024–39 projection (verified PDF). Cuts *future* formation; the *accumulated* deficit above
+  is unchanged.
+- Visados obra nueva Jun 2026 13,280 (+27.2% y/y); Jan–May 52,805 (+14.8%) (Observatorio de la
+  Construcción, unverified; definitions differ) — response at the permit stage.
+
+**Legal / institutional status**
+
+- Madrid **Ley 2/2026** (BOCM 15 Jun; BOE 28 Jul 2026, verified): +20% buildability, +30%
+  density, +2 floors on VPO plots; tertiary → VPO rental up to 30%; land ≤30% of VPO price;
+  2-yr licence / 3-yr build windows. Enacted regional land lever.
+- Canarias **Ley 7/2026** (BOC 14 Aug, in force 15 Aug 2026, verified): licence streamlining;
+  tertiary → residential 30% protected / 70% asequible; unfinished buildings 50% protected.
+  Enacted.
+- State Ley del Suelo reform folded into the stalled omnibus RDL; Podemos red line
+  (que.es / eldiario.es, press, unverified). Draft 21 Jul, pulled 27 Jul; minister targets
+  September, fallback ordinary bill.
+
+**What it changes for the model**
+
+- Nothing changed. The labour figures support `max_starts_per_tick` (config, 24) as a **real,
+  low-confidence ceiling**: shortage (SEPE/CNC) and placement failure (§3b) disagree on the
+  cause, agree the constraint is not land classification.
+- Household projection cut (≈205k/yr 2026–31) belongs to the exogenous demand inputs, not this
+  lever — documented here because it changes what "closing the deficit" means.
+- `permit_lag_quarters_delta` (−6, 0) unchanged; Madrid / Canarias 2026 laws are the candidates
+  for a regional-streamlining scenario at the −6 end.

@@ -184,6 +184,8 @@ imported, a stated model limitation.
 - **Revenue (Catalonia benchmark):** €11.5–19M/yr on ~8–17k taxed dwellings in 72
   municipalities; declining as the base shrinks (finalist design).
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (typed dataclass; all ranges to be swept, seeds
@@ -219,3 +221,26 @@ fixed; disputed values stay ranges per bias-control rule):
 - Interaction to preserve: mobilized units add to *rental* supply first (France: mostly
   primary-residence conversion; Catalonia: affordable-rental bonus design), and the model
   should not hard-code any rent decline — C.D. Howe found none; let clearing decide.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Report B). Flags as in the digest.
+
+**New evidence**
+
+- None. No new causal study, no Spanish evaluation, no national vacancy tax found Jul–Sep 2026
+  (digest Report B "not found" list). Said explicitly so the absence is on record.
+
+**Legal / institutional status**
+
+- 2026 IBI vacancy-surcharge ordinances: **50%** in Madrid, Barcelona, València, Sevilla;
+  **150%** in Donostia (guiafiscal.es, unverified). If Madrid's is confirmed it reverses §3
+  "Madrid still has no surcharge" (CEMCI 2025) — check the BOCM ordinance before editing §3.
+- Omnibus RDL draft includes a "vacant-home mobilisation" block (que.es / eldiario.es, press,
+  unverified draft); pulled 27 Jul 2026, no text public.
+
+**What it changes for the model**
+
+- Nothing — documented. `detection_probability` baseline 0.0–0.05 stands; a confirmed Madrid
+  ordinance moves adopter coverage up inside that band, not out of it. `vacancy_tax_rate`
+  0.001–0.005 already brackets 50–150% of an IBI quota.

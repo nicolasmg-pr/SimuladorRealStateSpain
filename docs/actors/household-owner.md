@@ -191,6 +191,8 @@ EFF2024 (medians unless noted; € of 2023/2024):
 | Price-expectation rule | adaptive/extrapolative with momentum: WTP shifts with trailing 1–2yr observed price growth; volume (not price) adjusts first in downturns | — | inferred from 2006–08, 2022–23, 2025–26 episodes (both directions) | low (needed; no direct survey estimate found) |
 | Share of first purchases with family help | plausibly 30–40 (no solid Spanish point estimate found) | % of first-time buyers | none adequate — flagged | guess |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Expectation elasticity**: no Spanish micro-estimate found of how much WTP moves per
@@ -216,3 +218,92 @@ EFF2024 (medians unless noted; € of 2023/2024):
 8. **2008 bust magnitudes**: pin exact INE/MIVAU nominal peak-to-trough and the 2013
    transaction trough from the primary series (currently a 30–45% range from mixed
    deflators; secondary-sourced).
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page (primary blocked); **(unverified)** =
+search snippet or press only. Competing readings are kept side by side; nothing below resolves a
+range into a point.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| House price growth (IPV, national) | +12.2% y/y (Q1 12.9%), +3.4% q/q; new +7.4% y/y (+1.0% q/q), second-hand +12.9% y/y (+3.7% q/q); H1 2026 average 12.55% y/y; CCAA span Navarra 9.5 … Ceuta 15.2 (Madrid 12.9, Cataluña 10.1, Balears 13.7). Data final | 2026Q2, pub. 7 Sep 2026 | INE IPV https://www.ine.es/dyngs/Prensa/IPV2T26.htm (V) |
+| Registral price / IPVVR | €2,487/m² record; used €2,448 (+3.5% q/q, +9.2% y/y); new €2,636 (−0.7% q/q); IPVVR +3.14% q/q, +16.7% y/y; Madrid €4,477, Balears €4,311, P.Vasco €3,616 | 2026Q2, ~7 Aug 2026 | Registradores ERI via https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores (V2) |
+| Notarial price | €2,114/m² (+8.8% y/y), first month >€2,100; flats €2,529 (+13.8%), single-family €1,504 (+2.5%); May €2,049 | Jun 2026, pub. 27 Aug | CGN/CIEN https://www.notariado.org/liferay/web/cien/estadisticas-principales/inmuebles/evolucion-de-compraventa-de-viviendas (V) |
+| Asking sale price (second-hand) | €2,924/m², +12.5% y/y, −0.3% m/m (first monthly fall since late 2022), +1.5% q/q; Madrid €6,471 (+2.2%), Barcelona €5,440 (+6.3%), Málaga €4,293 | Aug 2026, pub. 2 Sep | idealista https://www.idealista.com/news/inmobiliario/vivienda/2026/09/02/912069- (V) |
+| Appraisal index (Tinsa IMIE) | Aug +14.9% y/y, 0.0% m/m; Costa Med. & metro +17.4%, other munic. +10.2% (V). Jul +15.5% y/y, +1.3% m/m (V). Q2 +15.2% y/y, +3.7% q/q, €2,071/m² (unverified) | Jul–Aug 2026 | https://www.tinsa.es/sala-de-prensa/notas-de-prensa/imie-general-agosto/ ; https://www.tinsa.es/sala-de-prensa/notas-de-prensa/imie-mensual-julio-2026/ |
+| Transaction volume / turnover | Registradores 2026Q2 167,934 sales (−5.7% q/q, −2.3% y/y, lowest in 7 quarters) (V2); Jul advance ≈60,500 (−7.7% y/y, largest fall in >2 yrs) (V). Notariado Jun 67,529 (−4.0% y/y), May 55,761 (−11.8%), H1 2026 353,237 (−7.7% y/y) (V). INE ETDP Jun 59,288 (+1.6%), Jan–Jun −2.6% (V) | Jun–Jul 2026 | infoconstruccion (above); https://www.registradores.org/actualidad/notas-de-prensa ; https://www.idealista.com/news/inmobiliario/vivienda/2026/08/27/911320- ; https://www.ine.es/dyngs/Prensa/ETDP0626.htm |
+| Cash (mortgage-free) purchase share — **two like-for-like sources disagree** | Registradores: 23% (77% financed) 2026Q2 (V2); 25.7% Q4 2025, 29.3% 12-month 2025; Madrid region 99.5% financed, País Vasco 96.8%, two regions <60% (V, PDF). Notariado: 46.3% unmortgaged (53.7% mortgaged), Jun 2026 (V). Baleares path 40% (2021) → 36.1 → 33.1 → 29 → 30 (2025) → 23.2% (2026Q2) (V, article) | 2025–2026Q2 | https://www.registradores.org/documents/d/guest/eri_4t_2025 ; infoconstruccion (above); idealista 27 Aug (above); https://www.ultimahora.es/noticias/local/2026/08/16/2689851/ |
+| Loan size / LTV / rate / term at purchase | Notariado LTV 72.3%; purchase loans 36,249 (+0.2%), avg €188,785 (+7.3%) (V). INE Hipotecas Jun 2026: 45,907 (+10.8%), avg €178,365 (+6.0%), rate 2.96%, term 25 y, fixed 61.7% (V). Registradores avg mortgage €176,453 (V2) | Jun 2026 | idealista 27 Aug (above); https://www.ine.es/dyngs/Prensa/H0626.htm ; infoconstruccion (above) |
+| Foreign-buyer share — **three bases, keep all** | Registradores 15.98% of purchases, series record (≈26,800; +≈11% y/y while nationals fell); EU 57.4% of foreigners; UK 6.99, NL 6.94, DE 6.11 (V2). CaixaBank Research on MIVAU/Notariado: 133k = 18.0% of sales (4Q to Q1 2025), +37.9% vs 2019; residents 56.2% of foreign buys (10.1% of all), non-residents 7.9% of sales (2.9% in 2007); price paid non-residents €3,063/m² vs resident foreigners €1,795 vs Spaniards €1,713 (V, PDF). EC Country Report 2026: 14.6% (2024; 2006–24 avg 10.5%), Baleares 32.6% (V, PDF) | 2024–2026Q2 | infoconstruccion (above); https://www.caixabankresearch.com/sites/default/files/content/file/2025/10/27/91184/is_inmobiliario_2s_2025_es_demanda-extranjera.pdf ; https://housing.ec.europa.eu/document/download/3c0b5ce5-67e0-4e4a-a5e2-fede25ea3e07_en?filename=2026%20ES%20Housing%20Annex.pdf |
+| Net household formation — observed | 19,874,860 households at 1 Jul 2026 (+58,794 q/q; +1.22% y/y ≈ +239k); population 49,801,559 (+444,205 y/y); foreign-born 10,291,807 (V). +226,279 in 2025 (+1.16%) to 19,746,638 at 1 Jan 2026 (V) | 2025–2026Q2 | INE ECP https://www.ine.es/dyngs/Prensa/ECP2T26.htm ; https://www.ine.es/dyngs/Prensa/ECP4T25.htm |
+| Net household formation — projected (vintage comparison) | 2026–2041: 19,759,349 → 21,943,397 (+2,184,048, +11.1%; ≈145.6k/yr); blocks 1,024,156 / 696,381 / 463,511 → ≈205k / 139k / 93k per yr; size 2.49 → 2.43; single-person 28.4% → 30.6% (V). Superseded 2024–2039: 19,310,776 → 23,001,927 (+3,691,151, +19.1%; ≈246k/yr); blocks 1,667,063 / 1,140,804 / 883,284 → ≈333k / 228k / 177k per yr (V, PDF). Like-for-like first-block cut ≈ −128k/yr | 17 Jun 2026 vs 24 Jun 2024 | https://www.ine.es/dyngs/Prensa/PROH20262041.htm ; https://www.ine.es/dyngs/Prensa/es/PROH20242039.pdf |
+| Ownership rate by age / income (EFF2024) | §6 age row confirmed on the primary PDF: <35 36.7 (+4.8 pp, first rise since 2011), 35–44 56.5 (−5.3 pp), 45–54 70.1, 55–64 76.9, 65–74 82.8, >74 83.4; all households 70.6 (72.1 in 2022). New: bottom income quintile 53.1, top decile 88.3; 45.3% own other real estate, 8.7% carry debt on it; median main home €170k (+6.9%) | end-2024 | BdE DO 2610 https://www.bde.es/f/webbe/SES/Secciones/Publicaciones/PublicacionesSeriadas/DocumentosOcasionales/26/Fich/do2610.pdf (V, PDF) |
+| Price-to-income / valuation — **three readings side by side** | EC: overvaluation ≈18% (EC method); price-to-income flat since 2022; HPI +12.7% nominal 2025, 2015–19 avg +2.5% (V, PDF). ECB FSR May 2026: Spain among countries where the price/income deviation from its long-run average is positive and rising y/y (2025Q3) (V, PDF). BdE Síntesis (§6): 7.1 → 8.0 years, 2024–2026Q1 | 2025–2026 | EC annex (above); https://www.ecb.europa.eu/press/financial-stability-publications/fsr/pdf/ecb.fsr202605~50566915a7.en.pdf |
+
+### New evidence (Tier 2)
+
+- **Affordability gate, survey side** (INE ECV 2025 housing-access module, 27 Apr 2026, V): 7.6% of
+  16+ searched for housing without moving (67.2% cite price); 44.3% of 26–34s live with parents,
+  47.3% of them because they cannot afford to leave; unsuccessful searchers Balears 10.6%, Madrid
+  10.2%, ages 30–44 14.9%. https://www.ine.es/dyngs/Prensa/m3ECV2025.htm — supports §3 rule 1.
+- **Family transfers, first flow anchors.** 2025: 30,500 housing donations parent→child; 62,000 money
+  donations, €5.5bn, avg ≈€90k, tripled since 2019 (BdE IA 2025 data via El Independiente, 19 Jun
+  2026, V article) https://www.elindependiente.com/economia/2026/06/19/donaciones-vivienda-padres-a-hijos/ .
+  Notarial donations 225k in 2025 (+13%; 71k in 2013); H1 2025: 202,923 inherited vs 380,144
+  purchased homes; 26% of renters excluded by the LTV cap alone (OBS Business School, industry,
+  Aug 2026, V article) https://www.infobae.com/espana/2026/08/26/ . Neither gives the *share of first
+  purchases* with family help — the §6 row stays a guess.
+- **Second homes / coast** (Tinsa *Vivienda en Costa 2026*, industry, 19 Aug 2026, V article):
+  coastal ex-capitals €1,992/m² (+13.5%); second-home segment €3,150/m²; effort 40% of income
+  (Baleares 59%, Málaga 57%); coastal sales 204,089 in 2025 (+1.7%); foreign sales −3% overall;
+  77% of zones "still with upside" (appraiser view).
+  https://www.idealista.com/news/inmobiliario/vivienda/2026/08/19/910622-
+- **Location premium — wage side vs price side** (calibration evidence for the zone gap).
+  De la Roca & Puga, REStud 2017 (V, PDF): Madrid mean earnings €31k, +21% vs Valencia, +46% vs
+  median city, +55% vs rural; same-observables premium Madrid vs smallest city 18%, Barcelona vs
+  Lugo 34%; elasticity of earnings to city size 0.0455 (OLS), 0.022 static / 0.051 medium-term.
+  https://diegopuga.org/papers/DeLaRoca_Puga_REStud_2017.pdf . Tinsa IMIE Q1 2026 (V, PDF):
+  capitals Madrid €4,600, San Sebastián €4,975, Barcelona €4,417 vs Palencia €1,256; provinces
+  Madrid €3,565, Baleares €3,743, Barcelona €2,772 vs Ciudad Real €776, Zamora €881; Madrid capital
+  +29% over its province, Barcelona +59.4%; national −34% from 2007 peak; effort 34% of income,
+  >50% in job/tourist poles.
+  https://www.inmonews.es/wp-content/uploads/2026/03/2026-03-31-Tinsa-informe-IMIE-1er-trimestre-2026.pdf .
+  Price gradient (≈3.7× across capitals, ≈4.6× across provinces) far exceeds the wage gradient
+  (≈1.5×): the location premium is not a wage premium.
+- **Expectations** (Funcas, García-Montalvo, Feb 2026, V PDF): 89% of surveyed think prices are
+  overvalued (94.5% in 2005); perceived price rise 26.1% vs official 12.8%. A perception gap, not an
+  elasticity. https://www.funcas.es/wp-content/uploads/2026/02/Existe-una-nueva-burbuja-en-el-mercado-inmobiliario_Inv26.pdf
+- **Effort, registral** (Registradores ERI 2026Q2 via press): 29.7% of salary, payment €675/mo
+  (unverified). https://www.pressdigital.es/articulo/economia/2026-08-27/5995474-
+- **Migration inputs**: foreign-born +736k (2022), +634k (2023), +626k (2024) → 9.46M, 19.3% of
+  residents (BdE DO 2610, V PDF); INE EMCR 2024 net +626,268 (11 Dec 2025); 2025 edition due
+  Dec 2026 (unverified). https://ine.es/dyngs/Prensa/EMCR2024.htm
+
+### Open questions moved
+
+- **Q3 (cash-purchase composition) — narrowed to a real disagreement.** Two like-for-like
+  registral/notarial counts of the same transactions differ ≈2×: Registradores 23–29% vs Notariado
+  46%. The ≈60.8% cash share derived from INE hipotecas/compraventas ratios (see bank dossier §1,
+  La Marea-type derivation) is an artefact — different registration dates, not all mortgages finance
+  a purchase — and must not be used. Composition (non-resident / equity mover / investor) still
+  unmeasured; Baleares 23.2% is the first zone-level cash point.
+- **Q4 (foreign-share methodology)** — now three bases: Registradores 15.98% (2026Q2),
+  MIVAU/Notariado 18.0% (4Q to 2025Q1), EC 14.6% (2024). Still a range; not resolved.
+- **Q5 (formation projection risk) — quantified.** First-block cut 333k → 205k/yr; observed +226k
+  (2025) and +239k (y/y to Jul 2026) run *above* the new projection. Formation stays a scenario
+  input; both vintages are in `scenario.INE_HOUSEHOLD_PROJECTIONS`.
+- **Q2 (family transfers) — partly.** Flow anchors now exist (62k gifts avg €90k; 30.5k housing
+  donations; 225k notarial donations); share of first purchases still open.
+- **Q1 (expectation elasticity)** — new perception data (Funcas), no elasticity.
+- **New**: (9) why Registradores and Notariado differ ≈2× on cash share — bases to reconcile before
+  the ABM fixes a cash segment; (10) turning point? IPV decelerating (12.9 → 12.2), asking prices
+  first m/m fall, Registradores Jul −7.7%, Tinsa 0.0% m/m — against IPVVR +16.7% and Tinsa +14.9%
+  y/y; (11) EC "price-to-income flat since 2022" vs BdE Síntesis 7.1 → 8.0 — definitional check
+  before either is used; (12) coastal/second-home effort 40–59% vs national 34–36% — a
+  zone-specific affordability wall for the coastal overlay.

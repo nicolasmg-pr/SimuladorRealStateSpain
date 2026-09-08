@@ -4,6 +4,10 @@ Baseline = `SimConfig.baseline()`, 60 ticks, seeds {1..5}, last 20 ticks average
 Enforced continuously by `tests/test_validation.py` — no scenario result is reported unless
 that suite passes (engineering standard, `plan.md`).
 
+Revised 2026-09-08 after the KB refresh (`docs/kb-refresh-2026-09.md`, section "KB refresh
+2026-09 revision" below): baseline moments unchanged within seed noise, three new contrast
+rows, and the Phase-7 rent-cap gate re-measured and found **not met on its supply leg**.
+
 Revised 2026-08-14 after reading Funcas *Estudios* 104 (`docs/funcas-104.md`). Four mechanics
 changed — vacancy geography, the non-mobilisable empty stock, dwelling size, and a sharing
 margin in tenant behaviour — so every number below was re-measured on 5 seeds. What changed
@@ -171,6 +175,111 @@ price and volume legs stay as ordinary passing assertions.
 Not attempted: the second-home/other-province purchase stream (≈10% of Spanish transactions),
 age and nationality structure in tenure, landlord income taxation, and utilities. All are
 listed in `model-spec` §10 with their figures.
+
+## KB refresh 2026-09 revision (2026-09-08)
+
+Source: the Jul–Sep 2026 release cycle, catalogued in `docs/kb-refresh-2026-09.md`. Six
+mechanics or parameters changed (INE projection vintages, rent-cap coverage, buyer-type ITP
+wedges, ICO wealth cap, IRAV read relative to the income anchor, the capped-listing floor) and
+one calibration anchor moved (tourist stock 374k → 345k real). Every number below was
+re-measured on 5 seeds, last 20 of 60 ticks, with the same script design as the Funcas revision.
+
+**R1 — the baseline moments did not move beyond seed noise.** Ownership 70.2% (was 70.1),
+non-owners 29.8% (29.9), price-to-income 7.68 (7.58, σ across seeds 0.10), transactions
+3.6%/yr of households (3.64), completions/formation 58.8% (59.4), market-tenant overburden
+28.7% (29.2), >30% share 59.2% (58.7), insider/outsider wedge +11.9% (+10.2, σ 2.5pp), vacancy
+10.0 / 12.3 / 18.0% by zone (10.0 / 12.3 / 18.2), national 12.6% (12.6), market vacancy
+tensioned 4.3% (4.3), individuals' rental share 86.5% (86.4), public 7.3% (7.3), zone-weighted
+supply elasticity 0.49, T/R price ratio 3.19 → 1.75 over 60 ticks (3.18 → 1.89). None of the
+default values of the new policy fields is active in the baseline (coverage 1.0, surcharges 0,
+wealth cap ∞), so the only baseline perturbation is the tourist-stock anchor, which changes the
+random stream and nothing structural. The §9 table above stands; both strict xfails stand.
+
+**R2 — new contrast rows.** Non-resident purchases 2.2% of the model's sales against 7.9%
+published (CaixaBank Research on MIVAU) — the overlay is calibrated as an *offer* stream
+(`foreign_purchase_share` 8% of recent sales) and only ≈28% of those offers close, because a
++60% budget still loses sealed bids on the listings it lands on and the one-listing-per-offer
+search is frictional. Legal-person purchases 0.5% against ≈10% (BdE) — expected far below,
+the model's institutional buyer is only the gran tenedor. Cash purchases 2.9% against a
+re-based 29.3% (Registradores 12-month 2025; band 23–46% to the Notariado reading) — the gap
+is now stated at its honest size, ×10 rather than ×20. Formation 243k inside the widened
+225–250k band.
+
+**R3 — the rent-cap gate, re-measured, is not met on its supply leg.** The Phase-7 design
+(`experiments/rent-cap.md`: cap from tick 20 of 40, tensioned zone, seeds 1–3, mean over the 16
+post-cap ticks) re-run on the code *before* this revision gave contract rents **+0.9% above
+baseline** at every elasticity and new tenancies **+2 to +3%**, against the table's −4.1% and
+−9.4%. The table predates the 2026-08-10 audit and the 2026-08-14 Funcas revision and was not
+re-run after either. Diagnosis, seed 1, elasticity 2: the reference index, frozen at activation
+and indexed by `within_contract_update` = 2.5%/yr, overtook a market growing at the 2%/yr
+anchor; capped tensioned listings went 7 → 29 → 21 → 14 → 6 → **0** between ticks 20 and 30,
+after which the magnet rule (sub-cap asks rise toward the reference) *lifted* asks. In Spain
+IRAV (2.20–2.44%) runs at 0.6–0.75 of nominal wage growth, so the model value is 0.012–0.015;
+at **0.015** the cap binds throughout. Re-measured after the fix:
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | seasonal units gained | Δ sale prices | Δ contract rents, secondary zone |
+|---|---|---|---|---|---|---|
+| 0.0 | **−2.2%** | −1.8% | +3.6% | 0 | −2.8% | −0.3% |
+| 0.5 | −2.2% | −1.8% | +2.6% | +1.8 | −3.4% | −0.7% |
+| 1.0 | −2.2% | −1.8% | +3.6% | +4.6 | −3.0% | −0.1% |
+| 1.5 | −2.2% | −1.8% | +4.0% | +5.6 | −3.3% | +0.3% |
+| 2.0 | −2.2% | −1.9% | **+3.8%** | +7.5 | −3.5% | 0.0% |
+
+The price leg works and is now pinned (`test_rent_cap_lowers_contract_rents`, −1% floor). The
+supply leg does not: at elasticity 2 tenancies *rise*. Instrumented (seed 1): every vacant
+candidate's ask exceeds the cap (the yield floor sits ≈2% above market rent), 85% comply, and
+the per-listing exit hazard is 0.06–0.17 — ≈60 withdrawals over the 16 ticks, half of them
+sold to owner-occupiers. But **applicants per listing in the tensioned zone are 0.64–0.77
+before the cap and 1.1–1.5 under it**: there are 60–80 leftover listings every tick, so
+withdrawing 60 units over four years shrinks the slack, not the number of contracts. Barcelona
+runs at ≈65 contacts per listing (idealista, Mar 2026). This is a calibration fact about the
+baseline, not about the hazard: no `HAZARD_SCALE` reproduces Monràs's −10% in a slack market.
+Strict xfail `test_rent_cap_supply_response_spans_monras` (elasticity 2 must give ≤ −5%). The
+fix — a tightness recalibration of the tensioned zone via the mobilisable vacant stock,
+currently held at 0.0455 per household in every zone by the Funcas revision's F2, or via the
+zone split of household formation — moves ownership, market vacancy and overburden together
+and is the next measured revision. **Until then no rent-cap supply-response claim, and no
+elasticity sweep, should be reported from this model.** The sale-price and secondary-zone
+columns are reported for completeness; the cross-zone spillover Spain shows (Catalan tensioned
+rents +1.6% vs non-tensioned +9.4% in 2025, Incasòl) is absent, as expected from zones that are
+not adjacent markets.
+
+**R4 — coverage.** Same design, elasticity 1: coverage 1.0 gives contract rents −2.2%,
+coverage 0.42 (Spain's 317 declared municipalities mapped onto the model's tensioned zone)
+−1.4%, i.e. ≈0.64 of the full effect for 0.42 of the units, because the asking-basis index that
+uncapped landlords condition on also falls. Coverage 0 leaves only the national IRAV channel
+on sitting rents (−1.0% over 3 seeds, σ 1pp, indistinguishable from zero), pinned at under half
+the full effect by `test_cap_coverage_scales_the_rent_cap`.
+
+**R5 — buyer-type tax wedges.** Cap from tick 8 of 40, seeds 1–3, mean over ticks 16–40:
+
+| Lever | Non-resident share of sales | Institutional share of sales | Transactions | Tensioned prices |
+|---|---|---|---|---|
+| baseline | 3.3% | 0.80% | — | — |
+| non-resident surcharge +0.90 (the 100%-tax bill) | **1.6% (−51%)** | 1.5% | +2.3% | **−5.2%** |
+| non-resident surcharge +0.20 | 3.2% (−3%) | 1.3% | +3.0% | −1.9% |
+| investor surcharge +0.10 (Catalan 20% TPO) | 3.6% | **0.68% (−15%)** | +1.5% | −1.1% |
+
+The +0.90 surcharge halves rather than eliminates non-resident purchases: the overlay bids at
++60% and, after the wedge `(1.10)/(2.00) = 0.55`, still reaches 0.7–1.06× the zone price and
+wins the listings whose reserve sits below that. In Spain the non-resident premium is largely
+*composition* (coastal, premium stock: €3,063 vs €1,713/m²), which the model represents as
+willingness-to-pay on the same stock — so it likely understates the diversion. The
+institutional buyer picks up part of what non-residents drop (0.8 → 1.5%). Transactions
+*rise* slightly under both surcharges because the aggregates' lost purchases free listings for
+credit-screened households at lower prices — a redistribution the lever is designed to produce.
+
+**R6 — ICO wealth cap.** Guarantee with eligible share 0.5, cap €150k vs none, 24 ticks,
+seeds 1–3: identical budget exhaustion (100% of the envelope spent) and unassisted access 18.61%
+vs 18.62%. Inert on the model's tenant wealth distribution (≈1% of tenants above €150k), as the
+instrument's own design implies; kept because it is the instrument.
+
+**R7 — tourist stock.** Seasonal units 172 (≈344k real) against INE's 341,001 (May 2026); was
+187 (≈374k). The tourist-restriction lever's magnitude scales with it.
+
+Not attempted: the tensioned-zone tightness recalibration (R3), the location-amenity term, the
+declaration exit rule, the contract-extension shock and the seasonal return flow — listed with
+their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
@@ -357,6 +466,9 @@ Defects found and fixed. Each was verified by measurement before and after, not 
 
 ## Known gaps
 
+- **Rent-cap supply leg (target 8)** — the tensioned rental market runs slack (0.6–0.8 applicants per
+  listing), so withdrawals do not cut contracts; strict xfail. Needs the tightness recalibration
+  described in R3. Blocking for every rent-cap supply-response claim.
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
 - Rent level and cash-purchase share, both exposed by the Funcas 104 contrast rows (F7).
 - No second-home/other-province demand stream, no age or nationality structure in tenure, no

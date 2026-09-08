@@ -159,6 +159,8 @@ All figures fetched and verified on that date unless labelled (unverified). Sour
 | Sector concentration (top-8 developers) | ~18 | % of new-build output | elEconomista 2021; top-10 = 21,375 deliveries 2024 | medium |
 | Historical peak / trough of visados | 865,000 (2006) / ≈34,000 (2013, full-year figure unverified; H1-2013 = 22,316 verified) | dwellings/yr | idealista/news historical series, Euroval | high (peak) / medium (trough) |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Arrazola et al. (2015) numeric supply elasticity** — abstract says supply is "highly
@@ -184,3 +186,62 @@ All figures fetched and verified on that date unless labelled (unverified). Sour
 8. **Pre-2008 decision rules differed** (land speculation, 100%+ financing, no pre-sales
    discipline). If the model is calibrated on post-2015 behaviour, do not use 1997–2007
    dynamics for validation without a regime switch.
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page; **(unverified)** = snippet or press
+only. The demand benchmark is now a range across three sources; none is preferred here.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| New-build price | INE IPV new +7.4% y/y (+1.0% q/q), decelerating from 9.1% in Q1 (V); Registradores new €2,636/m² (−0.7% q/q) (V2) | 2026Q2 | https://www.ine.es/dyngs/Prensa/IPV2T26.htm ; https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores |
+| New-build sales | Registradores 34,919 (−11.5% q/q) (V2); INE ETDP Jun 2026 new 12,766 = 21.5% of 59,288; protected 3,679 (6.2%) (V) | 2026Q2 / Jun 2026 | infoconstruccion (above); https://www.ine.es/dyngs/Prensa/ETDP0626.htm |
+| Visados obra nueva | Jun 2026 13,280 (+27.2% y/y); Jan–May 52,805 (+14.8%); H1 ≈66k — all (unverified; definitions differ). 2025 ≈139k stands | H1 2026 | MITMS via https://www.observatoriodelaconstruccion.com/barometro/visados-obra (unverified) |
+| VPO calificaciones | definitivas 5,215 (+74.5% y/y, ~60% Cataluña, best Q1 since 2012); provisionales (iniciadas) 4,048 (+24%) | 2026Q1, pub. 11 Jun 2026 | MIVAU via https://www.lamoncloa.gob.es/serviciosdeprensa/notasprensa/vivienda-agenda-urbana/Paginas/2026/110626-viviendas-protegidas-2026.aspx (V) |
+| Net household formation (demand benchmark) — **three numbers, keep all** | observed +226,279 (2025), +239k y/y to 1 Jul 2026 (INE ECP, V); projected ≈205k/yr 2026–31 → 139k → 93k (INE 2026–2041, V) vs ≈333k/yr first block of the superseded 2024–2039 vintage (V, PDF); BdE IA 2025 240k (§6, unchanged) | 2025–2026 | https://www.ine.es/dyngs/Prensa/ECP4T25.htm ; https://www.ine.es/dyngs/Prensa/ECP2T26.htm ; https://www.ine.es/dyngs/Prensa/PROH20262041.htm ; https://www.ine.es/dyngs/Prensa/es/PROH20242039.pdf |
+| Cumulative deficit path (BBVA Research) | 562k (2024) → 669k (2025) → 747k (2026) → ≈794k (2027); completions cover ≈48% of new households (5 Apr 2026, V article). Later vintage: ≈885k by 2027 (28 Jul Observatorio, press recirculation 11–15 Aug) | 2024–2027 | https://www.idealista.com/news/inmobiliario/vivienda/2026/04/05/890087- ; https://www.bbvaresearch.com/en/ (listing) |
+| Developer credit | 5.8% of GDP vs 41.6% in 2007 | Feb 2026 | Funcas, García-Montalvo https://www.funcas.es/wp-content/uploads/2026/02/Existe-una-nueva-burbuja-en-el-mercado-inmobiliario_Inv26.pdf (V, PDF) |
+| Land share / land regime | up to 45% of final price; "one of the most restrictive land-use regimes in OECD"; 9 recommendation blocks; no timeline estimates — confirms §6 rows | study E/CNMC/001/25, 29 Jun 2026 | https://www.cnmc.es/prensa/estudio-suelo-vivienda-20260629 (V) |
+| Permits and metro gap (EC count) | permits 127.5k (2024, +16.7%); Madrid/Barcelona permits ≈17k/11k vs households +43k/+18k (12 m to Sep 2025); construction employment 1.66M | 2024–25 | EC Country Report 2026 Annex 16 https://housing.ec.europa.eu/document/download/3c0b5ce5-67e0-4e4a-a5e2-fede25ea3e07_en?filename=2026%20ES%20Housing%20Annex.pdf (V, PDF) |
+
+### New evidence (Tier 2)
+
+- **Labour** (SEPE/CNC via Infobae, 7 Sep 2026, V article): 80% of construction vacancies hard to
+  fill, 18.6% unfilled; 22% of the workforce retires within a decade; CNC deficit ≈700k (industry
+  claim, unchanged); industrialised construction 2–3% of output. https://www.infobae.com/espana/2026/09/07/
+- **Land-release levers enacted.** Madrid Ley 2/2026 (BOCM 15 Jun; BOE 28 Jul 2026, verified):
+  +20% buildability, +30% density, +2 floors on VPO plots; tertiary→VPO rental up to 30%; land
+  ≤30% of VPO price; 2-yr licence / 3-yr build windows; target 18,000 VPO (press).
+  https://www.boe.es/eli/es-md/l/2026/06/11/2 . Canarias Ley 7/2026 (BOC 14 Aug; in force 15 Aug
+  2026, verified): "vivienda asequible incentivada" — rent ≤120% VPO, ≤120 m², income ≤7×IPREM,
+  7-yr protection (20 on public land); tertiary→residential 30% protected / 70% asequible;
+  unfinished buildings 50% protected. https://www.gobiernodecanarias.org/boc/2026/163/2922.html
+- **Comunitat Valenciana VPO price module** +7% → €2,568/m² útil (from €2,400), DOGV ~14 Aug 2026
+  (unverified). https://www.eldiario.es/comunitat-valenciana/generalitat-valenciana-vuelve-encarecer-precio-vivienda-protegida-fija-tope-2-568-euros-metro-cuadrado_1_13448272.html
+- **Public promotion finance.** ICO "Facilidad para promoción de vivienda social" cut €2bn → €375M
+  (adendas 31 Jul; BOE 5 Sep 2026, verified) https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18677 .
+  Casa 47: 2,800 homes licensed Q1 2026, ~2,500 in licensing; Plan 2026-30 €7bn (La Moncloa 7 Sep
+  2026, verified) https://www.lamoncloa.gob.es/presidente/actividades/paginas/2026/070926-sanchez-acto-vivienda.aspx
+- **ECB FSR May 2026** (V, PDF): supply "failed to keep pace"; JRC: EU needs +650k dwellings/yr.
+  https://www.ecb.europa.eu/press/financial-stability-publications/fsr/pdf/ecb.fsr202605~50566915a7.en.pdf
+- **Forecast cross-check** (docs/external-forecasts.md §4): BBVA visados +10.1% for 2026, CaixaBank
+  150k; H1 2026 running +14.8% to +27.2% on the unverified Observatorio counts.
+
+### Open questions moved
+
+- **Q1 (Arrazola et al. 2015 coefficient) — still unretrieved.** No digest item touches it; the
+  0.45–0.58 range and its caveat stand.
+- **Q2 (BdE 0.45 independence)** — unchanged.
+- **Q5 (completions discrepancy)** — no new completions data.
+- **Q6 (which constraint binds by zone)** — CNMC adds the land-regime diagnosis (no timelines);
+  SEPE adds labour tightness; Madrid/Canarias laws are the first enacted land-release levers to
+  track against `LandRelease`.
+- **New**: (9) reconcile Observatorio visados counts with the MIVAU series before using H1 2026
+  (+15–27%); (10) new-build price 9.1 → 7.4% with sales −11.5% q/q — margin squeeze, mix, or
+  pre-sale lag? (11) the demand benchmark is now a 205k–240k range; completions/formation reads
+  37–48% depending on the denominator (BdE-based 37–38% vs BBVA 48%).

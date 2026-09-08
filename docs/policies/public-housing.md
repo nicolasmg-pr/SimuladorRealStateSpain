@@ -237,6 +237,8 @@ Disagreements kept as ranges: crowd-out (US project-based vs Murray vs Spanish
 co-movement); Barcelona licence collapse (viability vs evasion); Vienna spillover
 (single-study estimate); social-rental stock share (1.5 vs 1.7 vs 2.5% by definition).
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 `scenario.Intervention` parameters (all rates per quarter; zone = tensioned metro /
@@ -275,3 +277,54 @@ secondary city / rural):
 - Fiscal accounting: `public_cost_per_unit_eur`: 120,000–200,000 (guess-labelled),
   subsidy component 70,000–90,000 (sourced to Plan aid caps) — for the government
   actor's budget constraint, units: EUR/dwelling.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A4, B, C4). Flags as in the digest.
+
+**New evidence**
+
+- **Casa 47** portal live 7 Sep 2026 (La Moncloa, verified; government self-report): 800 homes
+  now, +1,500 "soon"; 2,800 licensed in Q1 2026; ~2,500 in licensing; **42,000 homes + 2,500
+  plots from Sareb**; rent ≤30% of income; 14-yr contracts (to age 75); Plan 2026–30 €7bn;
+  €100M anti-speculation buy fund (tanteo/retracto on bulk sales sits in the stalled RDL).
+- VPO calificaciones 2026Q1 (MIVAU via La Moncloa 11 Jun 2026, verified): **definitivas 5,215
+  (+74.5% y/y**, ~60% Cataluña, best Q1 since 2012); provisionales 4,048 (+24%). ×4 ≈ 21k/yr if
+  sustained (derived; Q1 seasonality unknown) — above §4's 11,000–14,500 status quo, far below
+  the 40–60k ambition.
+- EC Country Report Spain 2026, Annex 16 Housing (PDF, verified): public rental stock **318k =
+  1.5–1.7% of households vs EU 6–7%**; Ley 12/2023 "not applied by some regions". Confirms §1.
+- Comunitat Valenciana raises the VPO price module +7% → **€2,568/m² útil** (from €2,400)
+  (eldiario.es, unverified). Narrows the occupant discount in §4 where it applies.
+
+**Legal / institutional status**
+
+- ICO "Facilidad para promoción de vivienda social" cut **€2bn → €375M** (Dec 2025 PRTR
+  simplification); fees €31M → €6.9M; loan transferability eased (adendas 31 Jul,
+  BOE-A-2026-18677 5 Sep 2026, verified).
+- €90M transfer to CCAA that apply the law / freeze rents (Navarra €6.6M; build, rehab, land)
+  announced 2 Sep 2026 (Infobae, unverified).
+- Madrid **Ley 2/2026** (BOCM 15 Jun; BOE 28 Jul 2026, verified): +20% buildability, +30%
+  density, +2 floors on VPO plots; tertiary → VPO rental up to 30%; land ≤30% of VPO price;
+  2-yr licence / 3-yr build windows; 18,000 VPO target (press).
+- Canarias **Ley 7/2026** (BOC 14 Aug, in force 15 Aug 2026, verified): "vivienda asequible
+  incentivada" — rent ≤120% of VPO, ≤120 m², income ≤7×IPREM, 7-yr protection (20 on public
+  land); tertiary → residential split 30% protected / 70% asequible; unfinished buildings 50%
+  protected.
+- EU: SGEI Decision (EU) 2025/2630 in force 8 Jan 2026 — separate social and *affordable*
+  state-aid categories; European Affordable Housing Plan 16 Dec 2025; Housing Alliance 12 May
+  2026; EIB €6bn for 2026; pan-EU platform "in 2026" not launched (housing.ec.europa.eu,
+  verified). Raises the state-aid ceiling for near-market affordable stock — the sub-lever §3
+  flags as most crowd-out-prone.
+
+**What it changes for the model**
+
+- Delivery scale: **realistic ≈5k definitivas/quarter ≈ 2–3 model units/quarter** (1:2000) vs
+  the lever default `units_per_tick = 6` (≈48k/yr, the announced plans). The UI help now says
+  this; the default is unchanged so the announced-plans scenario stays one setting away.
+- Nothing else changed: `public_rental_share` 0.017 (range 0.010–0.025) is consistent with EC
+  1.5–1.7%; `delivery_lag` 12–32 ticks; Casa 47's 800 homes are 0.4 model units — a stock
+  announcement, not yet a flow.
+- Budget: the government actor should not assume the €2bn ICO facility; €375M is the funded
+  line.
+- Regional laws (Madrid, Canarias) are land levers — see `land-release.md` update.

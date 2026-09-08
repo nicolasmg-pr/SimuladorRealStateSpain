@@ -88,6 +88,12 @@ class SmallLandlords:
 
             cap = cap_level(state, unit.zone, unit.quality)
             capped = False
+            # coverage: the law is switched on municipality by municipality, and the zone is
+            # bigger than the declared map (Spain Jul 2026: 317 municipalities, 19% of the
+            # population ⇒ ≈0.42 of the model's tensioned zone). A unit outside the declared
+            # area faces no cap at all — distinct from an uncovered landlord not complying.
+            if cap is not None and self.rng.random() >= cfg.policy.cap_coverage:
+                cap = None
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
                 if ask > cap and complies:

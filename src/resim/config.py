@@ -31,7 +31,10 @@ class ZoneConfig:
 
     zone: ZoneType
     household_share: float  # share of all households at init [Censo approx — guess]
-    tenant_share: float  # share of zone households renting [ECV 2024, household-tenant §6 — medium]
+    # share of zone households renting. National anchor: ECV 2025 20.2% renting + 6.5% ceded
+    # (2024: 20.4 + 6.1), owners 73.3%; the zone ladder is ECV 2024 regional with the rural
+    # cell inferred [INE ECV 2025 (5 Feb 2026), household-tenant §6 — medium]
+    tenant_share: float
     income_multiplier: float  # × national income distribution [guess]
     price_multiplier: float  # × national median dwelling value [guess from €/m² press]
     gross_yield: float  # /yr, rent/price at init [idealista+BdE RBA, investor-small §6 — high]
@@ -85,11 +88,13 @@ class ZoneConfig:
     # OUTSIDE `units_per_household`, which counts occupied plus empty dwellings only (INE
     # classifies tourist and second-home use as separate categories) — so these
     # are additional dwellings, and converting them back (tourist-restriction lever) genuinely
-    # adds housing. National weighted ≈1.8%, matching 329,764 VUT (INE, Nov 2025) against
-    # 18.54M dwellings; the tensioned value is the central-Barcelona district figure of
-    # 2.8–2.9% of dwellings [INE via El País; tourist-rental-restriction §2 — medium. The
-    # dossier also records hotspot census sections at 20–30%, which this abstraction cannot
-    # represent: a zone mean, not a hotspot]
+    # adds housing. Calibrated so the model's seasonal units re-inflate to the INE count:
+    # 341,001 VUT in May 2026 (−10.7% y/y; 1.28% of INE's 26.6M total stock; 329,764 in
+    # Nov 2025). The zone values weight to ≈173 model units ≈ 345k real. The tensioned value
+    # sits below the central-Barcelona district figure of 2.8–2.9% of dwellings because the
+    # zone is a metro mean, not a hotspot [INE Estadística experimental de viviendas
+    # turísticas, 24 Jun 2026; tourist-rental-restriction §2 — medium. The dossier also records
+    # hotspot census sections at 20–30%, which this abstraction cannot represent]
     seasonal_share: float = 0.0
 
 
@@ -97,7 +102,9 @@ class ZoneConfig:
 class PopulationConfig:
     """How many actors of each type exist, and how their attributes are distributed."""
 
-    n_households: int = 10_000  # 1:2,000 of 19.9M Spanish households [EPA, household-owner §1]
+    # 1:2,000 of 19.87M Spanish households (INE ECP 1 Jul 2026; +226k in 2025, +239k y/y)
+    # [INE ECP, household-owner §1 — high]
+    n_households: int = 10_000
     income_median: float = 36_100.0  # €/yr gross [EFF2024 — high]
     income_sigma: float = 0.70  # lognormal sigma, implies mean≈46.3k [EFF2024 — high]
     saving_rate: float = 0.13  # share of income saved /yr [INE CNTR 13–14% — low]
@@ -110,8 +117,11 @@ class PopulationConfig:
     # new households/tick, model scale ≈240k/yr real; range 135k–260k [EPA/INE — high as range]
     formation_per_tick: int = 30
     dissolution_rate: float = 0.35  # exits as share of formation [guess]
-    # non-resident cash buyers, share of purchases; range .138–.184 incl. residents
-    # [Registradores/Notariado — high as range]
+    # NON-RESIDENT cash buyers, share of purchases. All foreigners incl. residents run
+    # .160 (Registradores 2026Q2, series record, foreigners +11% y/y while nationals fell)
+    # to .184 (Notariado 2S 2025); non-residents are ≈44% of that ⇒ ≈.08, and the model's
+    # overlay is non-resident only [Registradores ERI 2026Q2; Notariado CIEN — high as range;
+    # emergent share reported as `foreign_purchase_share` in metrics.py]
     foreign_purchase_share: float = 0.08
     # × zone median value; non-res pay +76–79% €/m² [Notariado CIEN — high]
     foreign_budget_multiplier: float = 1.6
@@ -204,7 +214,11 @@ class MarketConfig:
 class CreditConfig:
     """Lending environment: base rate, LTV cap, DTI cap, term."""
 
-    euribor: float = 0.022  # /yr, 12m euríbor level [exogenous path via scenario]
+    # /yr, 12m euríbor level [exogenous path via scenario]. The baseline is a 2015–2025-like
+    # steady state, not a nowcast: the Aug-2026 monthly average was 2.954% (BOE 2 Sep 2026;
+    # 3.1% daily on 7 Sep) with the ECB deposit rate at 2.25% and the BdE lending survey
+    # reporting tighter standards — use `RateShock` for a 2026-like path.
+    euribor: float = 0.022
     spread: float = 0.011  # pp over euríbor; range .009–.012 [bank §6 — medium]
     # per-tick partial adjustment of the offered rate toward euríbor+spread. Calibrated to
     # BdE DO 2312: ~32% of a shock passed through after 16 months (5.33 ticks), i.e.
@@ -251,11 +265,45 @@ class PolicyConfig:
     rent_cap_zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED,)
     cap_reference_discount: float = 0.05  # cap below prevailing market rent; range 0–.10
     cap_compliance: float = 0.85  # share of new contracts actually at/below cap; range .25–.95
-    within_contract_update: float = 0.025  # /yr IRAV-style cap on sitting rents; range .02–.03
+    # share of the capped zone's units that sit inside a DECLARED tensioned municipality.
+    # Distinct from compliance (whether a covered landlord obeys): the law is a CCAA switch
+    # applied municipality by municipality, and the model's TENSIONED zone (45% of
+    # households) is much bigger than Spain's declared map. As of the BOE resolution of
+    # 29 Jul 2026 there are 317 declared municipalities in 5 CCAA (Cataluña 271, Euskadi 18,
+    # Navarra 21, Galicia 2, Asturias 5) covering ≈9.3M people — 19% of Spain, i.e. ≈0.42 of
+    # the model's tensioned zone; Cataluña alone (2024 declaration) covered ≈90% of Catalan
+    # population, ≈1.0 of a Cataluña-shaped tensioned zone. 1.0 = the whole zone is declared
+    # [BOE-A-2026-16532; MIVAU/Civio — docs/kb-refresh-2026-09.md §3 — high]
+    cap_coverage: float = 1.0
+    # /yr IRAV-style cap on sitting rents AND on the frozen reference index while a cap is
+    # active. Calibrated RELATIVE to the model's nominal income anchor (`long_run_growth`,
+    # 2%/yr), not in Spanish nominal terms: IRAV printed 2.20% (2025) and 2.44% (Jun 2026)
+    # against nominal wage growth of ≈3–4%, i.e. ≈0.6–0.75 of income growth ⇒ 0.012–0.015 in
+    # model units. The previous 0.025 (the nominal 2–3% range) sat ABOVE the anchor, so the
+    # frozen reference outran the market it capped and the cap silently unbound within ~10
+    # ticks (measured: capped tensioned listings 29 → 0 by tick 30 after a tick-20 cap, and
+    # the magnet rule then pulled asks up, ending +0.9% above baseline instead of below it)
+    # [INE IRAV via lexway/irav.es; Ley 12/2023; docs/kb-refresh-2026-09.md §1 — high on the
+    # ratio, medium on the exact value]
+    within_contract_update: float = 0.015
     seasonal_segment_capped: bool = False  # Jan-2026-style closure of the evasion segment
     # transaction tax (transaction-tax.md)
-    itp_delta: float = 0.0  # pp change on zone ITP rate
+    itp_delta: float = 0.0  # pp change on zone ITP rate, every buyer
     itp_zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED, ZoneType.SECONDARY, ZoneType.RURAL)
+    # buyer-type surcharges ON TOP of the zone rate, as a fraction of price. Spain taxes by
+    # buyer type in practice and the model's two aggregate buyers pay cash, so without these
+    # the ITP lever only ever reached households:
+    # - large investor / legal persons: Cataluña charges 20% TPO on whole-building
+    #   acquisitions by any buyer and on gran-tenedor purchases (DL 5/2025, Ley 11/2026 in
+    #   force 14 Jul 2026) against a 10% general rate ⇒ delta ≈ +0.10 [Tier 2 law-firm
+    #   summaries of DOGC; docs/kb-refresh-2026-09.md §3 — medium]
+    # - non-resident overlay: the "100% tax on non-EU buyers" bill (announced Jan 2025,
+    #   stalled in Congress Mar 2026, folded into the stalled Jul 2026 omnibus decree) would
+    #   be delta ≈ +0.90 over a 10% base; Baleares' non-resident purchase ban was rejected
+    #   Feb 2026 [Reuters/US News; docs/kb-refresh-2026-09.md §3 — not law]
+    # Both act as a price wedge on the buyer's budget: (1 + base) / (1 + base + delta).
+    itp_investor_delta: float = 0.0
+    itp_foreign_delta: float = 0.0
     # vacancy tax (vacancy-tax.md)
     vacancy_tax_rate: float = 0.0  # /yr fraction of unit value; range .001–.03
     vacancy_detection: float = 0.0  # /yr prob a liable vacant unit is billed; range 0–.9
@@ -272,6 +320,11 @@ class PolicyConfig:
     # demand subsidy (demand-subsidy.md)
     guarantee_ltv_boost: float = 0.0  # extra LTV via state guarantee; ICO = .20
     guarantee_eligible_share: float = 0.0  # of first-time buyers; sweep .05–.50
+    # € liquid-wealth ceiling for eligibility. The ICO line's 2026 addenda (BOE 2 Jul 2026)
+    # extended formalisation to 31 Dec 2027 and added a €150k net-wealth cap on top of the
+    # under-35 / ≤7.5×IPREM income filters. Applied to the household's liquid wealth, which
+    # is what the model carries; `inf` = no cap [BOE-A-2026-14404 — high]
+    guarantee_wealth_cap: float = float("inf")
     # total guarantee envelope at model scale: the ICO line is €2.5bn *once*, not per tick.
     # 2.5e9 / 2000 households-per-model-household [demand-subsidy §5 — high]
     guarantee_budget: float = 1_250_000.0
@@ -316,7 +369,7 @@ class SimConfig:
                 foreign_overlay=True,
                 units_per_household=1.075,  # INE: 6.3–7.7% empty in >300k-hab municipalities
                 withheld_share=0.39,  # strongest demand: most of the empty stock is usable
-                seasonal_share=0.028,  # central-district VUT share, 2.8–2.9
+                seasonal_share=0.025,  # weights to INE May-2026 341k VUT (was .028 ≈ 374k)
             ),
             ZoneConfig(
                 zone=ZoneType.SECONDARY,

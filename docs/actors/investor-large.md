@@ -231,6 +231,8 @@ strength" (idealista, Jul 2026).
 | Price-setting rule under cap | ask = min(unconstrained optimum, cap); cap attracts prices from below | rule | García-Montalvo/Monràs/Raya | medium |
 | BTR pipeline | ~90,000 announced to 2028; Madrid ≈72% of 2020-24 BTR investment | dwellings; % | Atlas via EjePrime/idealista; Savills | medium (announcements ≠ deliveries) |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Zone-level shares.** The 2–8% national range hides the split the ABM
@@ -256,3 +258,61 @@ strength" (idealista, Jul 2026).
 7. **Tax-shock elasticity**: SOCIMI-regime abolition stays on the political
    agenda; the exit response to a tax shock (vs a rent-cap shock) has never
    been observed in Spain.
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on
+the fetched primary page; **V2** = read on a fetched secondary page; **(unverified)** = snippet or
+press only. Government, industry and academic readings are kept side by side.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| Gran tenedor threshold (Catalonia) | ≥5 dwellings in Cataluña / ≥10 Spain-wide, **incl. natural persons**; usage rights and co-ownership counted; applies to contracts from 31 Jul 2026 | Ley 11/2026, DOGC 13 Jul, in force 14 Jul 2026 | https://exnovo.law/cataluna-novedades-en-transmisiones-de-edificios-grandes-tenedores-y-alquiler-residencial-a-julio-2026/ (law-firm; DOGC unverified) |
+| Catalan TPO on whole buildings | 20% on whole-building acquisitions **by any buyer** (no longer gran-tenedor-only); exempt ≤4 dwellings for family use | same | same (DOGC unverified) |
+| SOCIMI charge on undistributed profits | 15% → 25% remains a proposal inside the stalled omnibus RDL (pulled from the 28 Jul Consejo de Ministros; minister 2 Sep "text ready") | Jul–Sep 2026 | https://www.eldiario.es/politica/gobierno-aplaza-septiembre-decreto-alquileres-rechazo-junts-primer-borrador_1_13408800.html ; https://parlamento.ai/r/socimi-inversion-extranjera-espana-2026 (press, unverified) |
+| Legal-persons share of dwelling purchases | ≈10% (BdE IA 2025, already in §6) — now wired as benchmark row `investor_purchases` in `src/resim/benchmarks.py` | 2025 | BdE Informe Anual 2025 ch.2 (KB) |
+| New-build sales (BTR forward-purchase context) | 34,919 in 2026Q2 (−11.5% q/q); all home sales 167,934 (−5.7% q/q, −2.3% y/y) | 2026Q2 | Registradores ERI via https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores (V2) |
+| Arbitrage flow into seasonal/room rentals — reversal, second data point | O-HB: seasonal contracts 1,282 in Q4 2025 (−53% y/y); +1,374 active habitual contracts since regulation (V). Incasòl: seasonal net −1,233 (first fall); 96% of seasonal contracts in tensioned zones; habitual stock +8,895 in 2025 (V, via Infobae) | Q4 2025 | https://www.ohb.cat/publiquem-linforme-semestral-de-seguiment-de-la-zmrt-abril-2026/ ; https://www.infobae.com/espana/2026/04/18/cataluna-registra-1233-contratos-menos-de-alquiler-temporal-tras-la-entrada-en-vigor-del-tope-de-precios/ |
+| Competence over the gran-tenedor index cap | STC 53/2026 (8 Jul; BOE 3 Aug 2026): Govern de Cataluña recurso dismissed; Ley 12/2023 arts 12, 18.5–6, 23, 24, DF7 upheld under 149.1.13 CE; earlier annulments (arts 16, 27.1 §3, 27.3, DT1) stand | 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-16928 (verified) |
+| Public counterparty on bulk sales (Casa 47) | operational 7 Sep 2026: 800 homes now, +1,500 "soon"; 42,000 homes + 2,500 plots from Sareb; €100M anti-speculation buy fund; Plan 2026-30 €7bn (verified). Tanteo/retracto on bulk sales sits in the draft decree (unverified) | Sep 2026 | https://www.lamoncloa.gob.es/presidente/actividades/paginas/2026/070926-sanchez-acto-vivienda.aspx |
+
+### New evidence (Tier 2)
+
+- **Brainsre, 6 Aug 2026** (V, industry): **90% of Catalan long-term listings by professional
+  operators**; long-term listings Catalonia −72% vs Madrid −38% (Q1 2024 → Q2 2026); asking rents
+  Catalonia +13.7% vs Madrid +25.6%; seasonal ≈40% of the Catalan market.
+  https://brainsre.news/zonas-tensionadas-alquiler-cataluna/ — the visible Catalan supply is now
+  largely this actor's.
+- **Elasticity edition check.** §6 cites "≈4 (Monràs et al. WP 2025)". The CEPR DP20018 edition
+  (Feb 2025, V PDF) reports IV ≈2.0 (range 1.6–3.2 across specs), OLS 0.07; total supply of units
+  −10%; rents −5%; probability a unit is rented −2 pp.
+  https://joanmonras.weebly.com/uploads/7/6/7/9/76790475/rent_caps-february2025.pdf . Keep 0.07–4
+  as the span until the edition behind "4" is located; O-HB's no-supply-effect reading stands beside it.
+- **Generalitat claim** (gencat, V; govern.cat 403): rents −1.3% in tensioned zones vs +9.5%
+  outside. https://habitatge.gencat.cat/ca/normativa/zones-de-mercat-residencial-tensionat/ —
+  government viewpoint; Brainsre/idealista are the counter-reading; Incasòl registry +1.6% / +9.4%.
+- **TC admitted PP recurso 2415-2026** against Catalan Ley 11/2025 (seasonal/room cap), BOE 16 Jun
+  2026, no suspension (title verified). https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13028
+- **Omnibus RDL draft** (press, unverified): SOCIMI 25%; Casa 47 tanteo/retracto on bulk sales;
+  extraordinary extension of contracts expiring before 30 Jun 2028 (~630k contracts/yr); VUT VAT.
+  Junts wants landlord tax breaks + anti-okupa; Podemos rejects the Suelo reform.
+  https://www.que.es/2026/07/27/nuevo-decreto-vivienda-2026-cambios/
+- **Model mapping**: `TransactionTax.investor_delta` (+0.10 ≈ the Catalan 20% whole-building TPO
+  over the 10–13% base) and `RentCap.coverage` (share of a zone inside declared municipalities) now
+  reach this agent (`src/resim/agents/investor.py`).
+
+### Open questions moved
+
+- **Q5 (threshold gaming)** — Ley 11/2026 is designed against it (natural persons in; usage rights
+  and co-ownership counted); effect unmeasured.
+- **Q6 (post-Dec-2025 seasonal cap)** — second data point (O-HB −53% y/y; Incasòl −1,233).
+  Return-to-habitual vs sale still open.
+- **Q7 (tax-shock elasticity)** — SOCIMI 25% still unenacted; the 20% TPO on any whole-building
+  buyer is the first *enacted* transaction-tax shock on bulk acquisitions.
+- **New**: (8) whole-building TPO 20% — watch Catalan bulk sales in Registradores/Notariado for the
+  first observed elasticity; (9) Casa 47 tanteo/retracto would add public pre-emption on portfolio
+  exits — enactment tied to the decree; (10) elasticity edition discrepancy (≈2 vs ≈4) — see above.

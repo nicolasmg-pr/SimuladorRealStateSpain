@@ -112,10 +112,14 @@ class Households:
             # Non-owners are first-time buyers by construction; the aval means test is the
             # household's own reproducible draw, not a per-tick coin flip.
             first_time = True
+            # means test: the seeded eligibility draw stands in for the age/income filters
+            # (under 35, ≤7.5×IPREM); the wealth cap is the instrument's own 2026 rule
+            # (€150k, BOE 2 Jul 2026) and is applied to the wealth the model carries
             guaranteed = (
                 cfg.policy.guarantee_ltv_boost > 0.0
                 and first_time
                 and hh.eligibility_draw < cfg.policy.guarantee_eligible_share
+                and hh.wealth <= cfg.policy.guarantee_wealth_cap
                 and macro.guarantee_budget_left > 0.0
             )
             ltv_boost = cfg.policy.guarantee_ltv_boost if guaranteed else 0.0

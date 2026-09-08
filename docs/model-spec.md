@@ -43,7 +43,7 @@ here per plan.md Phase-4 note — modules keep their file names.
 | Developer | zone price level, expected margin, pre-sales, land stock, permit lag | start projects; deliver after lag | margin ≥ 15–20% on cost; pre-sales ≥ 30–50%; land pipeline; max capacity [developer §2–3] |
 | Bank | euríbor path, borrower income/wealth/age | approve/refuse mortgage, set rate | LTV ≤ 80 (bunching), DSTI ≤ 30–40, term ≤ 30y; slow pass-through [bank §3] |
 | Government | scenario interventions | enact levers at their tick | competence split: CCAA switch for caps, municipal for IBI/VUT [government §5] — encoded per-lever in `scenario.py` |
-| Foreign non-resident overlay | coastal (TENSIONED) prices, origin-country conditions (exogenous) | cash purchases at premium | not credit-constrained; exogenous volume stream ≈ 8% of purchases, ±cycle [household-owner §3] |
+| Foreign non-resident overlay | coastal (TENSIONED) prices, origin-country conditions (exogenous), the non-resident tax wedge | cash purchases at premium | not credit-constrained; exogenous volume stream ≈ 8% of purchases, ±cycle [household-owner §3]; budget × (1+base ITP)/(1+effective ITP) when a surcharge targets it [§8] |
 
 ## 4. Tick order
 
@@ -205,8 +205,8 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Parameter | Value / range | Unit | Source | Conf. |
 |---|---|---|---|---|
 | Household income distribution | lognormal: median 36,100, mean 46,300 (σ≈0.70); zone multipliers T 1.15 / S 1.0 / R 0.8 (guess) | €/yr | EFF2024 [household-owner §6] | high / guess (zones) |
-| Tenant share by zone | T 0.27–0.30 / S ≈0.20 / R 0.12–0.17 | share of households | ECV 2024 [household-tenant §6] | medium |
-| Owner-occupancy rate | 70.6% national (init target) | % households | EFF2024 | high |
+| Tenant share by zone | T 0.27–0.30 / S ≈0.20 / R 0.12–0.17; national 20.2% renting + 6.5% ceded, owners 73.3% (ECV 2025, series low) | share of households | ECV 2024 regional; ECV 2025 national [household-tenant §6, kb-refresh-2026-09 §4] | medium |
+| Owner-occupancy rate | 70.6% national (init target; EFF2024); 73.3% ECV 2025; by age <35 36.7 / 35–44 56.5 / 45–54 70.1 / 55–64 76.9 / 65–74 82.8 / >74 83.4 (EFF2024, DO 2610) | % households | EFF2024; INE ECV 2025 | high |
 | Median dwelling value | 170,000 national; zone mult. T 1.6 / S 0.9 / R 0.5 (guess) | € | EFF2024 [household-owner §6] | high / guess |
 | Gross rental yield by zone | T 4.7–5.6 / S 6.5–7.5 / R 7–9 | %/yr | idealista + BdE RBA [investor-small §6] | high |
 | Max LTV (bank practice) | 0.80 (24% bunching); avg realized 0.63–0.67 | fraction | BdE IEF [bank §6] | high |
@@ -214,8 +214,8 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Mortgage term / spread | 25y; euríbor + 0.9–1.2pp; pass-through ~32%/16m, <100% | years / pp | BdE DO 2312 [bank §6] | medium |
 | Transaction costs (buyer) | ITP 0.06–0.13 by zone (T 0.10 / S 0.08 / R 0.06 default) + 0.02 fees | fraction of price | OCU/CCAA [government §6] | medium |
 | Household formation | 135k–260k/yr real (default 240k → 30/tick model-scale), scenario input | households/yr | EPA/INE [household-owner §6] | high (range) |
-| Foreign purchase share | 13.8–18.4% of purchases; non-resident ≈ 8%, cash, TENSIONED-coastal | % purchases | Registradores vs Notariado [household-owner §6] | high (range) |
-| Cash-buyer share (domestic incl.) | 0.30–0.40 of purchases | share | INE-derived [bank §6] | medium |
+| Foreign purchase share | all foreigners 16.0% (Registradores 2026Q2, record) – 18.4% (Notariado 2S 2025); **non-resident ≈ 7.9–8.1%**, cash, TENSIONED-coastal, paying €3,063/m² vs €1,713 Spaniards (×1.8) | % purchases | Registradores ERI; Notariado CIEN; CaixaBank Research on MIVAU [household-owner §6, kb-refresh-2026-09 §4] | high (range); emergent share reported as `foreign_purchase_share` |
+| Cash-buyer share (domestic incl.) | 0.23–0.29 (Registradores: 12-month 2025 29.3%, 2026Q2 23%) vs 0.46 (Notariado Jun 2026); Madrid ≈0, Baleares 23–40 | share | Registradores ERI; Notariado CIEN [bank §6, kb-refresh-2026-09 §4] | disputed between two like-for-like sources — range |
 | Supply elasticity (long run) | 0.45–0.58 (possibly higher — Arrazola open q.) | dimensionless | Caldera & Johansson; BdE [developer §6] | medium |
 | Construction lag | 8 (6–10) | quarters | Euroval [developer §6] | high |
 | Developer margin threshold | 0.15–0.20 on cost | fraction | IMPLICA/KPMG [developer §6] | medium |
@@ -223,13 +223,13 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Max annual output (national) | 150k–220k real (≈19–28/tick model) | dwellings/yr | CNC claim [developer §6] | low |
 | Hard cost + land | 1,105–1,323 €/m²; land 25–50% of final price by zone | €/m² / share | UVE/ACR; CNMC [developer §6] | high / medium |
 | Landlord required yield | bond + 3–5pp; +1–2pp in low-income zones | %/yr | derived [investor-small §6] | guess |
-| Rental supply elasticity to rent cap | **0.0–2.0** (THE disputed parameter) | Δln contracts/Δln rent | 3 Catalonia studies [rent-cap §4] | high (as range) |
+| Rental supply elasticity to rent cap | **0.0–2.0** (THE disputed parameter): Monràs & García-Montalvo 2025 give IV ≈2.0 (1.6–3.2) and OLS 0.07 on the same data; Jofre-Monseny ≈0 | Δln contracts/Δln rent | 3 Catalonia studies + CEPR DP20018 [rent-cap §4, Update 2026-09-08] | high (as range) |
 | Seasonal-evasion share under cap | 0.05–0.25, ramp 4–6 ticks | share of new contracts | Incasòl [rent-cap §5] | medium |
 | Tenant moving probability | 0.04–0.08 /tick, falls with sitting-discount | prob/quarter | derived [household-tenant §6] | low |
 | Owner moving probability | 0.010–0.0125 /tick | prob/quarter | CED/BdE [household-tenant §6] | medium |
 | Max rent burden accepted | 0.30–0.40 | fraction net income | screening norm [household-tenant §6] | medium |
-| Within-contract update cap | 0.02–0.03 /yr (IRAV regime) | %/yr | Ley 12/2023 [government §6] | high |
-| Gran tenedor threshold | >10 units (≥5 in tensioned) | dwellings | Ley 12/2023 art. 3.k [investor-large §1] | high |
+| Within-contract update cap (IRAV) | **0.015 in model units** = 0.6–0.75 × the 2%/yr income anchor (IRAV 2.20% 2025, 2.44% Jun 2026 vs nominal wages ≈3–4%); range 0.012–0.020. Above the anchor the frozen reference index outruns the market and the cap unbinds (§10) | /yr, relative | INE IRAV; Ley 12/2023 [government §6, kb-refresh-2026-09 §1] | high (ratio) / medium (value) |
+| Gran tenedor threshold | >10 units (≥5 in tensioned); Cataluña Ley 11/2026: ≥5 in Cataluña incl. natural persons, usage rights and co-ownership counted | dwellings | Ley 12/2023 art. 3.k; Ley 11/2026 (DOGC 13 Jul 2026, via law-firm summary) [investor-large §1, Update 2026-09-08] | high / medium |
 | Large-investor rental-stock share | T 0.08–0.15 (guess from 2–8% national) / S 0.02 / R ~0 | share rental stock | BdE/Civio/Atlas [investor-large §6–7] | medium/guess |
 | Large-investor yield hurdle | prime net 3.8–4.0 + political-risk premium | %/yr | CBRE [investor-large §6] | high |
 | Actual tenant default incidence | 0.03–0.07 /yr; perceived = ×1.5–3 markup (guess) | prob/yr | Arag/OESA [investor-small §6] | medium / guess |
@@ -239,11 +239,17 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Withheld (non-mobilisable) share of the vacant pool | T 0.39 / S 0.63 / R 0.81 | share of zone vacant stock | gradient from Funcas 104 ch.1 §2; levels calibrated | guess (levels) |
 | Average dwelling size | 90 | m² | Afi via Funcas 104 ch.5 | medium |
 | Accepted rent burden under search | base × (1 + 0.02–0.06 /tick), ceiling 0.55 | fraction of gross income | EPF/Eurostat via Funcas 104 ch.2, ch.6 | mechanism high, pace guess |
-| Household formation projection | 215k (2023–27) → 190k (2028–32) → 140k (2033–37) | households/yr | INE Proyección de hogares via Funcas 104 ch.1 | high |
-| Cash (unmortgaged) purchases | 0.30–0.40 [bank §6] vs 0.608 implied by INE 2023 (973,637 sales / 381,560 mortgages) | share of purchases | Funcas 104 ch.3 | disputed — range |
+| Household formation projection | INE vintages: 2022–37 215k → 190k → 140k; 2024–39 333k → 228k → 177k; **2026–41 205k → 139k → 93k** (17 Jun 2026; 1,024,156 / 696,381 / 463,511 per block). Observed: +226k (2025), +239k y/y to Jul 2026 (ECP) | households/yr | INE Proyección de Hogares (three vintages), INE ECP [kb-refresh-2026-09 §2]; `scenario.INE_HOUSEHOLD_PROJECTIONS` | high; the spread between vintages is the projection risk |
+| Cash (unmortgaged) purchases | 0.23–0.29 (Registradores 2025–2026Q2) vs 0.46 (Notariado Jun 2026); the 0.608 implied by INE 2023 (973,637 sales / 381,560 mortgage deeds) is a scope/timing artefact, no longer the central value | share of purchases | Registradores ERI; Notariado CIEN; Funcas 104 ch.3 | disputed — range |
 | Social rental stock | 1.0% (OECD) / 1.7% (Housing Europe-MIVAU) / 2.5% (Provivienda); EU 7–9.3% | % of stock | Funcas 104 ch.6, ch.8 | medium |
 | Landlord IRPF reduction on residential rent | 50% general, 60% rehabilitated, 70% tensioned/young, 90% if rent cut ≥5%; cost ≈€1,039M/yr | fraction of net rental income | Ley 12/2023, AIReF via Funcas 104 ch.7 | high — NOT modelled |
 | Vacancy-tax instrument | IBI surcharge 50–150% on ≥4 dwellings empty ≥2 yr ⇒ ≈0.1–0.8% of market value/yr | fraction of value/yr | Ley 12/2023 via Funcas 104 ch.7 | high |
+| Rent-cap coverage | share of the capped zone inside DECLARED municipalities: Spain Jul 2026 = 317 municipalities in 5 CCAA (Cataluña 271, Euskadi 18, Navarra 21, Galicia 2, Asturias 5), ≈9.3M people = 19% of Spain ≈ **0.42** of the model's tensioned zone; Cataluña 2024 ≈ 1.0 | share | BOE-A-2026-16532 (29 Jul 2026); MIVAU/Civio [kb-refresh-2026-09 §3]; `PolicyConfig.cap_coverage` | high |
+| ITP surcharge, legal persons / gran tenedor | +0.10 over the 10% general rate (Cataluña 20% TPO on whole-building and gran-tenedor purchases, Ley 11/2026 in force 14 Jul 2026) | fraction of price | DOGC via law-firm summary [transaction-tax Update 2026-09-08]; `PolicyConfig.itp_investor_delta` | medium |
+| ITP surcharge, non-residents | +0.90 over a 10% base = the "100% tax on non-EU buyers" bill (announced Jan 2025, stalled Mar 2026, folded into the stalled Jul 2026 omnibus decree); Baleares non-resident ban rejected Feb 2026 | fraction of price | Reuters/US News; Congreso [transaction-tax Update 2026-09-08]; `PolicyConfig.itp_foreign_delta` | proposal, not law |
+| ICO guarantee wealth cap | €150,000 net wealth, added by the Jul 2026 adenda (with ≤35 y and ≤7.5×IPREM); line extended to 31 Dec 2027; uptake 8,549 ops / €206.6M guarantees to Oct 2025 (≈10% of €2.5bn) | € | BOE-A-2026-14404 (2 Jul 2026) [demand-subsidy Update 2026-09-08]; `PolicyConfig.guarantee_wealth_cap` | high |
+| Tourist-rental (VUT) stock | 341,001 dwellings, May 2026 (−10.7% y/y; 1.28% of INE's 26.6M total stock); model seasonal units weight to ≈345k | dwellings | INE Estadística experimental de viviendas turísticas, 24 Jun 2026 | medium |
+| Households (level) | 19,874,860 at 1 Jul 2026 (ECP) — the 1:2,000 anchor | households | INE ECP 2T 2026 | high |
 | Public social-rental stock | 1.5–3.3% of stock | % stock | MIVAU/Provivienda [government §6] | medium |
 | Emancipation/formation age anchor | first purchase ≈41y; buyers 25–44 ≈ 62% | years | Fotocasa [household-owner §6] | medium |
 
@@ -257,12 +263,12 @@ subclasses; effect direction = theory prediction, magnitude must EMERGE from cle
 
 | Lever | Mechanically changes | Holder (veto point) | Key params (ranges) | Expected direction |
 |---|---|---|---|---|
-| Rent cap (`rent-cap.md`) | new-contract rent ≤ min(prev rent, reference index for gran tenedor/5y-vacant); within-contract IRAV | State law, CCAA switch, zone-scoped | supply-response elasticity 0–2; evasion 0.05–0.25; compliance 0.25–0.95 | rents on regulated contracts 0…−11%; tenancies 0…−15% |
-| Transaction tax (`transaction-tax.md`) | buyer cost wedge: `max_bid = limit/(1+itp)` | CCAA | Δrate ±pp; per buyer type (incl. gran tenedor 20% Catalan precedent) | volume −4…−15%/pp; capitalization 40–100%+ emergent |
+| Rent cap (`rent-cap.md`) | new-contract rent ≤ min(prev rent, reference index for gran tenedor/5y-vacant); within-contract IRAV; **coverage** = share of the zone inside declared municipalities (a per-unit draw, distinct from compliance) | State law, CCAA switch, **municipality-scoped**: 317 declared in 5 CCAA (Jul 2026), five CCAA refuse | supply-response elasticity 0–2; evasion 0.05–0.25; compliance 0.25–0.95; coverage 0.1–1.0 (Spain 2026 ≈0.42, Cataluña 2024 ≈1.0) | rents on regulated contracts 0…−11%; tenancies 0…−15% |
+| Transaction tax (`transaction-tax.md`) | buyer cost wedge: households `max_bid = limit/(1+itp)`; the two cash aggregates (large investor, non-resident overlay) bid `× (1+base)/(1+effective)` so only a **change** moves them | CCAA | Δrate ±pp all buyers; **investor surcharge** (Cataluña 20% TPO on whole buildings/gran tenedor ⇒ +0.10); **non-resident surcharge** (100%-tax bill ⇒ +0.90) | volume −4…−15%/pp; capitalization 40–100%+ emergent; +0.90 on non-residents cuts their purchases ≈45%, not 100% — the +60% premium absorbs half the wedge (validation.md) |
 | Vacancy tax (`vacancy-tax.md`) | holding cost on detected vacant units of ≥4-unit owners | Municipal | rate 0.001–0.03 of value; detection 0.0–0.9; mobilization 0.04–0.30/yr | vacant → rental supply; rent effect ≈0 (Vancouver null) emergent |
 | Public housing (`public-housing.md`) | public units enter rental stock at 0.4–0.7 × market rent after lag | State funds, CCAA execute, municipal land | units/quarter by zone; crowd-out 0.0–0.8; lag 12–32 ticks | rents −0…−15% at high stock shares only |
 | Tourist-rental restriction (`tourist-rental-restriction.md`) | VUT licence cap/phase-out; option value destroyed | Municipal/CCAA | conversion 0.10–0.50; evasion 0.10–0.50 | rents/prices −0…−4%/pp VUT share removed |
-| Demand subsidy (`demand-subsidy.md`) | guarantee lifts LTV 0.80→0.95–1.00 for eligible; rent subsidy €250–300/m | State via banks | eligible share 0.05–0.50 FTB; budget cap FIFO | prices ↑ (capitalization 0–100%+ emergent, zone-dependent); access effect ~0.35–0.45 |
+| Demand subsidy (`demand-subsidy.md`) | guarantee lifts LTV 0.80→0.95–1.00 for eligible **with liquid wealth ≤ cap** (ICO 2026 adenda: €150k); rent subsidy €250–300/m | State via banks | eligible share 0.05–0.50 FTB; wealth cap (150k; `inf` = pre-2026 instrument); budget cap FIFO | prices ↑ (capitalization 0–100%+ emergent, zone-dependent); access effect ~0.35–0.45; the wealth cap is nearly inert on tenant wealth distributions (≈1% of tenants above it) |
 | Land release (`land-release.md`) | developer land stock +units after 20–60-tick lag; permit lag −0–6 ticks | Municipal/CCAA | elasticity multiplier 1.0–2.0 | prices: no short-run effect (validation!), long-run 0…−35% |
 | Rate shock (bonus lever) | euríbor path shift | ECB (exogenous) | ±pp path | volume ↓↓, prices sticky (2022–23 signature) |
 
@@ -271,17 +277,18 @@ subclasses; effect direction = theory prediction, magnitude must EMERGE from cle
 Baseline (no intervention, 2015–2025-like inputs) must reproduce, before any scenario
 result is reported:
 
-1. **Tenure shares**: owner 70–74%, tenant 24–27% national; tenant share ranking
-   T > S > R [household-tenant §6].
+1. **Tenure shares**: owner 70–74% (EFF basis; ECV 2025 gives 73.3% owners, 20.2% renting,
+   6.5% ceded), tenant 24–27% national; tenant share ranking T > S > R [household-tenant §6].
 2. **Price-to-income**: national 7–8 (2024–26 window); T > S > R
    [household-owner §6].
 3. **Transaction volume**: 2.5–3.6% of households transacting/yr [household-owner §1].
 4. **Construction volume**: completions ≈ 40–70% of household formation (2021–25 gap)
    [developer §1]. Measured as `completion_ratio` — this must be *measured*, not asserted
    "by construction": the margin hurdle and the pre-sales gate both move it.
-5. **Rent burden**: market-tenant overburden (>40% income) 27–33% on the Eurostat
-   *tenant, rent at market price* basis — social tenants pay an administered rent and are
-   excluded [household-tenant §6]; plus a positive insider/outsider wedge, measured on
+5. **Rent burden**: market-tenant overburden (>40% income) **26.8–33%** on the Eurostat
+   *tenant, rent at market price* basis (2025: 26.8%, 2024: 28.1%, 2023: 30.6% — the series is
+   falling, so the band's lower edge follows it) — social tenants pay an administered rent and
+   are excluded [household-tenant §6]; plus a positive insider/outsider wedge, measured on
    quality-adjusted rent *levels* (§5 explains why not on burdens).
 5b. **Stock ownership cross-checks** (emergent, not inputs): individuals hold 85–92% of the
    rental stock [investor-small §1]; public rental ≈8% of the rental stock (1.7% of total
@@ -311,7 +318,16 @@ result is reported:
    volume legs pass. Do not report any boom-time rent claim from this model (§10).
 8. **Rent-cap credibility test** (Phase 7 gate): sweeping supply-response elasticity
    0→2 must span Jofre-Monseny (rents −4…−5%, tenancies 0), Monràs (−5%, −10%), and
-   Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4].
+   Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4]. **Status
+   2026-09-08: the price leg passes (contract rents −2.2% at any elasticity, pinned by
+   `test_rent_cap_lowers_contract_rents`); the tenancy leg fails and is a strict xfail** —
+   at elasticity 2 new tenancies move +2%, not −10%, because the tensioned rental market runs
+   slack in the current baseline (0.6–0.8 applicants per listing before the cap against ≈65
+   in Barcelona), so withdrawals do not bite until the slack is gone. The experiment table in
+   `experiments/rent-cap.md` predates the August audit and Funcas revision and no longer
+   reproduces; see validation.md "Rent-cap gate re-measured". The gate is therefore **not**
+   currently met, and no rent-cap supply-response claim should be reported until the
+   tensioned zone's tightness is recalibrated.
 
 Calibration: direct where observable (EFF distributions, lags, tenure); latin-hypercube
 sweep on free parameters (λ, WTP dispersion, ask-decay, matching frictions) against
@@ -327,8 +343,12 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   the fix now exists: Madrid/Barcelona private-sector wages +45% against the rest of urban
   Spain, cost of living +20%, purchasing-power-adjusted gain +21%, and 35.7% of 20–34s living
   in the five largest functional urban areas [BdE Forte-Campos et al. via Funcas 104 ch.5];
-  rent gradient Madrid €10.7/m² vs Extremadura €4.4/m² [SEF via ch.6]. Still a mechanism
-  decision, not a recalibration — see docs/funcas-104.md §5.)* Households bid only in
+  rent gradient Madrid €10.7/m² vs Extremadura €4.4/m² [SEF via ch.6]; De la Roca & Puga
+  (REStud 2017): Madrid earnings +46% vs the median city and +55% vs rural, elasticity of
+  earnings to city size 0.0455, half of it accruing with experience; Tinsa 2026Q1 €/m²
+  gradient Madrid capital €4,600 vs Palencia €1,256, Madrid province €3,565 vs Ciudad Real
+  €776 (4.6×) [kb-refresh-2026-09 §5]. Still a mechanism decision, not a recalibration — see
+  docs/funcas-104.md §5.)* Households bid only in
   their own zone and nothing makes a location intrinsically worth more, so each zone's price
   is pinned by the credit ceiling of the households in it and relative prices converge on
   relative *incomes* (1.15/1.0/0.80) rather than on a location premium. Measured: the
@@ -360,20 +380,48 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   shared-flat segment, so the rent *level* row of the official contrast reads ≈2.6× high and
   the >30%-of-income share reads ≈59% against 38.2%. Levels of rent burden are not comparable
   to published Spanish figures; changes in them are.
-- **Almost every purchase is mortgage-financed** (measured cash share 3.2%). Spain's own
-  contrast is 973,637 sales against 381,560 new mortgage deeds in 2023 ⇒ 60.8% unmortgaged,
-  and the model's own dossiers assume 30–40% [Funcas 104 ch.3, bank §6]. Credit policy —
-  rates, LTV, DSTI, guarantees — therefore bites harder in the model than in Spain. Fixing it
-  needs the household wealth distribution and the inheritance channel to move together.
+- **Almost every purchase is mortgage-financed** (measured cash share ≈3%). The like-for-like
+  Spanish figures are 23–29% unmortgaged (Registradores, 2026Q2 and 12-month 2025) and 46%
+  (Notariado, Jun 2026); the 60.8% once derived from INE sales against mortgage deeds is a
+  scope/timing artefact and is no longer the central value [kb-refresh-2026-09 §4]. Credit
+  policy — rates, LTV, DSTI, guarantees — therefore still bites harder in the model than in
+  Spain, by a factor of roughly 8–15 on the cash share. Fixing it needs the household wealth
+  distribution and the inheritance channel to move together: 62,000 parental money gifts a
+  year averaging €90k, tripled since 2019 [BdE via El Independiente, Jun 2026].
+- **The tensioned rental market runs slack, so the rent-cap supply leg cannot bite.**
+  Before a cap, applicants per listing in the tensioned zone sit at 0.6–0.8 (Barcelona:
+  ≈65 contacts per listing, idealista 2026). Landlord withdrawals under a cap therefore
+  reduce leftover listings without reducing the number of contracts signed: measured at
+  elasticity 2, new tenancies +2% against Monràs & García-Montalvo's −10%, while the price
+  leg (contract rents −2.2%) works. The §9.8 gate is not met on the supply leg (strict xfail,
+  `test_rent_cap_supply_response_spans_monras`). The fix is a tightness recalibration of the
+  tensioned zone — fewer mobilisable vacant units or more formation landing there — which
+  moves ownership, vacancy and overburden jointly, so it is a calibration decision, not a
+  hazard-scale tweak. **Do not report any rent-cap supply-response result until it lands.**
+- **Reference-index indexation is read relative to the income anchor.** IRAV is 2.20–2.44%
+  in Spain against ≈3–4% nominal wage growth; the model's anchor is 2%/yr, so
+  `within_contract_update` is 0.015, not the nominal 0.025. At 0.025 the frozen reference
+  outran the market and the cap unbound within ~10 ticks, ending +0.9% above baseline
+  [kb-refresh-2026-09 §1]. Any nominal IRAV figure has to be rescaled by the same ratio.
+- **Non-resident and investor buyers absorb tax wedges through their premium.** A +0.90
+  surcharge on non-residents (the 100%-tax bill) cuts their purchases ≈45%, not 100%: the
+  overlay bids at +60% and still reaches 0.7–1.06× the zone price after the wedge. In Spain
+  the premium is largely *composition* (coastal, premium stock, €3,063 vs €1,713/m²), which
+  the model represents as willingness-to-pay on the same stock — so the model likely
+  understates how much a non-resident tax would divert purchases.
 - **No second-home or other-province demand stream.** 50,000–60,000 purchases/yr, ≈10% of
   transactions, stable for a decade, on top of the ≈10% non-resident share the model does
   carry [MITMA via Funcas 104 ch.1]. Non-local demand is understated by roughly that much.
 - **No age or nationality structure.** Renting is steeply graded on both: 42.7% of
   under-35-headed households rent against 7.5% of over-65s (83% of whom own outright), and
   66.3% of households whose main earner was born outside Europe rent against 11.6% of
-  Spanish-headed ones [EPF via Funcas 104 ch.6]. Migration is the largest component of
-  household formation and lands almost entirely in the rental market; the model draws new
-  households from one pool.
+  Spanish-headed ones [EPF via Funcas 104 ch.6]. EFF 2024 now gives the ownership ladder
+  directly — <35 36.7% (+4.8pp, first rise since 2011), 35–44 56.5%, 45–54 70.1%, 55–64
+  76.9%, 65–74 82.8%, >74 83.4%; bottom income quintile 53.1%, top decile 88.3% [BdE DO 2610]
+  — and 44.3% of 26–34-year-olds live with their parents, 47.3% of them for affordability
+  [INE ECV 2025 module]. Migration is the largest component of household formation
+  (foreign-born 19.3% of residents, +626k in 2024) and lands almost entirely in the rental
+  market; the model draws new households from one pool.
 - **No landlord income taxation**, so the IRPF reduction on residential rent (50% general,
   up to **90% when a new contract cuts the rent 5%**, ≈€1,039M/yr, judged effective by AIReF)
   cannot be represented [Funcas 104 ch.7]. That is the one Spanish lever that pays landlords
@@ -416,9 +464,11 @@ guarantee policies show up as the gap they close in `buyer_access`.
 `benchmarks.py` + the app's "Contraste oficial" tab. **Diagnostic, not a validation
 gate** — §9 is the gate. Most rows are Banco de España; the rest are INE series (Censo, EPF)
 compiled in Funcas *Estudios* 104 (docs/funcas-104.md), which is where the vacancy-geography,
-rent-burden, rent-level, cash-purchase and latent-demand rows come from. Every row names its
-own source and none of them is a forecast. Three rules, because a comparison table reads as
-authoritative whether or not it deserves to:
+rent-burden, rent-level and latent-demand rows come from, plus the registral and notarial
+series added in the 2026-09 refresh (cash purchases re-based on Registradores/Notariado,
+non-resident purchases, legal-person purchases — docs/kb-refresh-2026-09.md). Every row names
+its own source and none of them is a forecast. Three rules, because a comparison table reads
+as authoritative whether or not it deserves to:
 
 1. **There is no BdE housing forecast to compare against.** BdE's quarterly projection
    tables contain zero housing rows — no house prices, no residential investment, no starts,

@@ -15,7 +15,13 @@ from resim.cli import build_scenario
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
 from resim.metrics import SCALE
-from resim.scenario import RateShock, Scenario, ine_household_projection
+from resim.scenario import (
+    INE_HOUSEHOLD_PROJECTIONS,
+    INE_LATEST_VINTAGE,
+    RateShock,
+    Scenario,
+    ine_household_projection,
+)
 from resim.state import HouseholdStatus
 
 
@@ -310,18 +316,89 @@ def test_search_burden_escalates_and_is_capped():
 
 
 def test_ine_household_projection_is_a_declining_path():
-    """The INE 2022–2037 projection is front-loaded, not flat: 215k → 190k → 140k/yr.
+    """The latest INE projection (2026–2041) is front-loaded, not flat: 205k → 139k → 93k/yr.
 
     `Scenario.config_at` applies interventions in order, so a later step overrides an earlier
     one; this pins that the path is read as a path and lands on the published figures at
-    1:2,000 scale [INE via Funcas 104 ch.1 §3].
+    1:2,000 scale within the integer rounding of a Poisson rate [INE 17 Jun 2026:
+    1,024,156 / 696,381 / 463,511 households over three five-year blocks].
     """
     base = SimConfig.baseline(ticks=60)
     scenario = Scenario(name="ine", baseline=base, interventions=ine_household_projection())
     formation = [
         scenario.config_at(t).population.formation_per_tick for t in (0, 19, 20, 39, 40, 59)
     ]
-    assert formation == [27, 27, 24, 24, 18, 18]
-    per_year = [f * 4 * SCALE for f in (27, 24, 18)]
-    assert per_year == [216_000, 192_000, 144_000]
+    assert formation == [26, 26, 17, 17, 12, 12]
+    per_year = [f * 4 * SCALE for f in (26, 17, 12)]
+    published = [1_024_156 / 5, 696_381 / 5, 463_511 / 5]
+    for model, real in zip(per_year, published, strict=True):
+        assert abs(model - real) <= 4 * SCALE  # within one unit of per-tick rounding
     assert base.population.formation_per_tick == 30  # the baseline itself stays flat
+
+
+def test_ine_projection_vintages_all_decline_and_were_cut():
+    """Every INE vintage fades over its horizon, and each revision since 2024 cut the level.
+
+    The 2024–2039 vintage projected 333k/yr for its first block; the 2026–2041 one projects
+    205k/yr — 1.5M fewer households over fifteen years. Keeping all three is the bias-control
+    rule applied to demography: the projected deficit is partly a demographic assumption, and
+    the spread between vintages is the honest measure of it.
+    """
+    for vintage, steps in INE_HOUSEHOLD_PROJECTIONS.items():
+        assert list(steps) == sorted(steps, reverse=True), vintage
+        path = ine_household_projection(vintage=vintage)
+        assert [iv.start_tick for iv in path] == [0, 20, 40]
+        assert [iv.formation_per_tick for iv in path] == list(steps)
+    newest, older = INE_HOUSEHOLD_PROJECTIONS["2026-2041"], INE_HOUSEHOLD_PROJECTIONS["2024-2039"]
+    assert all(n < o for n, o in zip(newest, older, strict=True))
+    assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
+
+
+def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
+    """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
+    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1."""
+    from resim.scenario import RentCap
+
+    out: dict[str, list[float]] = {"rent": [], "leases": []}
+    for seed in seeds:
+        cfg = SimConfig.baseline(seed=seed, ticks=40)
+        base = metrics.to_frame(Engine(Scenario(name="b", baseline=cfg)).run())
+        cap = metrics.to_frame(
+            Engine(
+                Scenario(
+                    name="c",
+                    baseline=cfg,
+                    interventions=(RentCap(start_tick=20, supply_response_elasticity=elasticity),),
+                )
+            ).run()
+        )
+        post = slice(24, 40)
+        for key, col in (("rent", "rent_transacted_tensioned"), ("leases", "new_leases_tensioned")):
+            out[key].append(cap[col].iloc[post].mean() / base[col].iloc[post].mean() - 1.0)
+    return {k: float(np.mean(v)) for k, v in out.items()}
+
+
+def test_rent_cap_lowers_contract_rents():
+    """Target 8, price leg: a binding cap must lower new-contract rents in the capped zone.
+
+    This regressed silently after the August 2026 audit and Funcas revision: with the frozen
+    reference index indexed at 2.5%/yr against a 2%/yr income anchor, the reference outran
+    the market within ~10 ticks and the cap run ended ABOVE baseline (+0.9%). Pinned here so
+    the flagship experiment cannot break unnoticed again. Asserted at −1%, well inside the
+    measured −2.2% and far below the sourced −4…−6%.
+    """
+    assert _rent_cap_response(1.0)["rent"] < -0.01
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Known gap, docs/validation.md 'Rent-cap tenancy leg': the tensioned rental market "
+    "runs SLACK in the current baseline (0.6–0.8 applicants per listing before the cap, against "
+    "≈65 in Barcelona), so landlord withdrawals do not cut the number of contracts until the "
+    "slack is exhausted. Measured at elasticity 2: new tenancies +2% against Monràs & "
+    "García-Montalvo's −10%. Needs a tightness recalibration of the tensioned zone, not a "
+    "hazard-scale tweak — remove this xfail when it lands.",
+)
+def test_rent_cap_supply_response_spans_monras():
+    """Target 8, supply leg: elasticity 2 must reproduce Monràs's −10% new tenancies."""
+    assert _rent_cap_response(2.0)["leases"] < -0.05

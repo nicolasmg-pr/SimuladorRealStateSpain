@@ -13,7 +13,8 @@ import pandas as pd
 
 from .agents.bank import max_price
 from .config import ZoneType
-from .market.stock import Tenure
+from .market.clearing import FOREIGN_ID
+from .market.stock import LARGE_INVESTOR_ID, Tenure
 from .state import HouseholdStatus, WorldState
 
 SCALE = 2_000  # one model household ≈ 2,000 real households (model-spec §2)
@@ -52,6 +53,18 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # households paying out of wealth, investors and the non-resident overlay.
     row["cash_purchase_share"] = (
         float(np.mean([t.cash for t in trades])) if trades else float("nan")
+    )
+    # who bought, by buyer type. Non-residents were 7.9% of Spanish sales in the 4 quarters
+    # to 2025Q1 (CaixaBank Research on MIVAU; all foreigners 16.0% in 2026Q2, Registradores);
+    # legal persons ≈10% (BdE IA 2025). Emergent here from the overlay's Poisson stream and
+    # the large investor's yield rule — neither is an input share of *completed* purchases.
+    row["foreign_purchase_share"] = (
+        float(np.mean([t.buyer_id == FOREIGN_ID for t in trades])) if trades else float("nan")
+    )
+    row["investor_purchase_share"] = (
+        float(np.mean([t.buyer_id == LARGE_INVESTOR_ID for t in trades]))
+        if trades
+        else float("nan")
     )
 
     incomes = np.array([h.income for h in hhs])

@@ -23,7 +23,7 @@ import numpy as np
 
 from . import metrics
 from . import rng as rng_mod
-from .agents.bank import Bank, max_price
+from .agents.bank import Bank, itp_wedge, max_price
 from .agents.base import (
     IntentBundle,
     ListForRent,
@@ -465,6 +465,12 @@ class Engine:
             if not zcfg.foreign_overlay:
                 continue
             zs = state.zones[zcfg.zone]
+            # transaction-tax wedge for a cash buyer: the baseline rate is already inside the
+            # observed premium, so only a CHANGE (general delta or the non-resident surcharge)
+            # moves the budget [model-spec §8, transaction-tax.md §5]
+            wedge = itp_wedge(
+                zcfg.itp_rate, state.macro.itp[zcfg.zone] + cfg.policy.itp_foreign_delta
+            )
             for _ in range(int(self.market_rng.poisson(lam))):
                 bundle.offers.append(
                     MakeOffer(
@@ -472,7 +478,8 @@ class Engine:
                         zone=zcfg.zone,
                         budget=zs.price_index
                         * cfg.population.foreign_budget_multiplier
-                        * float(self.market_rng.uniform(0.8, 1.2)),
+                        * float(self.market_rng.uniform(0.8, 1.2))
+                        * wedge,
                         cash=True,
                     )
                 )
@@ -545,8 +552,11 @@ class Engine:
                 continue
             zs = state.zones[unit.zone]
             floor = required_rent(state, unit.zone, zs.price_index * unit.quality)
+            # a listing clipped by the cap decays no lower than the cap; an uncovered or
+            # non-complying listing keeps the landlord's yield floor — otherwise the cap
+            # would lower asks in municipalities where it was never declared
             cap = cap_level(state, unit.zone, unit.quality)
-            if cap is not None:
+            if cap is not None and lst.capped:
                 floor = min(floor, cap)
             lst.ask = max(floor, lst.ask * (1.0 - cfg.market.ask_decay))
 

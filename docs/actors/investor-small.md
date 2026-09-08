@@ -211,6 +211,8 @@ is the supply side of the rental market.
 | Households owning other dwelling(s) | 23.3 (any other real estate: 36.1) | % of households (2022) | EFF 2022 (BdE) | high |
 | Landlord household profile | age peak 55–74; median income €50,959 (multi €80,375); median net wealth €407,975 (multi €996,826) | — | EFF 2022; Consumo/CSIC 2023 | high |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Sell vs seasonal vs idle split.** All three Catalonia studies measure the fall in new
@@ -235,3 +237,77 @@ is the supply side of the rental market.
 7. **Rent-vs-tenancy composition of the AEAT 2.15M figure** — declarant counts split
    ownership between spouses; the true number of landlord *households* is lower and only
    roughly estimable (~1.5–1.9M, unverified).
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page; **(unverified)** = snippet or press
+only. Registry vs portal readings of the Catalan cap are kept side by side.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| Private rental units (individuals + entities) | 1.90M (2016) → 2.57M (2023); multi-landlord stock +39.9% vs single-unit +30.4% | 2016–2023, pub. 22 Apr 2026 | Min. Derechos Sociales + IFS-CSIC, AEAT Panel de Hogares https://www.dsca.gob.es/es/comunicacion/notas-prensa/61-mercado-alquiler-esta-manos-multiarrendadores-particulares-personas (V) |
+| Portfolio distribution (stock) | 52.8% of individually-owned rentals held by ≥2-unit landlords (confirms §6 row on the primary release); 61% incl. legal persons; Barcelona 60.8%, Madrid 56.4% multi-landlord | 2023 | same (V) |
+| Landlord incidence | 5.7% of adults receive rental income; 20.8% of the population rents | 2023 | same (V) |
+| Implied rental-supply elasticity (2020–22 cap) | IV elasticity of new contracts w.r.t. rent ≈2.0 (range 1.6–3.2 across specs; OLS 0.07); rents −5% treated vs control; units above reference fall, below rise; total supply of units −10%; probability a unit is rented −2 pp | CEPR DP20018, Feb 2025 | Monràs & García-Montalvo https://joanmonras.weebly.com/uploads/7/6/7/9/76790475/rent_caps-february2025.pdf (V, PDF) |
+| Seasonal/tourist substitution under cap — reversal | Incasòl Q4 2025: seasonal contracts net −1,233 (first fall); habitual stock +8,895 in 2025; 96% of seasonal contracts in tensioned zones (V, via Infobae). O-HB: seasonal contracts 1,282 in Q4 2025 (−53% y/y); +1,374 active habitual contracts since regulation (V) | Q4 2025 | https://www.infobae.com/espana/2026/04/18/cataluna-registra-1233-contratos-menos-de-alquiler-temporal-tras-la-entrada-en-vigor-del-tope-de-precios/ ; https://www.ohb.cat/publiquem-linforme-semestral-de-seguiment-de-la-zmrt-abril-2026/ |
+| Rent effect of binding cap — raw registry | tensioned €902 (+1.6%) vs non-tensioned €639 (+9.4%); Barcelona −2.7% (Incasòl, V via Infobae). O-HB Barcelona €1,161 (Q4 2025) vs €1,193 (Q1 2024), −2.7% real; counterfactual €1,319 → 13.6% avoided (V) | Q4 2025 | same |
+| Foreign share (context for the cash/investor overlay) | 13.5% Q4 2025, 13.8% 2025 (V, PDF); 15.98% 2026Q2, series record (V2) | 2025–2026Q2 | Registradores https://www.registradores.org/documents/d/guest/eri_4t_2025 ; https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores |
+
+### New evidence (Tier 2)
+
+- **Fiscal carrot, evaluated** (AIReF Spending Review 2019/20 *Beneficios fiscales*, 22 Jul 2020,
+  V article; airef.es cert error): the 60% IRPF rental reduction cost €1,039M for 1.6M taxpayers
+  (4.2% of adults, 2017); "significant increase in declared supply" but formalisation cannot be
+  separated from new supply; regressive.
+  https://www.elespanol.com/invertia/observatorios/vivienda/20200722/airef-redisenar-beneficios-fiscales-duenos-viviendas-alquiler/507200141_0.html
+  — the §6 fiscal-wedge row has no identified supply effect behind it. No AIReF evaluation of the
+  50/60/70/90 tiers or of Bono Alquiler Joven found.
+- **Catalonia Ley 11/2026** (DOGC 13 Jul, in force 14 Jul 2026; gran-tenedor rules for contracts
+  from 31 Jul; law-firm summary, DOGC unverified): gran tenedor = ≥5 dwellings in Cataluña / ≥10
+  Spain-wide, **including natural persons**; usage rights and co-ownership counted; "rent" = all
+  charges (no fee pass-through); room rentals under the cap + bonds; cédula in all ads;
+  error-regularisation before sanction; TPO 20% on whole-building acquisitions by any buyer (exempt
+  ≤4 dwellings for family use).
+  https://exnovo.law/cataluna-novedades-en-transmisiones-de-edificios-grandes-tenedores-y-alquiler-residencial-a-julio-2026/
+  — the 21% of landlords with 2+ units (§1) now straddles a 5-unit index-cap threshold.
+- **Portal/industry supply readings** (competing with the registry rows): Brainsre 6 Aug 2026 (V,
+  industry) — long-term listings Catalonia −72% vs Madrid −38% (Q1 2024 → Q2 2026); asking rents
+  Catalonia +13.7% vs Madrid +25.6%; seasonal ≈40% of the Catalan market; **90% of listings by
+  professional operators**. https://brainsre.news/zonas-tensionadas-alquiler-cataluna/ . idealista
+  16 Mar 2026 (V, portal) — Barcelona long-term listings −56%, seasonal +58%, seasonal share 64%
+  (34% Mar 2024); Hospitalet −66%; Girona/Tarragona ≈−50%; demand per listing +57%, 65
+  contacts/listing; asking rents Barcelona +12.9%, Tarragona +15.9%.
+  https://www.idealista.com/news/inmobiliario/vivienda/2026/03/16/888113-
+- **Second academic evaluation of the 2024 cap** (Izquierdo Llanes, García-López, Cabezas, Pinto,
+  IJHMA, 4 Jun 2026, V abstract): DiD Catalonia vs Madrid/Valencia/Andalusia, portal barometer
+  2019–25 — "economically substantial" relative supply contraction; more moderate listed-price
+  increase; large rise in contacts per listing. Magnitudes paywalled.
+  https://www.emerald.com/ijhma/article-abstract/doi/10.1108/IJHMA-03-2026-0073/1370378/
+- **Legal risk on the seasonal/room cap**: TC admitted PP recurso 2415-2026 against Catalan Ley
+  11/2025 (arts 2.2, 3.8, 5.5, 5.6, 5.8, 5.9, 5.14, 5.15, 8.1), BOE 16 Jun 2026, no suspension
+  (title verified). https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13028
+- **Pending state law** (omnibus RDL draft, press, unverified): seasonal ≤12 months with written
+  cause, else 5/7-yr LAU; room rents sum ≤ whole-flat cap (tensioned zones); contract extension to
+  30 Jun 2028. https://www.que.es/2026/07/27/nuevo-decreto-vivienda-2026-cambios/
+
+### Open questions moved
+
+- **Q1 (sell / seasonal / idle split) — one data point for the seasonal branch closing.** After the
+  Dec 2025 closure: seasonal contracts −1,233 net / −53% y/y in Q4 2025; habitual stock +8,895
+  (Incasòl) / +1,374 (O-HB) suggests partial return to habitual rental, while portal listings −56%
+  / −72% point to exit. Sale and idle branches still unmeasured; the 3-way split stays a guess.
+- **Q2 (post-loophole behaviour)** — same data; "go informal" unmeasured; the omnibus draft would
+  nationalise the closure.
+- **Q7 (households vs declarants)** — IFS-CSIC gives 5.7% of adults receiving rental income; still
+  not a household count.
+- **Q5 (required yield)** — no new elicitation.
+- **New**: (8) Brainsre's 90% professional listings — have small landlords left the portal channel
+  or the market? (9) Ley 11/2026 ≥5 threshold incl. natural persons — how many individuals cross it
+  (the AEAT panel behind the IFS-CSIC report could count them); (10) the Monràs & García-Montalvo
+  IV 2.0 vs OLS 0.07 spread puts both ends of the §6 elasticity range (0–2) inside one paper;
+  investor-large §6 cites ≈4 from a WP edition — reconcile editions before either number is coded.

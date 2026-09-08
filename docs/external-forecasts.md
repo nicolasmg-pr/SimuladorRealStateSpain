@@ -182,6 +182,8 @@ Not yet read as of 2026-08-10.
 
 ## 4. Third-party Spanish house-price forecast panel
 
+(see §8 for the 2026-09-08 refresh)
+
 The comparison set that actually exists. All PDF-only.
 
 ### Institutions that publish a numeric Spanish house-price path
@@ -466,6 +468,75 @@ Highest-value follow-up regardless of whether the comparison gets built: **read 
 (2023)** (§3), and **switch the validation feed to ECB `RESH`/`RESR`** (§5), which covers
 ownership rate, tenant share, transactions, vacancy and stock with a stable API instead of
 hand-copied figures.
+
+---
+
+## 8. Refresh 2026-09-08
+
+Panel re-checked 8 Sep 2026 (digest: scratch `research-2026-09-08.md`, report D). No §4 number
+changes; every row below is a status, a macro input, or a realised anchor. Flags: **V** = read on
+the fetched primary page; **V2** = fetched secondary page; **(unverified)** = snippet or press only.
+Numbered §8 because this file already carries a §7.
+
+### Panel status
+
+| Institution | Publication & date | 2026 | 2027 | Other / new numbers | URL | Status |
+|---|---|---|---|---|---|---|
+| CaixaBank Research | *Informe Sectorial Inmobiliario 2S 2026* | – | – | 2S 2025 edition was 27 Oct 2025 → expect late Oct 2026 | – | NOT YET PUBLISHED |
+| CaixaBank Research | *Informe Mensual* nº 514, Sept 2026 (cierre 7 Sep) | no house-price row | – | INE sales +1.6% Jun, 12-m sum 704k, "residential activity will keep losing some momentum". GDP 2.4 / 2.0, CPI 3.2 / 2.4, **Euríbor 12m end-2026 2.47 / end-2027 2.26** | https://www.caixabankresearch.com/sites/default/files/content/file/2026/09/07/34454/informemensual-2609-acces-es.pdf (verified) | NEW macro inputs; house-price forecast UNCHANGED (10.1 / 5.5) |
+| BBVA Research | none Aug–Sep 2026 | 12.0 | 5.7 | Press recirculation 11–15 Aug of the 28 Jul Observatorio adds deficit ≈885k by 2027 | https://www.bbvaresearch.com/en/ (listing) | UNCHANGED |
+| Bankinter | *Estrategia 4T 2026* | 7.0 | 4.0 | bankinter.com 403; no press trace | – | NOT YET PUBLISHED |
+| S&P Global Ratings | none since 13 Jul | 9.1 | 7.4 | 6.2 (2028) / 5.4 (2029) | – | UNCHANGED |
+| Fitch | GHMO mid-year 25 Jun 2026 | "raised", 8–10% (unverified) | – | – | – | UNCHANGED (unverified) |
+| Funcas Panel | Sept 2026 | – | – | PP2609.pdf 404 | – | NOT YET PUBLISHED (mid-Sep) |
+| OECD | Interim EO | – | – | Launch 23 Sep 2026 (unverified) | – | NOT YET PUBLISHED |
+| ECB staff projections | 10 Sep 2026 | – | – | Not out; no house-price row historically | – | NOT YET PUBLISHED |
+| Banco de España | *Proyecciones e informe trimestral* | – | – | 2026 editions: 27 Mar, 18 Jun (Boletín Económico discontinued Jan 2026). No Sept item yet; 2025 precedent 16 Sep | https://www.bde.es/wbe/en/publicaciones/analisis-economico-investigacion/proyecciones-macro-informe-trimestral/ (verified) | NOT YET PUBLISHED |
+| European Commission | Spring 2026 (21 May); no Summer 2026 interim; Autumn due Nov | 8.0 (AMR 2026) | – | – | https://economy-finance.ec.europa.eu/economic-forecast-and-surveys/economic-forecasts_en (verified) | UNCHANGED |
+| Sociedad de Tasación | Sept/Oct *Informe de Tendencias* | – | – | Last release 21 Jul (valor tasado ≈€300k) | – | NOT YET PUBLISHED |
+| Tinsa | IMIE Jul (5 Aug), Aug (7 Sep) | no forecast | – | Actuals only (see anchors) | https://www.tinsa.es/sala-de-prensa/notas-de-prensa/imie-general-agosto/ (verified) | ACTUALS ONLY |
+| Fotocasa | DataVenues predictive index, 23 Jul | – | – | **Q3 2026 asking rents fall in 32 capitals, rise in 17; Madrid −3.1%, Barcelona −6.4% q/q**; no 2027 figure | https://www.fotocasa.es/fotocasa-life/alquiler/ia-cuenca-palma-palencia-mayores-caidas-alquiler-cierre-tercer-trimestre/ (verified) | NEW (rents) |
+| Moody's / Scope / ING / Oxford / FocusEconomics / AEB / CECA / AHE | – | – | – | Nothing Spain-housing-specific with numbers Aug–Sep 2026 | – | NONE FOUND |
+
+### Realised anchors (as of 8 Sep 2026)
+
+| Anchor | Value | Vintage | Source (verification) |
+|---|---|---|---|
+| INE IPV | 2026Q2 **+12.2% y/y** (Q1 12.9%); +3.4% q/q; new +7.4% y/y, second-hand +12.9%; **H1 2026 average 12.55% y/y**; data final | 7 Sep 2026 | https://www.ine.es/dyngs/Prensa/IPV2T26.htm (V) |
+| Eurostat HPI | 2026Q1 Spain +12.8% y/y, +3.5% q/q; EA +4.7%, EU +5.1%. **Q2 release scheduled 1 Oct 2026** | 2 Jul 2026 | https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-02072026-bp (V) |
+| Tinsa IMIE | Jul +15.5% y/y, +1.3% m/m (V); Aug +14.9% y/y, 0.0% m/m; Costa Med. & metro +17.4%, other munic. +10.2% (V); Q2 +15.2% y/y, €2,071/m² (unverified) | 5 Aug / 7 Sep 2026 | https://www.tinsa.es/sala-de-prensa/notas-de-prensa/imie-mensual-julio-2026/ ; https://www.tinsa.es/sala-de-prensa/notas-de-prensa/imie-general-agosto/ |
+| Registradores 2T 2026 | €2,487/m² record; IPVVR +16.7% y/y, +3.14% q/q; 167,934 home sales (−5.7% q/q, −2.3% y/y); new 34,919 (−11.5% q/q); 77% financed; foreign 15.98% (record) | ~7 Aug 2026 | https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores (V2) |
+| Registradores Jul 2026 advance | home sales ≈60,500 (−7.7% y/y, largest fall in >2 yrs); all property ≈118,000 (−4.7%); housing mortgages ≈43,300 (−4.2%, first fall in 25 months) | 7 Sep 2026 | https://www.registradores.org/actualidad/notas-de-prensa ; https://www.infoconstruccion.es/noticias/20260907/compraventa-vivienda-julio-2026-hipotecas (V) |
+| Notariado Jun 2026 / H1 | €2,114/m² (+8.8% y/y); sales 67,529 (−4.0%), May 55,761 (−11.8%); **H1 353,237 (−7.7% y/y)**; purchase loans 36,249 (+0.2%), avg €188,785, LTV 72.3%, 53.7% of purchases mortgaged | 27 Aug 2026 | https://www.notariado.org/liferay/web/cien/estadisticas-principales/inmuebles/evolucion-de-compraventa-de-viviendas ; https://www.idealista.com/news/inmobiliario/vivienda/2026/08/27/911320- (V) |
+| INE Hipotecas Jun 2026 | 45,907 (+10.8% y/y); avg €178,365 (+6.0%); rate 2.96%; term 25 y; fixed 61.7% | 26 Aug 2026 | https://www.ine.es/dyngs/Prensa/H0626.htm (V) |
+| INE ETDP Jun 2026 | 59,288 sales (+1.6% y/y); Jan–Jun −2.6%; 12-month sum ≈704k (CaixaBank IM) | 7 Aug 2026 | https://www.ine.es/dyngs/Prensa/ETDP0626.htm (V) |
+| Euríbor 12m, official monthly average | Jun 2.795%; **Jul 2.855%** (BOE-A-2026-16997); **Aug 2.954%** (BOE-A-2026-18507); daily 3.109% on 7 Sep; Sep running avg ≈3.07–3.09% | 2 Sep 2026 | https://www.boe.es/buscar/doc.php?id=BOE-A-2026-18507 (V) |
+| ECB policy rates | DFR **2.25%**, MRO 2.40%, MLF 2.65% held 23 Jul; next meeting 9–10 Sep 2026; +25 bp priced (unverified) | 23 Jul 2026 | https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260723~29f24d99bc.es.html (V) |
+| INE ECP households | **19,874,860** at 1 Jul 2026 (+58,794 q/q; +1.22% y/y ≈ +239k); population 49,801,559 (+444,205 y/y). +226,279 households in 2025 (+1.16%) | 6 Aug 2026 / 12 Feb 2026 | https://www.ine.es/dyngs/Prensa/ECP2T26.htm ; https://www.ine.es/dyngs/Prensa/ECP4T25.htm (V) |
+| INE household projection 2026–2041 | 19,759,349 → 21,943,397 (+2,184,048, +11.1%; ≈145.6k/yr); blocks 1,024,156 / 696,381 / 463,511 → ≈205k / 139k / 93k per yr; vs superseded 2024–2039: +3,691,151 (+19.1%), blocks 1,667,063 / 1,140,804 / 883,284 → ≈333k / 228k / 177k per yr | 17 Jun 2026 vs 24 Jun 2024 | https://www.ine.es/dyngs/Prensa/PROH20262041.htm (V); https://www.ine.es/dyngs/Prensa/es/PROH20242039.pdf (V, PDF) |
+| MIVAU Transacciones 2T 2026 | not published as of 8 Sep (calendar page 403) | – | pending |
+
+### Reading of 2026Q2 against the panel
+
+INE IPV averaged 12.55% y/y over H1 2026, so every IPV-basis forecast in the 7–9% band
+(Bankinter 7.0, IMF 7.6, EC 8.0, Fitch 8–10, S&P 9.1) is undershooting: 9.1% for the year needs
+H2 ≈5.7% y/y, 8.0% needs ≈3.5% — implausible after +3.4% q/q in Q2. CaixaBank's 10.1% needs
+H2 ≈7.7%. Only BBVA's 12.0% (MIVAU valor tasado basis) looks defensible; the valuation indices
+(Registradores IPVVR +16.7%, Tinsa +14.9–15.5%) run above it. Softening signals: new-build (INE
++7.4%, from 9.1%) and asking rents (Fotocasa Q3 corrections). Volumes: notarial H1 −7.7% and
+Registradores Q2 −2.3% put BBVA's −7.3% on track; CaixaBank's 695k needs a recovery the July
+provisional (−7.7%) does not show, though the INE 12-month sum is ≈704k and mortgages rose 10.8%
+in June. Rate inputs are stale: official Euríbor 2.954% (Aug) and ≈3.07% in September exceed the
+Funcas July path (2.80 → 2.54) and CaixaBank's end-2026 2.47, with an ECB hike to 2.50% priced for
+10 Sep. Same conclusion as §6: the panel is a range of contemporary expectations, not a target.
+
+### Correction to §1 (calendar)
+
+§1 states that February and October are now the full BdE exercises. As realised: the 2026 exercises
+published so far are **27 Mar** (full) and **18 Jun** (update); the **Boletín Económico was
+discontinued in Jan 2026**; and **no September item was listed** on the projections landing page as
+of 8 Sep 2026 (2025 precedent: 16 Sep). §1 is left as written; this note governs the calendar. The
+housing-row conclusion of §1 (none) is unaffected.
 
 ---
 

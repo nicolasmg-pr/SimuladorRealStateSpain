@@ -38,6 +38,10 @@ class RentCap(Intervention):
     supply_response_elasticity: float = 1.0  # 0–2 — the three-studies parameter
     compliance: float = 0.85  # 0.25–0.95
     seasonal_segment_capped: bool = False
+    # share of the zone inside DECLARED municipalities (PolicyConfig.cap_coverage). 1.0 =
+    # Cataluña-2024-like (≈90% of Catalan population declared); ≈0.42 = Spain's 317
+    # municipalities of Jul 2026 (9.3M people) mapped onto the model's tensioned zone
+    coverage: float = 1.0
 
     def apply(self, config: SimConfig) -> SimConfig:
         cfg = config.with_policy(
@@ -45,6 +49,7 @@ class RentCap(Intervention):
             rent_cap_zones=self.zones,
             cap_reference_discount=self.cap_reference_discount,
             cap_compliance=self.compliance,
+            cap_coverage=self.coverage,
             seasonal_segment_capped=self.seasonal_segment_capped,
         )
         market = replace(cfg.market, rental_supply_elasticity=self.supply_response_elasticity)
@@ -57,11 +62,22 @@ class TransactionTax(Intervention):
 
     name: str = "transaction_tax"
     start_tick: int = 8
-    itp_delta: float = 0.02  # pp as fraction of price
+    itp_delta: float = 0.02  # pp as fraction of price, every buyer, in `zones`
     zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED, ZoneType.SECONDARY, ZoneType.RURAL)
+    # buyer-type surcharges on top (PolicyConfig): large investor / legal persons — the
+    # Catalan 20% TPO on whole-building and gran-tenedor purchases is ≈ +0.10 over the 10%
+    # general rate; non-resident overlay — the stalled "100% tax on non-EU buyers" bill is
+    # ≈ +0.90. Both default to 0 so the plain lever behaves as before.
+    investor_delta: float = 0.0
+    foreign_delta: float = 0.0
 
     def apply(self, config: SimConfig) -> SimConfig:
-        return config.with_policy(itp_delta=self.itp_delta, itp_zones=self.zones)
+        return config.with_policy(
+            itp_delta=self.itp_delta,
+            itp_zones=self.zones,
+            itp_investor_delta=self.investor_delta,
+            itp_foreign_delta=self.foreign_delta,
+        )
 
 
 @dataclass(frozen=True)
@@ -121,6 +137,9 @@ class DemandSubsidy(Intervention):
     start_tick: int = 8
     guarantee_ltv_boost: float = 0.20
     guarantee_eligible_share: float = 0.25  # sweep 0.05–0.50
+    # € liquid-wealth ceiling on eligibility — the ICO line's 2026 addenda added a €150k
+    # net-wealth cap (BOE 2 Jul 2026). `inf` reproduces the pre-2026 instrument.
+    guarantee_wealth_cap: float = 150_000.0
     rent_subsidy_month: float = 0.0  # 250–300 when active
     rent_subsidy_eligible_share: float = 0.0  # 0.006–0.20
 
@@ -128,6 +147,7 @@ class DemandSubsidy(Intervention):
         return config.with_policy(
             guarantee_ltv_boost=self.guarantee_ltv_boost,
             guarantee_eligible_share=self.guarantee_eligible_share,
+            guarantee_wealth_cap=self.guarantee_wealth_cap,
             rent_subsidy_month=self.rent_subsidy_month,
             rent_subsidy_eligible_share=self.rent_subsidy_eligible_share,
         )
@@ -155,12 +175,11 @@ class LandRelease(Intervention):
 class HouseholdFormation(Intervention):
     """Exogenous demographic path — household formation is an input, not a result.
 
-    The baseline holds formation flat at the observed ≈240k/yr. The INE household projection
-    2022–2037 is not flat: it is front-loaded and then fades, >215k/yr in 2023–27, 190k/yr in
-    2028–32 and 140k/yr in 2033–37, as average household size falls 2.48 → 2.36 and the
-    population goes 47.4M → 51.7M [INE Proyección de hogares via Funcas 104 ch.1 §3].
-    Use `ine_household_projection()` to lay the three steps out over a run; this class is the
-    single step (and doubles as the "what if formation is X" lever).
+    The baseline holds formation flat at the observed ≈240k/yr (INE ECP: +226k in 2025, +239k
+    y/y to July 2026). Every INE household projection is front-loaded and then fades, but the
+    *level* has been cut hard between vintages — see `INE_HOUSEHOLD_PROJECTIONS`. Use
+    `ine_household_projection()` to lay one vintage's three steps out over a run; this class is
+    the single step (and doubles as the "what if formation is X" lever).
     """
 
     name: str = "household_formation"
@@ -175,18 +194,42 @@ class HouseholdFormation(Intervention):
         return replace(config, population=replace(config.population, **changes))
 
 
-def ine_household_projection(start_tick: int = 0) -> tuple[HouseholdFormation, ...]:
-    """The INE 2022–2037 formation path as three consecutive steps of 20 ticks (5 years).
+# INE Proyección de Hogares, by vintage: net new households per tick (1:`metrics.SCALE`, i.e.
+# ×8,000 for households/yr) over three consecutive five-year blocks. Rounded to integers
+# because formation is a Poisson count; the rounding costs ≤4k/yr.
+#
+# The vintages disagree by a factor of three in the first block, which is the point of keeping
+# all of them (bias-control rule: disagreement is data, docs/plan.md). The June 2026 revision
+# alone removed 1.5M households from the 15-year horizon; migration assumptions dominate.
+#   2022–2037: 215k → 190k → 140k/yr, 2023–27 / 2028–32 / 2033–37
+#              [INE via Funcas 104 ch.1 §3 gráfico 7]
+#   2024–2039: 333k → 228k → 177k/yr (1,667,063 / 1,140,804 / 883,284 over 2024–29 / 2029–34 /
+#              2034–39; 19.31M → 23.00M households) [INE nota de prensa 24 Jun 2024]
+#   2026–2041: 205k → 139k → 93k/yr (1,024,156 / 696,381 / 463,511 over 2026–31 / 2031–36 /
+#              2036–41; 19.76M → 21.94M households, size 2.49 → 2.43)
+#              [INE nota de prensa 17 Jun 2026 — docs/kb-refresh-2026-09.md §2]
+INE_HOUSEHOLD_PROJECTIONS: dict[str, tuple[int, int, int]] = {
+    "2022-2037": (27, 24, 18),
+    "2024-2039": (42, 29, 22),
+    "2026-2041": (26, 17, 12),
+}
+INE_LATEST_VINTAGE = "2026-2041"
 
-    215k → 190k → 140k new households/yr at 1:`metrics.SCALE`, i.e. 27 → 24 → 18 per tick.
-    Rounded to integers because formation is a Poisson count; the rounding costs ≤2k/yr.
+
+def ine_household_projection(
+    start_tick: int = 0, vintage: str = INE_LATEST_VINTAGE
+) -> tuple[HouseholdFormation, ...]:
+    """One INE projection vintage as three consecutive steps of 20 ticks (5 years).
+
     Interventions are applied in order by `Scenario.config_at`, so a later step overrides an
-    earlier one and the sequence reads as a path [INE via Funcas 104 ch.1 §3 gráfico 7].
+    earlier one and the sequence reads as a path. Default is the latest vintage; pass an
+    earlier key of `INE_HOUSEHOLD_PROJECTIONS` to run the demand path Spain was planning on
+    before the cut.
     """
-    return (
-        HouseholdFormation(start_tick=start_tick, formation_per_tick=27),
-        HouseholdFormation(start_tick=start_tick + 20, formation_per_tick=24),
-        HouseholdFormation(start_tick=start_tick + 40, formation_per_tick=18),
+    steps = INE_HOUSEHOLD_PROJECTIONS[vintage]
+    return tuple(
+        HouseholdFormation(start_tick=start_tick + 20 * i, formation_per_tick=per_tick)
+        for i, per_tick in enumerate(steps)
     )
 
 

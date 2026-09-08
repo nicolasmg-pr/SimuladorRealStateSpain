@@ -130,3 +130,4 @@ Mark phases done here; details and dates in commit history.
 - [x] Phase 5 — implementation (all 11 modules; 12 tests green)
 - [x] Phase 6 — calibration & validation (`validation.md`; Morris/Sobol pass still open)
 - [x] Phase 7 — first experiment done: rent cap spans the three Catalonia studies (`experiments/rent-cap.md`); remaining levers implemented and runnable, experiments ongoing
+- [x] KB refresh 2026-09-08 (`kb-refresh-2026-09.md`): sources re-checked against Jul–Sep 2026 releases; INE projection vintages, rent-cap coverage, buyer-type ITP, ICO wealth cap, IRAV-relative indexation added. **Re-measurement found the Phase-7 rent-cap gate no longer met on the tenancy leg** (the August audit and Funcas revision changed the baseline and the experiment was not re-run) — now a strict xfail; tightness recalibration is the next calibration task

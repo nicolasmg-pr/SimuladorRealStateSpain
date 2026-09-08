@@ -67,6 +67,19 @@ def cash_price(hh: HouseholdState, itp: float, fees: float) -> float:
     return hh.wealth / (1.0 + itp + fees)
 
 
+def itp_wedge(base_rate: float, effective_rate: float) -> float:
+    """Budget multiplier a cash buyer applies when the tax it faces moves off the zone rate.
+
+    Households already carry ITP inside `max_price`; the two aggregate cash buyers (large
+    investor, non-resident overlay) bid at observed market levels that embed the baseline
+    rate, so for them only the CHANGE is a wedge: (1 + base) / (1 + effective). Equal to 1
+    when nothing changed. Spain taxes by buyer type in practice — Cataluña's 20% TPO on
+    whole-building and gran-tenedor purchases, the stalled 100% surcharge on non-EU buyers —
+    which is why the effective rate is buyer-specific [transaction-tax.md §5].
+    """
+    return (1.0 + base_rate) / (1.0 + effective_rate)
+
+
 def loan_terms(
     price: float,
     hh: HouseholdState,

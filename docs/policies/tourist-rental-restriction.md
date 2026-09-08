@@ -140,6 +140,8 @@ control urban-planning permission, and since 2025 the State adds a single regist
 | Evasion / substitution share (to temporada or illegal) | **10–50%** of nominally removed units; up to ~90% non-registration in weak-enforcement Madrid | Barcelona 71%-of-illegals-as-temporada; Madrid registry gap; German non-compliance >1/3 |
 | License capitalisation into price | 8–9% (quasi-experimental, Lisbon) to 25–35% (Barcelona broker claims, unverified) | removed value on phase-out |
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (typed dataclass; all ranges, seeded draws):
@@ -178,3 +180,43 @@ class TouristRentalRestriction:
 Sources register: see `docs/sources.md` and the tier tables in the research scratchpad
 (`policy-tourist-rental.md`). Every §4 range cites ≥2 independent sources except the
 single-study Lisbon ban estimate, cited as itself.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A4, B). Flags as in the digest.
+
+**New evidence**
+
+- INE experimental VUT statistic, **May 2026: 341,001** (−10.7% y/y, −40,836); +3.4% vs Nov
+  2025 (+11,237); 1,714,702 plazas; **1.28% of stock** (via idealista / Forbes, verified via
+  secondary). Reference months May/Nov, published Jun/Dec — the +3.4% is the seasonal rebound
+  from the Nov 2025 low (329,764, §2); −10.7% y/y is the trend.
+- Observed national decline ≈**0.11/yr** with no formal phase-out (derived from −10.7% y/y):
+  registry + LPH reform + local rules. Ministry attribution vs temporada substitution (§2, §3)
+  stays as recorded.
+
+**Legal / institutional status**
+
+- **Málaga**: 3-yr suspension of new VUT / hotel / hostel licences on residential land, whole
+  municipality (Pleno 16 Jul 2026, PGOU mod. no. 28 initial approval; effective 25 Jul 2026;
+  existing licences untouched) (bookcheckin.com, unverified — malaga.eu not fetched).
+- **Barcelona / Catalonia**: Parlament rejected the repeal of DL 3/2023 on 30 Jun 2026; the Nov
+  2028 extinction stands for 262 municipalities; one 5-yr extension for uncompensated
+  investment (registroviajero.com, unverified).
+- **Canarias Ley 7/2026** (BOC 14 Aug, in force 15 Aug 2026; BOC verified for the law): arts
+  11–12 — stays ≤31 days or offered on tourist channels **presumed tourist**; seasonal
+  contracts must document the tenant's motive; fines €1,501–30,000 (arts 11–12 via sector
+  blog, unverified). Closes the temporada disguise route (§3) in Canarias.
+- EU STR Regulation 2024/1028 applies since **20 May 2026**; Spain relies on regional codes after
+  STS 620/2026 (eur-lex summary; what the TS annulled is not in the digest — §1's RD 1312/2024
+  registry status needs re-verification).
+- Omnibus RDL draft: VAT on VUT (press, unverified); pulled 27 Jul 2026.
+
+**What it changes for the model**
+
+- `ZoneConfig.seasonal_share` tensioned **0.028 → 0.025** so model seasonal units weight to
+  ≈345k real vs INE 341k (was ≈374k at 0.028); secondary 0.010, rural 0.005 unchanged.
+- `vut_phaseout_rate` help text: the observed ≈0.11/yr national decline without a formal
+  phase-out is now the reference point; Barcelona's 2028 step (≈1.0 in one tick) is the
+  formal-extinction case.
+- §4 ranges unchanged; Barcelona 2028 outcome still pending — no long-term-supply return data.

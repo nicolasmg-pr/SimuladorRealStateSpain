@@ -73,6 +73,18 @@ def lever_params(lever: str) -> dict:
             help="Berlín (anuncios) ≈0,25 · París ≈0,5–0,64 · contratos "
             "registrados en Cataluña ≈0,9.",
         )
+        params["coverage"] = st.slider(
+            "Cobertura: parte de la zona declarada tensionada",
+            0.1,
+            1.0,
+            1.0,
+            0.05,
+            help="La ley se activa municipio a municipio. 1,0 ≈ Cataluña 2024 (≈90% de su "
+            "población). España a julio de 2026: 317 municipios en 5 CCAA (Cataluña 271, "
+            "Euskadi 18, Navarra 21, Galicia 2, Asturias 5), 9,3M de personas = 19% del "
+            "país ≈ 0,42 de la zona tensionada del modelo (BOE 29-jul-2026). Madrid, "
+            "Andalucía, Valencia, Murcia y Castilla y León: 0.",
+        )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(
             "Cambio del ITP (pp del precio)",
@@ -81,7 +93,29 @@ def lever_params(lever: str) -> dict:
             0.02,
             0.01,
             help="Evidencia: −4% a −15% de compraventas por +1pp (estudios de "
-            "Reino Unido, Alemania, Países Bajos y Canadá).",
+            "Reino Unido, Alemania, Países Bajos y Canadá). Se aplica a todos los "
+            "compradores, hogares y compradores al contado incluidos.",
+        )
+        params["investor_delta"] = st.slider(
+            "Recargo a grandes tenedores / personas jurídicas (pp)",
+            0.0,
+            0.15,
+            0.0,
+            0.01,
+            help="Cataluña: 20% de TPO en compras de edificios enteros y de grandes "
+            "tenedores (DL 5/2025; Ley 11/2026, en vigor 14-jul-2026) frente al 10% "
+            "general ⇒ +0,10. Sólo alcanza al gran inversor del modelo.",
+        )
+        params["foreign_delta"] = st.slider(
+            "Recargo a compradores no residentes (pp)",
+            0.0,
+            1.0,
+            0.0,
+            0.05,
+            help="El «impuesto del 100%» a compradores extracomunitarios (anunciado en "
+            "enero de 2025, atascado en el Congreso desde marzo de 2026) sería ≈ +0,90 "
+            "sobre un ITP del 10%. Baleares intentó prohibir la compra a no residentes y "
+            "el Parlament lo rechazó (feb-2026). Es una propuesta, no ley.",
         )
     elif lever == "impuesto a la vivienda vacía":
         params["rate"] = st.slider(
@@ -107,7 +141,10 @@ def lever_params(lever: str) -> dict:
             30,
             6,
             help="6 ≈ 48k/año reales ≈ planes anunciados; 12+ ≈ senda de "
-            "convergencia del Banco de España.",
+            "convergencia del Banco de España. La entrega REAL va muy por debajo: 5.215 "
+            "calificaciones definitivas en 1T 2026 (+74%, el mejor trimestre desde 2012) "
+            "≈ 2–3 unidades del modelo por trimestre; Casa 47 tenía 800 viviendas en su "
+            "portal el 7-sep-2026 y 42.000 de la Sareb por movilizar.",
         )
         params["crowding_out"] = st.slider(
             "Desplazamiento de obra privada",
@@ -118,7 +155,16 @@ def lever_params(lever: str) -> dict:
             "Sinai-Waldfogel ≈0,33; Murray ≈0 para alquiler social profundo.",
         )
     elif lever == "restricción de pisos turísticos":
-        params["phaseout_rate"] = st.slider("Extinción de licencias /año", 0.0, 1.0, 0.25)
+        params["phaseout_rate"] = st.slider(
+            "Extinción de licencias /año",
+            0.0,
+            1.0,
+            0.25,
+            help="Referencia observada sin extinción formal: el parque turístico del INE cayó "
+            "−10,7% interanual hasta mayo de 2026 (341.001 viviendas) tras el registro único "
+            "y las moratorias municipales ⇒ ≈0,11/año. Barcelona: cero licencias en 2028; "
+            "Málaga: 3 años sin licencias nuevas desde jul-2026.",
+        )
         params["conversion_share"] = st.slider(
             "Proporción que vuelve al alquiler habitual",
             0.10,

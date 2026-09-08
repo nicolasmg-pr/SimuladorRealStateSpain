@@ -212,6 +212,8 @@ Two things this also pins:
   22.3% (>100k), 19.5% (50–100k), 15.2% (20–50k), 11.1% (<10k). By nationality of the main
   earner: Spanish 11.6%, rest of EU 45.3%, rest of world 66.3%.
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Tenant mobility is the weakest parameter.** No official Spanish series for annual tenant
@@ -232,3 +234,71 @@ Two things this also pins:
    whether idealista changed the measurement basis before using the endpoint.
 8. Effect of the **Catalan seasonal/room-rental cap (in force 2026)**: first natural experiment on
    closing the evasion channel — no outcome data yet as of 2026-08.
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page; **(unverified)** = snippet or press
+only. Registry and portal readings of the Catalan cap are kept side by side; no point values.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| Tenant share of households | ECV 2025: owner 73.3 (2024 73.6; series low), rent 20.2 (20.4), free 6.5 (6.1); AROPE 25.7% | 2025, pub. 5 Feb 2026 | INE ECV https://www.ine.es/dyngs/Prensa/ECV2025.htm (V for AROPE; V2 for tenure) |
+| Overburden (>40% of disposable income), by tenure | market-rent tenants 26.8 (2024 28.1; 2023 30.6) — confirms §6; total population 7.2 (7.8; 8.2); owners with mortgage 3.4; without 1.9; reduced/free 8.4 | 2025 | Eurostat ilc_lvho07c https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_lvho07c?geo=ES&sinceTimePeriod=2023&format=JSON&lang=en (V, API) |
+| Housing + utilities spend, all households | €11,665/hh = 33.2% of €35,101 total spend (+5.8% y/y; total +3.1%); actual-rent line not in the note | 2025, pub. 25 Jun 2026 | INE EPF https://www.ine.es/dyngs/Prensa/EPF2025.htm (V) |
+| Asking-rent growth (new-contract price signal) | €15.1/m²/mo, +5.8% y/y, −0.9% m/m; Madrid 23.3 (+5.1%), Barcelona 20.2 (+0.7%), Málaga 16.5 (+2.8%), Valencia 16.3 (+3.5%); País Vasco the only region falling (−1.6%) | Aug 2026, pub. 1 Sep | idealista https://www.idealista.com/news/inmobiliario/vivienda/2026/09/01/911881- (V) |
+| Contract-rent index (IPVA, experimental, base 2015) | +3.5% in 2024; new contracts +8.8%, existing +2.8% | 2024 | INE https://ine.es/dyngs/Prensa/IPVA2024.htm (unverified) |
+| Co-residence / unsuccessful search (ECV access module) | 44.3% of 26–34s live with parents, 47.3% of them because they cannot afford to leave; 7.6% of 16+ searched without moving (67.2% cite price); by birthplace Spain-born 6.3%, EU-born 9.5%, non-EU-born 13.7%; Balears 10.6%, Madrid 10.2%; ages 30–44 14.9% | 2025, pub. 27 Apr 2026 | INE https://www.ine.es/dyngs/Prensa/m3ECV2025.htm (V) |
+| Rent-cap outcomes, Catalonia — registry basis | Incasòl Q4 2025: tensioned €902 (+1.6%) vs non-tensioned €639 (+9.4%); Barcelona −2.7%; seasonal contracts net −1,233 (first fall); habitual stock +8,895 in 2025; 96% of seasonal contracts in tensioned zones (V, via Infobae). O-HB ZMRT report no.4: Barcelona new-contract rent Q4 2025 €1,161 vs €1,193 Q1 2024 (−2.7% real); counterfactual trend €1,319 → 13.6% avoided; +1,374 active contracts since regulation; seasonal contracts 1,282 in Q4 2025 (−53% y/y); rents 2000–23 +178% vs income +88% (V) | Q4 2025, pub. 18 Apr / 27 May 2026 | https://www.infobae.com/espana/2026/04/18/cataluna-registra-1233-contratos-menos-de-alquiler-temporal-tras-la-entrada-en-vigor-del-tope-de-precios/ ; https://www.ohb.cat/publiquem-linforme-semestral-de-seguiment-de-la-zmrt-abril-2026/ |
+
+### New evidence (Tier 2)
+
+- **Rent burden, central-bank reading** (S. Núñez, BdE Deputy Governor, 1 Sep 2026, V): average
+  renter cost burden >25% of net income; **one third of renter households >30%**.
+  https://www.bis.org/speeches/20260901-closing-remarks-conference-spanish-economy — sits between the
+  BdE IA mean (26.7%) and the union "half a salary" reading in §2.
+- **Rents vs incomes 2015–24** (CCOO, union viewpoint, 29 May 2026, V article; INE-based series):
+  IPVA all contracts +23%, new contracts +37%, existing +21%; CPI +11%; nominal wages +26%; renter
+  households 15.6% → 20.2% (2015–25), market-rent 13.1% → 16.7%; gap largest Valencia (−19 pp),
+  Madrid, Baleares (−14). https://www.infobae.com/espana/agencias/2026/05/29/
+- **Asking-rent nowcast** (Fotocasa DataVenues predictive index, portal, 23 Jul 2026, verified):
+  Q3 2026 asking rents fall in 32 capitals, rise in 17; Madrid −3.1%, Barcelona −6.4% q/q.
+  https://www.fotocasa.es/fotocasa-life/alquiler/ia-cuenca-palma-palencia-mayores-caidas-alquiler-cierre-tercer-trimestre/
+  — competes with idealista +5.8% y/y (Aug); different horizon (q/q vs y/y) and portal.
+- **Room market** (idealista, 24 Aug 2026): room supply +12% y/y, price +1% to €425; Barcelona
+  €600, Madrid/Palma €550 (unverified). https://www.idealista.com/news/inmobiliario/vivienda/2026/08/24/910850-
+- **Portal-side Catalonia readings** (competing with the registry row above): idealista 16 Mar 2026
+  (V) — Barcelona long-term listings −56%, seasonal +58%, seasonal share 64% (34% Mar 2024);
+  Hospitalet −66%; 65 contacts/listing; asking rents Barcelona +12.9%.
+  https://www.idealista.com/news/inmobiliario/vivienda/2026/03/16/888113- . Brainsre 6 Aug 2026 (V,
+  industry) — long-term listings Catalonia −72% vs Madrid −38% (Q1 2024 → Q2 2026); asking rents
+  +13.7% vs +25.6%; seasonal ≈40% of the Catalan market. https://brainsre.news/zonas-tensionadas-alquiler-cataluna/ .
+  Registry stock (+1,374 / +8,895) and portal flow (−56% / −72%) measure different objects; keep both.
+- **Pending state law** (omnibus RDL draft, press, unverified): extraordinary extension for contracts
+  expiring before 30 Jun 2028 (~630k contracts/yr, ~4M people); seasonal ≤12 months with written
+  cause, else 5/7-yr LAU; room rents sum ≤ whole-flat cap (tensioned zones only). Pulled from the
+  28 Jul Consejo de Ministros; minister 2 Sep: "text ready", aiming for September.
+  https://www.que.es/2026/07/27/nuevo-decreto-vivienda-2026-cambios/ . Context: RDL 8/2026 (2% update
+  cap to 31 Dec 2027 + 2-yr extension) was rejected by Congress 28 Apr 2026, derogation BOE 30 Apr
+  (verified) https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-6545 — the IRAV regime in §6 is unchanged.
+
+### Open questions moved
+
+- **Q2 (share paying >30%) — partly answered.** One third of renter households >30% of net income
+  (Núñez, BdE, national, 1 Sep 2026). Brackets the Funcas 104 EPF row in §6b (38.2% above 30% in
+  2022). The interim 40–55% guess for tensioned metros remains untested.
+- **Q8 (Catalan seasonal/room cap) — first outcome data.** Seasonal contracts −1,233 net / −53% y/y
+  in Q4 2025; habitual stock +8,895 (Incasòl) / +1,374 (O-HB); tensioned rents +1.6% vs +9.4%
+  outside. Portal listings −56% / −72% say the opposite about supply — unresolved, two readings.
+- **Q4 (asking vs contract wedge)** — first same-year triplet: 2024 IPVA new +8.8 / existing +2.8
+  (unverified) vs idealista asking +11.5. Needs the verified IPVA table.
+- **Q7 (seasonal listing-share jump)** — Brainsre puts seasonal ≈40% of the Catalan market, idealista
+  64% of Barcelona listings; the national 29% endpoint is still unchecked for a basis change.
+- **New**: (9) the omnibus extension to Jun 2028 would freeze rotation for ~630k contracts/yr — the
+  insider/outsider wedge widens if enacted; (10) Fotocasa Q3 corrections vs idealista +5.8% y/y —
+  turning point or seasonality; (11) EPF 33.2% housing+utilities has no actual-rent line — microdata
+  pull; (12) non-tensioned Catalonia +9.4% — displacement spillover or composition?

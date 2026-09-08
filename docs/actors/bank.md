@@ -145,6 +145,8 @@ numbers kept as ranges.
 | Rejection-rate function by profile | No published levels. Proxy: base rejection ~15–25%; ×1.5–2 for temp contract or age<35 without aval; +tightening in BLS episodes | share | ECB BLS (directional only); BdE 2026 statements | guess |
 | Big-six share of mortgage stock | ~67 (CaixaBank ~24) | % | elEconomista (CNMC coverage) | medium |
 
+→ see Update 2026-09-08
+
 ## 7. Open questions
 
 1. **Rejection-rate levels by borrower profile** — BLS only publishes net-tightening
@@ -165,3 +167,68 @@ numbers kept as ranges.
    distribution for how repossessed stock re-enters supply (mattered enormously 2008–2014).
 7. **CCyB path 2024–26 and any future borrower-based activation** — watch BdE; a first-ever
    LTV/DSTI cap is exactly the kind of policy scenario this ABM should support.
+
+→ see Update 2026-09-08
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: scratch `research-2026-09-08.md` (reports A–D). Flags as in the digest: **V** = read on the
+fetched primary page; **V2** = read on a fetched secondary page; **(unverified)** = snippet or press
+only. The financed-share dispute in §1 is sharpened, not resolved.
+
+### New data (Tier 1)
+
+| Parameter | New value | Vintage | Source (verification) |
+|---|---|---|---|
+| New lending — count, size, rate, term, fixed share | Jun 2026: 45,907 (+10.8% y/y); avg €178,365 (+6.0%); capital €8.19bn; rate 2.96%; term 25 y; fixed 61.7% / variable 38.3% (fixed 2.89%, variable 3.07%). May 2026: 42,213 (−0.1%); €174,866 (+9.7%); 2.98%; fixed 60.9% | May–Jun 2026, pub. 20 Jul / 26 Aug | INE Hipotecas https://www.ine.es/dyngs/Prensa/H0626.htm ; https://www.ine.es/dyngs/Prensa/H0526.htm (V) |
+| Registral mortgage flow | 2026Q2 housing mortgages 129,240 (−3.3% q/q), avg €176,453 (V2); Jul advance ≈43,300 (−4.2% y/y, first fall in 25 months) (V) | 2026Q2 / Jul 2026 | https://www.infoconstruccion.es/noticias/20260807/precio-vivienda-colegio-registradores ; https://www.registradores.org/actualidad/notas-de-prensa |
+| Euríbor 12m, official monthly average | Jun 2.795%; Jul 2.855% (BOE-A-2026-16997, 4 Aug); Aug 2.954% (BOE-A-2026-18507, 2 Sep); daily 3.109% on 7 Sep; Sep running avg ≈3.07–3.09% | Jun–Sep 2026 | BdE via BOE https://www.boe.es/buscar/doc.php?id=BOE-A-2026-18507 (V) |
+| ECB policy rates | held 23 Jul: DFR 2.25%, MRO 2.40%, MLF 2.65% (V); next meeting 9–10 Sep 2026, not yet held; +25 bp priced (unverified) | Jul 2026 | https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260723~29f24d99bc.es.html |
+| Credit standards (Bank Lending Survey) | Q2 2026: housing-loan standards tightened slightly, demand fell; Q3 expectation: further tightening, further demand decline | 21 Jul 2026 | BdE https://www.bde.es/wbe/en/noticias-eventos/actualidad-banco-espana/notas-banco-espana/la-oferta-de-credito-se-endurecio-en-el-segundo-trimestre-de-2026-y-la-demanda-siguio-reduciendose.html (V) |
+| Macroprudential | CCyB 1% binding from 1 Oct 2026 (§2 "unverified detail" now verified); borrower-based limits: none activated; Escrivá (Jun) promised a monograph on the analytical framework "soon" | May–Jun 2026 | BdE IEF Primavera 2026 https://www.bde.es/wbe/p/b248c7ed1b52e910VgnVCM100000dec89783RCRD/webbe/GAP/informacion-embargada/20260514_IEF_Primavera2026.pdf (V); https://www.idealista.com/news/finanzas/hipotecas/2026/06/23/903201- |
+| Share of purchases mortgage-financed — **two like-for-like sources disagree** | Registradores: 77% (2026Q2) (V2); 74.3% Q4 2025 / 70.7% 12-month 2025; Madrid region 99.5%, País Vasco 96.8%, two regions <60% (V, PDF). Notariado: 53.7% mortgaged, Jun 2026; LTV 72.3%; purchase loans 36,249 (+0.2%), avg €188,785 (+7.3%); H1 loans 191,498 (−2.2%) (V). Baleares cash 40% (2021) → 23.2% (2026Q2) (V, article). §6 range 55–70 should read 54–77 | 2025–2026Q2 | https://www.registradores.org/documents/d/guest/eri_4t_2025 ; https://www.idealista.com/news/inmobiliario/vivienda/2026/08/27/911320- ; https://www.ultimahora.es/noticias/local/2026/08/16/2689851/ |
+| Aval ICO — terms and uptake | Adenda 23 Jun, BOE 2 Jul 2026 (verified): formalisation deadline 31 Dec 2027; new net-wealth cap €150k; ≤35 yrs; income ≤7.5×IPREM. Uptake at 31 Oct 2025: 8,549 ops, €206.6M guarantees, €1.09bn financed, avg €127.7k (BOE). Press end-2025: 10,453 ops / €255.8M (~10% of €2.5bn) (unverified) — §6 row now carries both vintages | Jul 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-14404 |
+| ICO social-housing promotion facility | endowment €2bn → €375M (Dec 2025 PRTR simplification); fees €31M → €6.9M; loan transferability eased | adendas 31 Jul; BOE 5 Sep 2026 | https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18677 (verified) |
+| ESRB | no RRE warning/recommendation for Spain; only 2026 warning = AI cyber risk (25 Jun) | 2025–26 | https://www.esrb.europa.eu/mppa/warnings/html/index.en.html (V) |
+
+### New evidence (Tier 2)
+
+- **Underwriting levels** (Funcas, García-Montalvo, Feb 2026, V PDF; BdE/CdR data): LTV avg 65%,
+  10.9% >80% (vs a majority >100% in 2007); LTI 4.5; LSTI 22.6%; household housing credit 30.8%
+  of GDP (62% in 2007); developer credit 5.8% of GDP (41.6%).
+  https://www.funcas.es/wp-content/uploads/2026/02/Existe-una-nueva-burbuja-en-el-mercado-inmobiliario_Inv26.pdf
+  — first LTI/LSTI levels in the KB (Q2).
+- **Two supervisors, different emphasis.** S. Núñez (BdE, 1 Sep 2026, V): mortgage stock declining;
+  "no imbalances comparable to 2000s".
+  https://www.bis.org/speeches/20260901-closing-remarks-conference-spanish-economy . ECB FSR May 2026
+  (V, PDF): Spain among countries where the price/income deviation from its long-run average is
+  positive and rising y/y (2025Q3).
+  https://www.ecb.europa.eu/press/financial-stability-publications/fsr/pdf/ecb.fsr202605~50566915a7.en.pdf
+- **Exclusion by the LTV cap** (OBS Business School, industry, Aug 2026, V article): 26% of renters
+  excluded by the LTV cap alone. https://www.infobae.com/espana/2026/08/26/
+- **Rate paths vs realised.** CaixaBank Informe Mensual nº 514 (Sep 2026, verified): Euríbor 12m
+  end-2026 2.47 / end-2027 2.26.
+  https://www.caixabankresearch.com/sites/default/files/content/file/2026/09/07/34454/informemensual-2609-acces-es.pdf .
+  Funcas Panel Jul 2026: 2.80 (26Q2) → 2.54 (27Q4). Official Aug 2.954% and Sep ≈3.07% already
+  exceed both, with a hike to 2.50% priced for 10 Sep (unverified).
+- **Model mapping**: `DemandSubsidy.guarantee_wealth_cap` (default 150,000 = the BOE €150k cap).
+  Baseline `credit.euribor` stays 0.022 as a steady-state input; the 2026 level is documented here
+  (2.795–2.954% Jun–Aug, ≈3.07% Sep) and `RateShock.euribor` 0.04 remains the 2022–23 reproducer.
+  2008-crunch calibration anchors are now sourced for a future `CreditCrunch` lever: 2007 LTV
+  majority >100%, household housing credit 62% of GDP, developer credit 41.6% of GDP (Funcas) vs
+  2025–26 65% / 30.8% / 5.8%.
+
+### Open questions moved
+
+- **Q2 (loan-to-income distribution)** — levels now: LTI 4.5, LSTI 22.6%, LTV 65%, 10.9% >80%
+  (Funcas, Feb 2026). Percentiles still missing.
+- **Q4 (cash share by zone)** — first regional anchors: Madrid region 99.5% financed, País Vasco
+  96.8%, two regions <60% (Registradores 4T 2025); Baleares cash 23.2% (2026Q2) from 40% (2021).
+- **Q7 (CCyB / borrower-based tools)** — CCyB 1% binding 1 Oct 2026 (verified); no borrower-based
+  limit; monograph pending.
+- **New**: (8) Registradores 23–29% vs Notariado 46% cash — like-for-like disagreement to reconcile
+  before the cash segment is fixed (the INE-ratio ≈60% cash figure in §1 is an artefact; see
+  household-owner update); (9) Euríbor >3% with a hike priced for 10 Sep vs forecaster end-2026
+  paths 2.47–2.54 — rate scenarios should span 2.2–3.1%; (10) Registradores Jul mortgages −4.2%
+  vs INE Jun +10.8% — timing/basis lag to understand; (11) ICO uptake 8,549 (BOE, Oct 2025) vs
+  10,453 (press, end-2025) — vintage, not conflict, but confirm.

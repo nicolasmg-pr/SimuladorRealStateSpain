@@ -195,6 +195,8 @@ Disputed estimates stay ranges: the rent effect and especially the supply effect
 be resolved to a point. One exposed parameter (below) must span the Monràs / Jofre-Monseny /
 Pérez García worlds.
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (typed dataclass fields; ranges are parameter
@@ -249,3 +251,108 @@ scratchpad source table (policy-rent-cap.md). Key primary URLs:
 - Berlin: Hahn, Kholodilin, Waltl & Fongoni, DIW DP 1999 / Mgmt Science 2023: https://www.diw.de/documents/publikationen/73/diw_01.c.836357.de/dp1999.pdf ; DIW Wochenbericht 8/2021: https://www.diw.de/documents/publikationen/73/diw_01.c.811443.de/21-8-3.pdf ; IW-Trends 3/2021: https://www.iwkoeln.de/fileadmin/user_upload/Studien/IW-Trends/PDF/2021/IW-Trends-2021-03-03_Sagner-Voigtl%C3%A4nder.pdf ; ifo press 2022: https://www.ifo.de/en/press-release/2022-04-12/berlins-rent-cap-drastically-shrank-supply-rental-properties
 - San Francisco: Diamond, McQuade & Qian 2019, AER: https://www.aeaweb.org/articles?id=10.1257/aer.20181289
 - Paris: Morin, Regnaud, Breuillé & Le Gallo 2025, J. Housing Economics: https://ideas.repec.org/a/eee/jhouse/v70y2025ics1051137725000609.html ; Apur evaluations: https://www.apur.org/sites/default/files/2025-06/rapport-impact_encadrement_loyers_paris.pdf ; https://www.apur.org/fr/logement-hebergement/evolution-parc-logements/effets-encadrement-loyers-paris ; OLAP 2019 bilan: https://www.observatoire-des-loyers.fr/sites/default/files/olap_documents/etudes_partenariats/Bilan%20encadrement%20en%202019-resume-def.pdf
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A6, B, C2). Flags as in the digest: verified = read on
+the fetched primary page; "via secondary" = primary blocked; unverified = press/snippet only.
+
+**New evidence**
+
+- Monràs & García-Montalvo, CEPR DP20018 (Feb 2025 edition of the FRBSF WP in §2/§3; academic):
+  rents −5% treated vs control; units above reference fall, below rise; total supply of units
+  −10%; probability a unit is rented −2 pp; **IV elasticity of new contracts w.r.t. rent ≈2.0
+  (1.6–3.2 across specs), OLS 0.07** (PDF, verified). The model's `supply_response_elasticity`
+  range 0–2 spans exactly this paper's OLS (≈0, the Jofre-Monseny/Paris world) to its IV
+  (≈2); the upper IV specs (3.2) sit above the range — not widened, documented.
+- Izquierdo Llanes, García-López, Cabezas & Pinto, *The rent control paradox*, IJHMA 4 Jun 2026
+  (academic, UNED/URJC): DiD Catalonia vs Madrid/Valencia/Andalusia on portal-barometer data
+  2019–25 — "economically substantial" relative supply contraction, more moderate listed-price
+  increase, large rise in contacts per listing; magnitudes paywalled (abstract, verified).
+  Same direction as Pérez García (§3): supply effect robust, price effect weak — on listings.
+- O-HB ZMRT monitoring report no.4, 27 May 2026 (municipal observatory): new-contract rent Q4
+  2025 €1,161 vs €1,193 Q1 2024 (−2.7% real); counterfactual trend €1,319 ⇒ 13.6% avoided;
+  +1,374 active contracts since regulation; seasonal contracts 1,282 in Q4 2025 (−53% y/y);
+  rents 2000–23 +178% vs income +88% (ohb.cat, verified).
+- Incasòl deposits Q4 2025 (Generalitat via Infobae 18 Apr 2026; government data): seasonal
+  contracts net **−1,233** in Q4 2025 (first fall); habitual stock +8,895 in 2025; rents
+  tensioned €902 (+1.6%) vs non-tensioned €639 (+9.4%); Barcelona −2.7%; 96% of seasonal
+  contracts in tensioned zones (article, verified). Govern claim: −1.3% rents in zones vs +9.5%
+  outside (gencat, verified). Both are government readings of the same register.
+- Portal/industry readings, side by side with the above: idealista 16 Mar 2026 — Barcelona
+  long-term listings −56% in two years, seasonal +58%, seasonal share 64% (34% Mar 2024),
+  Hospitalet −66%, Girona/Tarragona ≈−50%, 65 contacts/listing, asking rents +12.9% Barcelona /
+  +15.9% Tarragona (verified). Brainsre 6 Aug 2026 — long-term listings Q1 2024→Q2 2026
+  Catalonia **−72% vs Madrid −38%**; asking rents Catalonia +13.7% vs Madrid +25.6%; seasonal
+  ≈40% of the Catalan market; 90% of listings by professional operators (verified). The Madrid
+  comparator says part of the Catalan listing fall is national, and that Catalan asking rents
+  rose less than Madrid's — a reading the portal frames as scarcity and the Govern as
+  containment. Not resolved here.
+- Spillover signature: +1.6% tensioned vs +9.4% non-tensioned Catalan municipalities in the
+  same register (Incasòl Q4 2025, verified). Government = containment; landlord (Cambra) =
+  displaced demand into uncapped municipalities. Same number, two readings.
+- Enforcement: 529 sanction files, 74% ex officio; fines up to €90k (serious) / €900k (very
+  serious) (govern.cat 22 Apr 2026, title only verified — page 403 on fetch).
+
+**Legal / institutional status**
+
+- BOE 29 Jul 2026 (BOE-A-2026-16532, verified): Asturias becomes the 5th CCAA (Llanes,
+  Cabrales, parts of Gijón, Avilés, Gozón); Galicia adds Santiago de Compostela; Euskadi adds
+  Basauri. National total **317 municipalities in 5 CCAA: Cataluña 271, Euskadi 18, Navarra 21,
+  Galicia 2, Asturias 5** (BOE / Civio, verified); ≈9.3M people covered (MIVAU 29 Jul,
+  unverified) ≈ 19% of INE's 49.8M population (INE ECP 1 Jul 2026, verified); valid 3 yrs (to
+  Jul 2029). Q1 2026 additions: Pasaia, Zestoa, Arrasate, 3 yrs from 27 Apr 2026
+  (BOE-A-2026-9175, verified).
+- Euskadi list (Gobierno Vasco portal, verified): Donostia, Errenteria, Barakaldo, Irun,
+  Lasarte-Oria, Zumaia, Astigarraga, Bilbao, Usurbil, Vitoria-Gasteiz, Galdakao, Hernani, Lezo,
+  Tolosa, Arrasate, Pasaia, Zestoa, Basauri.
+- Catalonia renewal + expansion (gencat, verified; govern.cat 403): procedures opened 21 Jul
+  2026, public information extended 19 Aug, BOE pending — extend **118 of the 140** (Mar 2024)
+  beyond Mar 2027, **drop 22** (incl. Lleida, Reus, Granollers, Mollet), **add 53** (incl.
+  Martorell, Sant Andreu de la Barca) ⇒ ~302–324 if approved; ~90% of Catalan population.
+  Exit dynamic: municipalities are leaving the regime at the 3-year mark — coverage is not
+  monotone in time.
+- CCAA still refusing to declare: Madrid, Andalucía, Valencia, Murcia, Castilla y León — 0
+  municipalities; Valencia studying Burjassot / La Pobla requests (Valencia Plaza, press,
+  unverified).
+- **STC 53/2026** (8 Jul 2026; BOE-A-2026-16928, 3 Aug, verified): the Govern de Cataluña's
+  recurso against Ley 12/2023 dismissed; arts 12, 18.5–6, 23, 24, DF7 upheld under art.
+  149.1.13 CE; earlier annulments (arts 16, 27.1 §3, 27.3, DT1) stand. The competence question
+  that ended Ley 11/2020 (§1) is settled for the state instrument.
+- TC admitted the PP recurso 2415-2026 against Catalan Ley 11/2025 (seasonal/room cap): admitted
+  9 Jun, BOE-A-2026-13028 16 Jun 2026 (title verified); arts 2.2, 3.8, 5.5, 5.6, 5.8, 5.9, 5.14,
+  5.15, 8.1; **no suspension**. The Jan 2026 seasonal closure (§1) is in force but sub judice.
+- **RDL 8/2026** (20 Mar): 2% rent-update cap to 31 Dec 2027 + 2-yr extraordinary extension —
+  rejected by Congress 28 Apr 2026, derogation BOE 30 Apr (BOE-A-2026-6545 / Iberley, verified).
+  `within_contract_update_rate` stays at IRAV, not 2%.
+- Stalled omnibus RDL (que.es 27 Jul / eldiario.es; press, unverified): seasonal contracts ≤12
+  months only with written cause, else 5/7-yr LAU; room rents summed ≤ whole-flat cap
+  (tensioned zones only); extraordinary extension for contracts expiring before 30 Jun 2028
+  (~630k contracts/yr, ~4M people). Draft 21 Jul, pulled from the 28 Jul Consejo de Ministros
+  (Junts, Podemos); minister 2 Sep: "text ready", aiming September; fallback ordinary bill.
+- Catalonia **Ley 11/2026** (DOGC 13 Jul, in force 14 Jul 2026; gran-tenedor rules for contracts
+  from 31 Jul; exnovo.law law-firm note, DOGC unverified): gran tenedor = ≥5 dwellings in
+  Cataluña / ≥10 Spain-wide, **incl. natural persons**, usage rights and co-ownership counted;
+  "rent" = all charges (no fee pass-through); room rentals under the cap + bonds; cédula in all
+  ads; error-regularisation before sanction.
+
+**What it changes for the model**
+
+- `RentCap.coverage` (new field → `PolicyConfig.cap_coverage`): share of the zone inside
+  declared municipalities. Spain-2026 ≈ **0.42** of the model's tensioned zone (317
+  municipalities / 9.3M people mapped onto it); Cataluña-2024 ≈ **1.0** (~90% of Catalan
+  population). Constant per scenario today; the Catalan exit/entry churn argues for a
+  time path — documented gap.
+- `supply_response_elasticity` 0–2: now explicitly the OLS→IV span of one paper (0.07 → 2.0);
+  M&M's 3.2 upper spec is outside — recorded, range not widened.
+- `seasonal_segment_capped`: first empirical anchors for the closure — Incasòl −1,233 seasonal
+  contracts in Q4 2025 (verified), O-HB −53% y/y (verified). Whether those units return as
+  ordinary contracts stays disputed: O-HB +1,374 active contracts vs Cambra "sale, vacancy or
+  family use" (§3). No parameter change.
+- Spillover to non-capped zones (+1.6% vs +9.4%, Incasòl; Potsdam +12%, §4): the model has no
+  cross-zone rent channel beyond migration and **does not reproduce this** — gap, and a
+  validation target once the channel exists.
+- §5 validation target "tensioned vs untensioned gap ≈5 pp over 18 months" (+0.8 vs +5.7) keeps
+  that horizon; add the Q4 2025 anchors ≈8 pp (+1.6 vs +9.4, Incasòl) and ≈11 pp (−1.3 vs +9.5,
+  Govern) as the ~2-year reading. Both kept; not averaged.
+- §4 ranges unchanged; the "supply robust / price weak" cell gains a second study (IJHMA).

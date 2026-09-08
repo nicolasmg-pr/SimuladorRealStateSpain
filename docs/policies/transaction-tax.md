@@ -100,6 +100,8 @@ Per **1pp permanent change** in the transaction-tax rate (sign: hike ⇒ minus):
 No Spanish quasi-experimental estimate exists (as of 2026-08-07); ranges above are UK/DE/NL/
 CA/US imports and should be widened, not narrowed, when calibrating Spain.
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (typed dataclass, per project conventions):
@@ -131,3 +133,49 @@ Implementation notes:
   this asymmetry shifts demand between new and second-hand stock and must be in the spec.
 - Baseline rates per zone type: tensioned metro ≈ Catalonia/Madrid poles (6–13%+20%),
   secondary ≈ 7–9%, rural ≈ reduced rates common — store as sourced config, not scenario.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A2, B). Flags as in the digest.
+
+**New evidence**
+
+- Still no Spanish quasi-experimental ITP study. Population the lever acts on, Q2 2026:
+  foreign buyers 15.98% of purchases, series record (~26,800; +~11% y/y while nationals fell;
+  EU 57.4% of foreigners; UK 6.99, NL 6.94, DE 6.11) (Registradores ERI 2026Q2 via
+  infoconstruccion, verified via secondary). Cash share: 23% of purchases unfinanced
+  (Registradores Q2 2026, via secondary) vs 46.3% unmortgaged (CGN Jun 2026, verified) — two
+  definitions (mortgage registered vs purchase loan formalised), both kept.
+- In-model measurement (2026-09 refresh brief): a +0.90 non-resident surcharge cuts
+  non-resident purchases ≈45%, not 100%, because the +60% non-resident budget premium
+  (`foreign_budget_multiplier` 1.6, `docs/funcas-104.md`) absorbs about half the wedge. The
+  brief points to `docs/validation.md`; this pass did not find the row there — verify before
+  quoting. A model result, not evidence.
+
+**Legal / institutional status**
+
+- Catalonia **Ley 11/2026** (DOGC 13 Jul, in force 14 Jul 2026; exnovo.law law-firm note, DOGC
+  unverified): **TPO 20% on whole-building acquisitions by any buyer** (exempt ≤4 dwellings for
+  family use) and on gran tenedor purchases; gran tenedor = ≥5 in Cataluña / ≥10 Spain-wide,
+  incl. natural persons. Extends the 27-06-2025 20% rate (§1) from large holders to all
+  whole-building buyers.
+- PP pledge, 23 Jul 2026: ITP **4%** on the first home for buyers ≤40 in all 11 PP CCAA (from
+  6–10%; €12k saving on €200k), plus IRPF purchase deductions (moncloa.com, press, unverified).
+  No enactment found as of 8 Sep 2026.
+- 100% tax on non-EU non-resident buyers: **still not law**; subsumed in the stalled omnibus
+  RDL together with SOCIMI 15→25% (parlamento.ai, press, unverified). §1 status stands.
+- Baleares non-resident purchase ban: rejected Feb 2026 (digest "not found" list, no primary
+  URL). No lever.
+
+**What it changes for the model**
+
+- `TransactionTax.investor_delta` and `foreign_delta` (new fields → `itp_investor_delta`,
+  `itp_foreign_delta`): the Catalan 20% surcharge and a non-EU surcharge are encoded separately
+  from the general `itp_rate_delta`. Catalan 20% ≈ investor_delta +0.07…+0.14 over the 6–13%
+  base (§1); the proposed non-EU tax ≈ foreign_delta +0.90…+1.0.
+- Cash buyers face the wedge **(1 + base) / (1 + effective)** on their budget with no mortgage
+  channel to absorb it; mortgaged buyers see it via `max_bid = affordability_limit / (1 + itp)`
+  (§5). At 23–46% cash share the cash channel is not a corner case.
+- Measured non-linearity above (+0.90 ⇒ ≈−45% non-resident purchases) is the expected shape:
+  a 100% tax does not zero the segment when its budget premium is +60%. Documented.
+- §4 ranges unchanged.

@@ -48,6 +48,8 @@ def synthetic_frame(**overrides) -> pd.DataFrame:
         "rent_burden_over_30_share": 0.35,
         "rent_national": 500.0,
         "cash_purchase_share": 0.35,
+        "foreign_purchase_share": 0.08,
+        "investor_purchase_share": 0.05,
         "seeker_share": 0.06,
         "households": 10_000.0,
     }

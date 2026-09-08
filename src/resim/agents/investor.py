@@ -15,6 +15,7 @@ import numpy as np
 from ..config import ZoneType
 from ..market.stock import LARGE_INVESTOR_ID, Tenure
 from ..state import WorldState
+from .bank import itp_wedge
 from .base import Intent, ListForRent, ListForSale, MakeOffer
 from .landlord import cap_level
 
@@ -42,9 +43,13 @@ class LargeInvestor:
             cap = cap_level(state, zone, 1.0)
             cap_binds = cap is not None and cap < zs.rent_index
 
-            exiting = gross_yield < hurdle or cap_binds
+            # a cap-driven exit only concerns the covered part of the portfolio (no declared
+            # municipality, no exit); a yield-driven one concerns all of it
+            coverage = state.config.policy.cap_coverage
+            exiting = gross_yield < hurdle or (cap_binds and coverage > 0.0)
             if exiting and zone_units:
-                n_list = max(1, int(EXIT_LIST_SHARE * len(zone_units)))
+                reach = 1.0 if gross_yield < hurdle else coverage
+                n_list = max(1, int(EXIT_LIST_SHARE * reach * len(zone_units)))
                 # piso a piso: vacant units first, then tenanted ones (sold on or at
                 # rotation — displaced tenants re-enter the search queue at settlement)
                 sellable = sorted(
@@ -62,18 +67,25 @@ class LargeInvestor:
                         )
                     )
             elif gross_yield > hurdle * 1.15:
-                # accumulation: enter with market-rate offers
+                # accumulation: enter with market-rate offers, net of any transaction-tax
+                # change aimed at legal persons (Catalan 20% TPO precedent) — a cash buyer's
+                # budget moves by the tax wedge, not by a credit screen
+                wedge = itp_wedge(
+                    state.config.zone(zone).itp_rate,
+                    state.macro.itp[zone] + state.config.policy.itp_investor_delta,
+                )
                 for _ in range(MAX_BUYS_PER_TICK):
                     intents.append(
                         MakeOffer(
                             agent_id=self.id,
                             zone=zone,
-                            budget=zs.price_index * float(self.rng.uniform(0.95, 1.05)),
+                            budget=zs.price_index * float(self.rng.uniform(0.95, 1.05)) * wedge,
                             cash=True,
                         )
                     )
 
-            # rent out vacant portfolio units — at the cap when regulated
+            # rent out vacant portfolio units — at the cap when regulated and the unit sits
+            # inside a declared municipality (coverage draw, as for small landlords)
             for u in zone_units:
                 if (
                     u.tenure is Tenure.VACANT
@@ -83,6 +95,8 @@ class LargeInvestor:
                     ask = zs.rent_index * u.quality * (1.0 + zs.expected_rent_growth)
                     capped = False
                     ucap = cap_level(state, zone, u.quality)
+                    if ucap is not None and self.rng.random() >= coverage:
+                        ucap = None
                     if ucap is not None:
                         ask, capped = min(ask, ucap), ask > ucap
                     intents.append(

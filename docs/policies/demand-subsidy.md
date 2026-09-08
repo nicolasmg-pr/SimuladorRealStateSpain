@@ -167,6 +167,8 @@ Never resolve these to points; they are the disagreement.
   of a €2.5bn line; Madrid aval ~4,400–7,000 ops 2022–mid-2026; Bono ~65,000 beneficiaries
   per call, with 25–60% of applications unresolved or unfunded in the worst region.
 
+→ see Update 2026-09-08 (KB refresh) at the end of this note.
+
 ## 5. Model mapping
 
 Proposed `scenario.Intervention` parameters (typed dataclass fields, units in comments):
@@ -212,3 +214,44 @@ Capitalization is an OUTPUT, never an input. Measure in `metrics.py`:
 Interaction experiments the evidence motivates: subsidy × supply elasticity (zone type),
 subsidy × eligible share (scale threshold at which capitalization kicks in), and subsidy
 with/without simultaneous supply-side policy.
+
+## Update 2026-09-08 (KB refresh)
+
+Digest: `research-2026-09-08.md` (Reports A3, B, C5). Flags as in the digest.
+
+**New evidence**
+
+- ICO first-home guarantee uptake to 31 Oct 2025 (BOE-A-2026-14404 adenda, verified): **8,549
+  operations, €206.6M guarantees, €1.09bn financed, avg €127.7k**. Press: 10,453 ops / €255.8M
+  ≈10% of the €2.5bn line (unverified). The verified figure sits below §1's "~10,450
+  (unverified)"; both kept.
+- Parental transfers (BdE IA 2025 data via El Independiente 19 Jun 2026; article verified):
+  2025 — 30,500 housing donations parent→child; **62,000 money donations, €5.5bn, avg ≈€90k,
+  tripled since 2019**.
+- OBS Business School *Informe Mercado Inmobiliario 2026* (industry; via Infobae 26 Aug 2026,
+  article verified): **26% of renters excluded by the LTV cap alone**; notarial donations 225k
+  in 2025 (+13%; 71k in 2013); H1 2025: 202,923 inherited vs 380,144 purchased homes.
+- Two readings, not merged: the down-payment constraint binds for about a quarter of renters
+  (OBS), and the family-wealth channel bypasses it for those with wealthy parents (BdE) —
+  exactly the population a net-wealth eligibility cap is designed to exclude.
+
+**Legal / institutional status**
+
+- ICO adenda 23 Jun, **BOE 2 Jul 2026** (BOE-A-2026-14404, verified): formalisation deadline
+  **31 Dec 2027**; new **net-wealth cap €150k**; age ≤35; income ≤7.5×IPREM.
+- PP pledge 23 Jul 2026: 100% guarantees for buyers ≤40 in PP CCAA (moncloa.com, press,
+  unverified); no enactment found.
+- Banco de España: **CCyB 1% binding from 1 Oct 2026**; borrower-based limits (LTV/DSTI) still
+  under study, none activated as of Sep 2026 (IEF primavera 2026, verified). A state guarantee
+  lifting LTV to 100% while the supervisor studies LTV caps — opposite directions, both live.
+- Bono Alquiler Joven: nothing new found beyond §1 (digest).
+
+**What it changes for the model**
+
+- `DemandSubsidy.guarantee_wealth_cap` (new; default **150,000**; `inf` reproduces the pre-2026
+  instrument) — applied in `agents/household.py` to the household's `wealth` (liquid wealth),
+  a proxy for the statutory net-wealth test, which also counts property. The eligibility draw
+  (`guarantee_eligible_share`) stands in for the age/income filters.
+- `guarantee_budget_eur` €2.5e9: verified uptake €206.6M (≈8%) to Oct 2025 confirms the line
+  is not binding; the §5 FIFO exhaustion rule is dormant at observed scale.
+- §4 ranges unchanged; still no causal evaluation of the ICO line.

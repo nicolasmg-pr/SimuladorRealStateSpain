@@ -148,7 +148,10 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         basis="Σ(formación − terminadas) sobre 20 trimestres × 2.000",
         model=_deficit_5y,
         note="El número titular del BdE sobre vivienda. Es un dato observado acumulado, "
-        "no una previsión.",
+        "no una previsión. Sendas alternativas: BBVA Research 562k (2024) → 669k (2025) → "
+        "747k (2026) → ≈794k (2027), con las terminadas cubriendo ≈48% de los hogares nuevos; "
+        "CaixaBank >900k en 2029. La proyección de hogares del INE de jun-2026 (205k/año en "
+        "2026–31) reduce el déficit FUTURO, no el acumulado.",
     ),
     Benchmark(
         key="deficit_share",
@@ -168,15 +171,17 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         key="formation",
         label="Formación neta de hogares",
         official=240_000.0,
-        band=(235_000.0, 250_000.0),
+        band=(225_000.0, 250_000.0),
         unit="hogares/año",
         fmt=",.0f",
-        period="2025 (media 2021–24: 245.000)",
-        source="BdE Informe Anual 2025, cap. 2",
+        period="2025 (BdE 240k; INE ECP +226k en 2025, +239k interanual a jul-2026)",
+        source="BdE Informe Anual 2025, cap. 2; INE Estadística Continua de Población 2T 2026",
         basis="formación por trimestre × 4 × 2.000",
         model=lambda f, c: _per_year(f, "formation"),
         note="Es un PARÁMETRO de entrada calibrado (`formation_per_tick`), no un "
-        "resultado: aquí sólo confirma que la escala 1:2.000 está bien aplicada.",
+        "resultado: aquí sólo confirma que la escala 1:2.000 está bien aplicada. La "
+        "proyección del INE (jun-2026) va por debajo: 205k/año en 2026–31, 139k en 2031–36, "
+        "93k en 2036–41 — disponible como senda `ine-demography` (docs/kb-refresh-2026-09.md).",
     ),
     Benchmark(
         key="completions",
@@ -211,11 +216,14 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         band=(700_000.0, 800_000.0),
         unit="operaciones/año",
         fmt=",.0f",
-        period="2025 (máximo desde 2008)",
-        source="BdE Informe Anual 2025, cap. 2",
+        period="2025 (máximo desde 2008); 1S 2026 −7,7% interanual (Notariado)",
+        source="BdE Informe Anual 2025, cap. 2; Registradores 2025: 705.357; INE 2025: 714k",
         basis="compraventas por trimestre × 4 × 2.000",
         model=lambda f, c: _per_year(f, "transactions"),
-        note="90% vivienda de segunda mano; las personas jurídicas son el 10% de las compras.",
+        note="90% vivienda de segunda mano; las personas jurídicas son el 10% de las compras. "
+        "En 2026 el volumen cae (Notariado 1S −7,7%; Registradores 2T −2,3%, jul −7,7%) con "
+        "el precio subiendo +12%: la firma «volumen primero, precio pegajoso» en sentido "
+        "contrario al de 2024–25.",
     ),
     Benchmark(
         key="transactions_share",
@@ -237,8 +245,8 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         band=None,
         unit="%/año",
         fmt="+.1%",
-        period="2025 (media anual; 2024: +8,4%)",
-        source="BdE IEF Primavera 2026, cap. 4 — base INE IPV",
+        period="2025 (media anual; 2024: +8,4%); 2026T2 +12,2% interanual (INE, 7-sep-2026)",
+        source="BdE IEF Primavera 2026, cap. 4 — base INE IPV; INE IPV 2T 2026",
         basis="crecimiento nacional por trimestre × 4, fase estabilizada",
         model=lambda f, c: _annualised(f, "price_growth_national"),
         note="⚠️ Dos sesgos, los dos a la baja, y ninguno es un error: (1) se compara la "
@@ -254,8 +262,8 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         band=None,
         unit="%/año",
         fmt="+.1%",
-        period="2025 (+5% real; 2024: +10% real)",
-        source="BdE IEF Primavera 2026, cap. 4 — portales inmobiliarios",
+        period="2025 (+5% real; 2024: +10% real); ago-2026 +5,8% nominal (idealista)",
+        source="BdE IEF Primavera 2026, cap. 4 — portales inmobiliarios; idealista ago-2026",
         basis="crecimiento nacional por trimestre × 4; +2,7% HICP para pasar real a nominal",
         model=lambda f, c: _annualised(f, "rent_growth_national"),
         note="⚠️ Mismo sesgo de fase que el precio (base estabilizada vs año de auge). "
@@ -364,13 +372,15 @@ BENCHMARKS: tuple[Benchmark, ...] = (
         band=(0.70, 0.77),
         unit="% de hogares",
         fmt=".1%",
-        period="2022–2023",
-        source="EPF 2022 (76,4%) vía Funcas 104 cap. 6; MITMA 75,3% cap. 8; EFF2024 70–74%",
+        period="2022–2025",
+        source="ECV 2025 (73,3%); EPF 2022 (76,4%) vía Funcas 104 cap. 6; MITMA 75,3%; "
+        "EFF2024 70,6%",
         basis="mismo indicador, hogares del modelo",
         model=lambda f, c: _mean(f, "ownership_rate"),
-        note="Tres fuentes y tres bases: EPF y ECV miden hogares (76,4% y 17,7% en alquiler, "
-        "5,8% cedidas), la EFF da 70–74% y el 75,3% del cap. 8 es sobre parque. El modelo "
-        "queda en el borde bajo de todas ellas.",
+        note="Cuatro fuentes y tres bases: la ECV 2025 da 73,3% en propiedad, 20,2% en alquiler "
+        "y 6,5% cedidas (mínimo de la serie; 2024: 73,6 / 20,4 / 6,1), la EPF 2022 76,4%, la "
+        "EFF 2024 70,6% (el 36,7% entre menores de 35, 83% por encima de 65) y el 75,3% es "
+        "sobre parque. El modelo queda en el borde bajo de todas ellas.",
     ),
     Benchmark(
         key="rent_burden_over_30",
@@ -406,20 +416,56 @@ BENCHMARKS: tuple[Benchmark, ...] = (
     Benchmark(
         key="cash_purchases",
         label="Compras sin hipoteca",
-        official=0.608,
-        band=(0.30, 0.61),
+        official=0.293,
+        band=(0.23, 0.46),
         unit="% de compraventas",
         fmt=".1%",
-        period="2023 (973.637 compraventas, 381.560 hipotecas)",
-        source="INE vía Carbó y Rodríguez, Funcas 104 cap. 3",
+        period="2025 (Registradores, 12 meses); 2T 2026: 23% · Notariado jun-2026: 46,3%",
+        source="Registradores ERI 4T 2025 y 2T 2026; Notariado CIEN jun-2026; INE 2023 (60,8%)",
         basis="proporción de operaciones marcadas `cash` en el modelo",
         model=lambda f, c: _mean(f, "cash_purchase_share"),
-        note="⚠️ La banda cubre un desacuerdo real, no ruido: los expedientes del modelo "
-        "asumen 30–40% de compras al contado [bank §6] y el contraste INE implica 60,8%. Las "
-        "dos series no cuentan lo mismo (la de hipotecas son escrituras nuevas sobre "
-        "vivienda, no incluye subrogaciones ni desfases de registro), pero el orden de "
-        "magnitud importa: si la mitad del mercado no pasa por el banco, la política de "
-        "crédito muerde menos de lo que este modelo supone.",
+        note="⚠️ La banda cubre un desacuerdo real entre dos fuentes registrales que sí miden "
+        "lo mismo: Registradores (hipotecas inscritas sobre compraventas) da 29,3% al contado "
+        "en 2025 y 23% en 2T 2026 (Madrid ≈0%, Baleares 23–40%); el Notariado (préstamos "
+        "firmados con la compra) da 46,3% en junio de 2026. El 60,8% que se deducía de "
+        "compraventas INE / escrituras de hipoteca es un artefacto de desfase y ámbito y deja "
+        "de ser el valor central. El modelo sigue muy por debajo de cualquiera de ellas: "
+        "financia casi todas las compras, así que la política de crédito muerde más aquí "
+        "que en España.",
+    ),
+    Benchmark(
+        key="foreign_purchases",
+        label="Compras de no residentes",
+        official=0.079,
+        band=(0.07, 0.10),
+        unit="% de compraventas",
+        fmt=".1%",
+        period="4T 2024–1T 2025 (7,9%); Notariado 2S 2025: 44% del 18,4% extranjero ≈ 8,1%",
+        source="CaixaBank Research sobre MIVAU (oct-2025); Notariado CIEN; Registradores 2T 2026",
+        basis="compras del overlay no residente / compraventas del modelo, fase estabilizada",
+        model=lambda f, c: _mean(f, "foreign_purchase_share"),
+        note="Base NO RESIDENTE, que es lo que representa el overlay del modelo. Todos los "
+        "extranjeros (residentes incluidos) son el 16,0% de las compras en 2T 2026 — récord "
+        "de la serie registral, con los extranjeros creciendo +11% mientras los nacionales "
+        "caen — y el 18,4% en la base notarial. Los no residentes pagan 3.063 €/m² frente a "
+        "1.713 € los españoles (×1,8), la prima que fija `foreign_budget_multiplier`.",
+    ),
+    Benchmark(
+        key="investor_purchases",
+        label="Compras de personas jurídicas",
+        official=0.10,
+        band=(0.08, 0.12),
+        unit="% de compraventas",
+        fmt=".1%",
+        period="2025",
+        source="BdE Informe Anual 2025, cap. 2 (Notariado/BdE DO 2433)",
+        basis="compras del gran inversor / compraventas del modelo, fase estabilizada",
+        model=lambda f, c: _mean(f, "investor_purchase_share"),
+        note="⚠️ El comprador institucional del modelo es sólo el GRAN TENEDOR (fondos, "
+        "SOCIMI); la cifra oficial incluye a toda persona jurídica — promotoras, sociedades "
+        "patrimoniales de una familia, pequeñas empresas. Se espera por debajo. Sirve para ver "
+        "si el recargo del ITP a personas jurídicas (Cataluña: 20% en compras de edificios "
+        "enteros, Ley 11/2026) hace algo visible.",
     ),
     Benchmark(
         key="latent_demand",

@@ -125,7 +125,13 @@ POLICY_SUMMARIES: dict[str, str] = {
         "trimestres.\n\n"
         "**Lo que se discute:** cuánta oferta se retira. Es EL parámetro en disputa "
         "del modelo (elasticidad 0–2): tres estudios sobre los mismos datos catalanes "
-        "llegan a conclusiones opuestas."
+        "llegan a conclusiones opuestas. La versión de 2025 de Monràs y García-Montalvo "
+        "estima ≈2 por variables instrumentales (1,6–3,2) pero 0,07 por mínimos "
+        "cuadrados: el rango del modelo es exactamente esa horquilla.\n\n"
+        "**Cobertura:** la ley se declara municipio a municipio. A julio de 2026 hay 317 "
+        "municipios tensionados en 5 CCAA (9,3M de personas, el 19% del país); la zona "
+        "tensionada del modelo es mayor, así que el deslizador de cobertura escala qué "
+        "parte de ella está realmente bajo la ley."
     ),
     "impuesto de transmisiones (ITP)": (
         "**Qué es:** el impuesto que paga el comprador de vivienda usada (6–13% según "
@@ -137,7 +143,13 @@ POLICY_SUMMARIES: dict[str, str] = {
         "que «baje el precio» es en parte un espejismo estadístico.\n\n"
         "**Lo que se discute:** cuánto del impuesto absorbe el vendedor (40% a "
         ">100%). No existe ningún estudio causal español: toda la evidencia es "
-        "importada (Reino Unido, Alemania, Canadá…)."
+        "importada (Reino Unido, Alemania, Canadá…).\n\n"
+        "**Por tipo de comprador:** España ya grava distinto según quién compra. "
+        "Cataluña cobra un 20% en compras de edificios enteros y de grandes tenedores "
+        "(Ley 11/2026), y el Gobierno propuso un impuesto del 100% a compradores "
+        "extracomunitarios (atascado en el Congreso). Los dos recargos están en la "
+        "palanca; los compradores al contado los sufren como una cuña sobre su "
+        "presupuesto, no como un filtro de crédito."
     ),
     "impuesto a la vivienda vacía": (
         "**Qué es:** recargo del IBI (hasta 150%) sobre viviendas vacías más de 2 "
@@ -565,8 +577,14 @@ publicado para España con un escenario de crisis emparejado, así que es el con
 para una intervención tipo `CreditCrunch` — que este modelo todavía no tiene
 (`docs/validation.md`, hueco conocido).
 
-Nota de honestidad: el panel de 2026 **subestimó mucho** el precio real. No es un tribunal;
-es contexto.
+Nota de honestidad: el panel de 2026 **subestimó mucho** el precio real. El IPV del INE
+cerró el primer semestre de 2026 en **+12,55% interanual de media** (1T +12,9%, 2T +12,2%,
+publicado el 7-sep-2026), así que toda previsión en la banda 7–9% necesitaría un segundo
+semestre en +3,5/+5,7% para cumplirse; sólo BBVA (+12,0%, base valor tasado) queda cerca, y
+las bases de tasación (Tinsa ago-2026 +14,9%, Registradores +16,7%) corren por encima. En
+volumen ocurre lo contrario: el Notariado da 1S 2026 −7,7% y Registradores julio −7,7%. Y el
+euríbor a 12 meses ya está en 2,95% (ago-2026), por encima de todas las sendas del panel. No
+es un tribunal; es contexto (`docs/kb-refresh-2026-09.md` §6).
 """
 
 KPI_HELP: dict[str, str] = {

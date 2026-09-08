@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
 
 from . import metrics
@@ -43,8 +44,15 @@ LEVERS = {
 }
 
 # Multi-step paths, which are not a single Intervention. Kept apart from LEVERS so the
-# "one lever = one Intervention class" reading of that table stays true.
-PATHS = {"ine-demography": ine_household_projection}
+# "one lever = one Intervention class" reading of that table stays true. One entry per INE
+# projection vintage: the bare name is the latest (2026–2041), the suffixed ones are the
+# earlier, higher paths — running them side by side shows how much of the projected deficit
+# is a demographic assumption.
+PATHS = {
+    "ine-demography": ine_household_projection,
+    "ine-demography-2024": partial(ine_household_projection, vintage="2024-2039"),
+    "ine-demography-2022": partial(ine_household_projection, vintage="2022-2037"),
+}
 
 
 def config_hash(config: SimConfig) -> str:

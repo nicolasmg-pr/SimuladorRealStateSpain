@@ -1,5 +1,13 @@
 # Experiment 1 — Catalonia-style rent cap (Phase 7)
 
+> **Status 2026-09-08: the results table below is stale and the gate is NOT currently met on
+> the supply leg.** It was measured on 2026-08-07, before the 2026-08-10 audit and the
+> 2026-08-14 Funcas revision, and never re-run. Re-measured with the same design (see
+> "Re-measurement 2026-09-08" at the end): contract rents −2.2% at every elasticity (price leg
+> passes, pinned by `test_rent_cap_lowers_contract_rents`), new tenancies **+2.5 to +4%**
+> (supply leg fails, strict xfail `test_rent_cap_supply_response_spans_monras`). Do not quote
+> the numbers below as model results; see `docs/validation.md` R3.
+
 Date: 2026-08-07. Raw ensemble: `runs/rentcap_sweep_seeds123.csv` (gitignored; regenerate
 with the snippet at the bottom).
 
@@ -66,3 +74,45 @@ uv run python - <<'PY'
 #  supply_response_elasticity=eps) vs build_scenario('baseline', seed, 40))
 PY
 ```
+
+
+## Re-measurement 2026-09-08 (KB refresh)
+
+Same design — `RentCap(start_tick=20, cap_reference_discount=0.05, compliance=0.85)` in the
+tensioned zone, elasticity sweep × seeds {1, 2, 3}, 40 ticks, mean over the 16 post-cap ticks
+against a same-seed baseline. Two code states:
+
+**Before the refresh** (HEAD 0561a3d): contract rents **+0.9%** at every elasticity, new
+tenancies +2 to +3%, seasonal units +1 to +5. The reference index, frozen at activation and
+indexed at 2.5%/yr, overtook a market growing at the 2%/yr income anchor within ~10 ticks
+(capped tensioned listings 29 → 0 by tick 30), after which the magnet rule pulled sub-cap asks
+up. The cap was, in effect, off for three of the four measured years.
+
+**After the refresh** (`within_contract_update` 0.015, i.e. IRAV at 0.75 of the income anchor
+as in Spain; capped-listing floor applied only to clipped listings):
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | seasonal units gained | Δ sale prices |
+|---|---|---|---|---|---|
+| 0.0 | −2.2% | −1.8% | +3.6% | 0 | −2.8% |
+| 0.5 | −2.2% | −1.8% | +2.6% | +1.8 | −3.4% |
+| 1.0 | −2.2% | −1.8% | +3.6% | +4.6 | −3.0% |
+| 1.5 | −2.2% | −1.8% | +4.0% | +5.6 | −3.3% |
+| 2.0 | −2.2% | −1.9% | +3.8% | +7.5 | −3.5% |
+
+Credibility test, re-read: Jofre-Monseny's world (rents down, no supply effect) is
+reproduced at every elasticity, which is the problem — the elasticity dial no longer moves
+tenancies, so neither Monràs & García-Montalvo (−10%) nor Pérez García (−13%) can be reached.
+Cause: the tensioned rental market is slack in the current baseline (0.6–0.8 applicants per
+listing before the cap, 1.1–1.5 under it, against ≈65 contacts per listing in Barcelona), so the
+≈60 withdrawals the hazard produces over four years shrink leftover listings without cutting
+the number of contracts signed. A hazard rescale cannot fix a slack market; the tensioned
+zone's tightness must be recalibrated first (`docs/validation.md` R3). The new
+`RentCap.coverage` field (Spain 2026 ≈ 0.42 of the model's tensioned zone) scales the price
+effect to −1.4% at 0.42.
+
+New evidence since the original run, all in `docs/policies/rent-cap.md` Update 2026-09-08:
+Monràs & García-Montalvo's 2025 CEPR version puts the IV elasticity at ≈2.0 (1.6–3.2) and the
+OLS at 0.07 — the 0–2 dial is exactly that span; Incasòl Q4 2025 shows tensioned Catalan rents
++1.6% against +9.4% outside the zones (a spillover the model cannot produce) and the first fall
+in seasonal contracts (−1,233) after the seasonal cap; O-HB counts +1,374 contracts in
+Barcelona since the regulation against portal listings −56%.
