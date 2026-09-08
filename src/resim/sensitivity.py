@@ -68,6 +68,10 @@ SPACE: dict[str, tuple[float, float]] = {
 }
 NAMES: list[str] = list(SPACE)
 
+# below this coefficient of variation across a design, a moment is treated as flat and its
+# variance decomposition is not reported: there is no variance to attribute (see `sobol`)
+CV_FLOOR = 0.01
+
 # the §9 moments, plus the two the zone ladder is judged on and three diagnostics
 OUTPUTS: list[str] = [
     "pti",
@@ -266,22 +270,46 @@ def sobol(params: list[str], n: int, seed: int, ticks: int) -> dict:
     for output in OUTPUTS:
         a = np.array([row[output] for row in f_a])
         b = np.array([row[output] for row in f_b])
-        variance = float(np.var(np.concatenate([a, b])))
+        both = np.concatenate([a, b])
+        variance = float(np.var(both))
+        # CENTRE the outputs first. The Saltelli first-order estimator is unbiased either way,
+        # but its variance blows up when a moment's mean dwarfs its spread — ownership has
+        # mean 0.70 and sd 0.004 — because f_B multiplies a small difference and never
+        # cancels. Uncentred, this returned S1 values of +22 and +33 where a first-order index
+        # must lie in [0, 1]. Centring is the standard remedy and costs nothing.
+        centre = float(np.mean(both))
+        a_c, b_c = a - centre, b - centre
         rows = []
         for position, name in enumerate(params):
-            ab = np.array([row[output] for row in f_ab[position]])
+            ab_c = np.array([row[output] for row in f_ab[position]]) - centre
             rows.append(
                 {
                     "param": name,
-                    # Saltelli 2010 for first order, Jansen for total order
-                    "S1": float(np.mean(b * (ab - a)) / variance) if variance else float("nan"),
+                    # Saltelli et al. 2010 for first order, Jansen 1999 for total order
+                    "S1": (
+                        float(np.mean(b_c * (ab_c - a_c)) / variance) if variance else float("nan")
+                    ),
                     "ST": (
-                        float(np.mean((a - ab) ** 2) / (2 * variance)) if variance else float("nan")
+                        float(np.mean((a_c - ab_c) ** 2) / (2 * variance))
+                        if variance
+                        else float("nan")
                     ),
                 }
             )
         rows.sort(key=lambda row: -row["ST"])
-        results[output] = {"variance": variance, "indices": rows}
+        # Coefficient of variation across the design. A variance decomposition of a moment
+        # that barely moves is meaningless — the estimators divide by that variance, so the
+        # indices wander outside [0, 1]. `_report` refuses to interpret rows below CV_FLOOR,
+        # and a moment landing there is itself the finding: it is robust to these parameters.
+        results[output] = {
+            "variance": variance,
+            "mean": centre,
+            "cv": float(np.sqrt(variance) / abs(centre)) if centre else float("inf"),
+            "interpretable": bool(
+                variance > 0 and abs(centre) and np.sqrt(variance) / abs(centre) >= CV_FLOOR
+            ),
+            "indices": rows,
+        }
     return {
         "method": "sobol",
         "n": n,
@@ -290,13 +318,25 @@ def sobol(params: list[str], n: int, seed: int, ticks: int) -> dict:
         "seed": seed,
         "ticks": ticks,
         "results": results,
+        # raw evaluations, so the indices can be re-estimated without re-running the model —
+        # which is what the uncentred-estimator mistake above would otherwise have cost
+        "raw": {
+            "outputs": OUTPUTS,
+            "A": [[row[o] for o in OUTPUTS] for row in f_a],
+            "B": [[row[o] for o in OUTPUTS] for row in f_b],
+            "AB": [[[row[o] for o in OUTPUTS] for row in block] for block in f_ab],
+        },
     }
 
 
 def _report(payload: dict, top: int = 8) -> None:
     for output, block in payload["results"].items():
         rows = block["indices"] if payload["method"] == "sobol" else block
-        print(f"\n== {output}")
+        if payload["method"] == "sobol" and not block["interpretable"]:
+            print(f"\n== {output}  (CV {block['cv']:.4f} < {CV_FLOOR}: flat, not decomposed)")
+            continue
+        suffix = f"  (CV {block['cv']:.3f})" if payload["method"] == "sobol" else ""
+        print(f"\n== {output}{suffix}")
         for row in rows[:top]:
             if payload["method"] == "sobol":
                 print(f"   {row['param']:28s} S1={row['S1']:+.3f}  ST={row['ST']:+.3f}")

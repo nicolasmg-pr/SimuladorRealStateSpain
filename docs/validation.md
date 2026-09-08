@@ -249,7 +249,65 @@ ratio, which is what §5b claims they do — the screen confirms the mechanism i
 rather than decorative, and equally that the ladder now rests on a calibrated guess (already
 stated as a limitation in `model-spec` §10).
 
-<!-- SOBOL placeholder -->
+### Sobol indices on the seven survivors
+
+**Design.** Saltelli first-order (S1) and total-order (ST) indices, N = 128, seven parameters,
+**1,152 evaluations**, same fixed seed and 40 ticks. Sampling is plain uniform: a Sobol'
+sequence would need scipy, which this project does not carry, and the estimators are unbiased
+either way — only slower to converge. Parameters outside the seven sit at their midpoint, so
+these are shares of the variance *this subset* generates.
+
+Two estimator notes, because the first attempt got them wrong. The Saltelli S1 estimator must
+be applied to **centred** outputs: uncentred it returned S1 of +22 and +33 for ownership, whose
+mean (0.70) dwarfs its spread (0.004), where a first-order index must lie in [0, 1]. And a
+moment that barely moves has no variance to decompose, so anything under a 1% coefficient of
+variation is now reported as flat rather than given spurious indices. Raw evaluations are
+cached in the output file so indices can be re-estimated without re-running the model.
+
+| Moment | CV | Dominant parameter | S1 | ST | Runner-up |
+|---|---|---|---|---|---|
+| price-to-income | 0.05 | **`overbid_sigma`** (guess) | 0.56 | 0.63 | `landlord_required_spread` 0.11 |
+| P/I ordering margin | 0.20 | `premium_rural` | 0.74 | 0.86 | `premium_secondary` 0.25 |
+| ownership | 0.005 | — flat, not decomposed — | | | |
+| transactions | 0.03 | `base_starts_per_tick` (sourced) | 0.60 | 0.72 | interactions dominate the rest |
+| completions / formation | 0.18 | `base_starts_per_tick` (sourced) | 0.72 | 0.92 | `premium_rural` 0.07 |
+| market-tenant overburden | 0.04 | **`landlord_required_spread`** (guess) | 0.65 | 0.86 | `overbid_sigma` 0.07 |
+| T/R price ratio | 0.08 | `premium_rural` | 0.88 | 1.14 | `overbid_sigma` −0.01 |
+| rent level | 0.09 | **`landlord_required_spread`** (guess) | 0.40 | 0.55 | `congestion_gain` 0.24 |
+| market vacancy, tensioned | 0.24 | **`landlord_required_spread`** (guess) | 0.74 | 0.86 | `overbid_sigma` 0.13 |
+| cash purchases | 0.13 | `premium_rural` | 0.30 | 0.63 | `premium_secondary` 0.19 |
+
+**What the decomposition adds to the screening.**
+
+1. **The Morris finding is not a ranking artefact, it is a variance share.** Two parameters
+   labelled `guess` are *first-order dominant* — not merely influential — for four of the nine
+   decomposable moments: `overbid_sigma` explains **56%** of the variance in price-to-income,
+   and `landlord_required_spread` **65%** of market-tenant overburden, **74%** of tensioned
+   market vacancy and **40%** of the rent level. Three of those four are §9 validation targets.
+   The model's calibration rests on two numbers nobody sourced, and that is now quantified
+   rather than suspected. It is the single most useful thing this analysis produced.
+2. **The location premium does exactly its job and nothing else.** `premium_rural` owns the
+   ordering margin (0.74) and the T/R ratio (0.88) — the two things §5b exists to fix — and is
+   a minor term everywhere else except cash purchases, which is the cross-validation reported
+   in L4 showing up again from the other direction. A mechanism that dominated moments it was
+   not introduced for would be a warning; this one does not.
+3. **A sourced parameter owns the supply moments**, which is the healthy case:
+   `base_starts_per_tick` (MIVAU) explains 72% of completions/formation and 60% of
+   transactions.
+4. **Ownership is flat** (CV 0.005): robust to all seven parameters at their full ranges. It
+   sits at the bottom edge of its band for structural reasons, not because a knob is holding
+   it there.
+5. **The model is close to additive in these parameters.** For every dominant term the ST − S1
+   gap is 0.07–0.21, so there is no hidden interaction structure to hunt. The exception is
+   `transactions`, where S1 is small for six of seven parameters but ST is 0.24–0.36 across the
+   board — transaction volume is where the parameters interact, which fits its position
+   downstream of credit, prices and supply all at once.
+
+**Caveats.** `price_ratio_tr` returns ST = 1.14 for `premium_rural`, slightly above the
+theoretical maximum: estimator noise at N = 128 with uniform sampling when one parameter
+dominates. Indices are shares of the variance the seven screened parameters generate, not of
+the model's total variance, and the design is the **baseline** — cap-only parameters are
+absent by construction, and their sensitivity is `experiments/rent-cap.md`.
 
 ## Shadow-anchor and boom-rent revision (2026-09-08)
 
@@ -853,8 +911,10 @@ Defects found and fixed. Each was verified by measurement before and after, not 
   evidence for the location-amenity fix now exists (Funcas 104 ch.5: Madrid/Barcelona wages
   +45%, cost of living +20%, net +21%); the mechanism decision does not.
 - Sensitivity: Morris screening and Sobol indices are DONE (see "Sensitivity analysis" above).
-  What they leave open is the finding, not the method: the two most influential parameters in the
-  model (`overbid_sigma`, `landlord_required_spread`) are both unsourced guesses and need evidence.
+  What they leave open is the finding, not the method: **`overbid_sigma` explains 56% of the
+  variance in price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned
+  market vacancy and 40% of the rent level — and both are unsourced guesses.** Sourcing those two
+  is now the highest-value evidence work available on this model.
 - Latin-hypercube moment fitting not needed yet — hand calibration hits the targets — but
   becomes necessary if targets tighten further. Four moments now sit at band edges.
 - 2008-style bust reproduction untested end-to-end; a `CreditCrunch` intervention (tightening
