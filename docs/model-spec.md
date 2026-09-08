@@ -166,7 +166,12 @@ asks without a global auctioneer).
   - `reference_rent_*` — the official index agents are capped against: trailing new-contract
     median × (1 − cap_reference_discount), frozen to IRAV updates while a cap is active so
     the table cannot spiral downward on the market it is capping [plan.md Phase 4].
-  **Public rents are excluded from all three.** They are administered, not market signals;
+  - `rent_new_declared_*` / `rent_new_free_*` — new-contract medians split by regulatory
+    segment (declared municipality or not, `agents/landlord.is_covered`), with their contract
+    counts. Under partial coverage these are the reportable series: the pooled median mixes
+    the two and moves with the mix (§10, validation.md T7).
+
+  **Public rents are excluded from all four.** They are administered, not market signals;
   including them makes the parque social read as a market price cut.
 
 ## 6. Expectations
@@ -265,7 +270,7 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Social rental stock | 1.0% (OECD) / 1.7% (Housing Europe-MIVAU) / 2.5% (Provivienda); EU 7–9.3% | % of stock | Funcas 104 ch.6, ch.8 | medium |
 | Landlord IRPF reduction on residential rent | 50% general, 60% rehabilitated, 70% tensioned/young, 90% if rent cut ≥5%; cost ≈€1,039M/yr | fraction of net rental income | Ley 12/2023, AIReF via Funcas 104 ch.7 | high — NOT modelled |
 | Vacancy-tax instrument | IBI surcharge 50–150% on ≥4 dwellings empty ≥2 yr ⇒ ≈0.1–0.8% of market value/yr | fraction of value/yr | Ley 12/2023 via Funcas 104 ch.7 | high |
-| Rent-cap coverage | share of the capped zone inside DECLARED municipalities: Spain Jul 2026 = 317 municipalities in 5 CCAA (Cataluña 271, Euskadi 18, Navarra 21, Galicia 2, Asturias 5), ≈9.3M people = 19% of Spain ≈ **0.42** of the model's tensioned zone; Cataluña 2024 ≈ 1.0 | share | BOE-A-2026-16532 (29 Jul 2026); MIVAU/Civio [kb-refresh-2026-09 §3]; `PolicyConfig.cap_coverage` | high |
+| Rent-cap coverage | share of the capped zone inside DECLARED municipalities, applied as a PERSISTENT per-unit property (`Unit.declaration_draw`, drawn once at creation) so a municipality keeps its status and raising coverage adds municipalities monotonically: Spain Jul 2026 = 317 municipalities in 5 CCAA (Cataluña 271, Euskadi 18, Navarra 21, Galicia 2, Asturias 5), ≈9.3M people = 19% of Spain ≈ **0.42** of the model's tensioned zone; Cataluña 2024 ≈ 1.0. New contracts are reported split by segment (§10, validation.md T7) | share | BOE-A-2026-16532 (29 Jul 2026); MIVAU/Civio [kb-refresh-2026-09 §3]; `PolicyConfig.cap_coverage` | high |
 | ITP surcharge, legal persons / gran tenedor | +0.10 over the 10% general rate (Cataluña 20% TPO on whole-building and gran-tenedor purchases, Ley 11/2026 in force 14 Jul 2026) | fraction of price | DOGC via law-firm summary [transaction-tax Update 2026-09-08]; `PolicyConfig.itp_investor_delta` | medium |
 | ITP surcharge, non-residents | +0.90 over a 10% base = the "100% tax on non-EU buyers" bill (announced Jan 2025, stalled Mar 2026, folded into the stalled Jul 2026 omnibus decree); Baleares non-resident ban rejected Feb 2026 | fraction of price | Reuters/US News; Congreso [transaction-tax Update 2026-09-08]; `PolicyConfig.itp_foreign_delta` | proposal, not law |
 | ICO guarantee wealth cap | €150,000 net wealth, added by the Jul 2026 adenda (with ≤35 y and ≤7.5×IPREM); line extended to 31 Dec 2027; uptake 8,549 ops / €206.6M guarantees to Oct 2025 (≈10% of €2.5bn) | € | BOE-A-2026-14404 (2 Jul 2026) [demand-subsidy Update 2026-09-08]; `PolicyConfig.guarantee_wealth_cap` | high |
@@ -411,14 +416,15 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   Spain, by a factor of roughly 8–15 on the cash share. Fixing it needs the household wealth
   distribution and the inheritance channel to move together: 62,000 parental money gifts a
   year averaging €90k, tripled since 2019 [BdE via El Independiente, Jun 2026].
-- **Partial rent-cap coverage is a mechanism demonstration, not a result.** With `coverage`
-  < 1 the capped and uncapped units of the zone share one queue; withdrawals from the covered
-  part tighten it, the uncovered part charges the congestion premium, and the pooled median
-  of new contracts shifts toward the uncovered segment (coverage 0.42: pooled contract rents
-  +8 to +18% against baseline, σ 12–17pp on 5 seeds, contracts −10 to −26%). The direction is
-  Spain's spillover (Catalan non-tensioned rents +9.4% vs tensioned +1.6%); the magnitude is a
-  composition effect the metrics cannot yet split. Report coverage < 1 only once new contracts
-  are recorded capped vs uncapped (validation.md T7).
+- **Under partial rent-cap coverage the POOLED rent series must not be reported.** The
+  declared and non-declared parts of a zone share one queue, so a cap moves the mix as well as
+  the price and the pooled median follows whichever segment is signing contracts (coverage
+  0.42, elasticity 2: pooled +8.5% while the declared segment is +0.4% and the free one
+  +8.5%). The segments are reported apart (`rent_new_declared_*`, `rent_new_free_*`, with
+  contract counts) and *those* are the results; the pooled series is only meaningful at
+  coverage 1. The spillover it exposes is real and matches Catalonia (validation.md T7), but
+  the model produces it through one channel only — a shared queue plus downward migration —
+  with no adjacent-market bidding, so treat its size as a lower bound.
 - **The tensioned rental market's tightness is calibrated, not observed.** Formation is
   metro-weighted (0.55) to put the tensioned queue at ≈1.1 applicants per listing; the level is
   a guess with a sourced direction, and it sets frictional tensioned vacancy at 2.9% and

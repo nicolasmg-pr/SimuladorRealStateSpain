@@ -155,6 +155,7 @@ class Engine:
                     occupant_id=hid,
                     tenure=Tenure.OWNER_OCCUPIED,
                     last_sale_price=zs.price_index * quality,
+                    declaration_draw=float(rng.random()),
                 )
                 if status is HouseholdStatus.TENANT:
                     unit.tenure = Tenure.RENTED
@@ -192,6 +193,7 @@ class Engine:
                         # off-market share rises as local demand weakens: 2nd homes, holdouts
                         # and stock empty for want of location and condition [ZoneConfig]
                         withheld=bool(rng.random() < zcfg.withheld_share),
+                        declaration_draw=float(rng.random()),
                     )
                 )
 
@@ -210,6 +212,7 @@ class Engine:
                         occupant_id=None,
                         tenure=Tenure.SEASONAL,
                         last_sale_price=zs.price_index * quality,
+                        declaration_draw=float(rng.random()),
                     )
                 )
 
@@ -768,6 +771,7 @@ class Engine:
                     last_sale_price=zs.price_index * quality,
                     vacant_since=state.tick,  # completion date = start of inventory ageing
                     is_public=is_public,
+                    declaration_draw=float(self.market_rng.random()),
                 )
                 state.stock.add(unit)
                 if is_public:

@@ -65,6 +65,20 @@ def cap_level(state: WorldState, zone: ZoneType, quality: float) -> float | None
     return state.zones[zone].reference_rent * quality
 
 
+def is_covered(state: WorldState, unit) -> bool:
+    """Does this unit sit in a DECLARED tensioned municipality?
+
+    The law is switched on municipality by municipality and the model's zone is bigger than
+    Spain's declared map (Jul 2026: 317 municipalities, ≈19% of the population ⇒ ≈0.42 of the
+    tensioned zone). Coverage is a persistent property of the unit (`Unit.declaration_draw`),
+    not a per-tick draw: a municipality does not change status between quarters, and the
+    capped and uncapped segments have to stay separable for the whole run so their rents can
+    be reported apart (metrics.py). Distinct from *compliance*, which is a covered landlord
+    choosing whether to obey.
+    """
+    return unit.declaration_draw < state.config.policy.cap_coverage
+
+
 class SmallLandlords:
     def __init__(self, agent_id: int, rng: np.random.Generator) -> None:
         self.id = agent_id
@@ -106,12 +120,8 @@ class SmallLandlords:
 
             cap = cap_level(state, unit.zone, unit.quality)
             capped = False
-            # coverage: the law is switched on municipality by municipality, and the zone is
-            # bigger than the declared map (Spain Jul 2026: 317 municipalities, 19% of the
-            # population ⇒ ≈0.42 of the model's tensioned zone). A unit outside the declared
-            # area faces no cap at all — distinct from an uncovered landlord not complying.
-            if cap is not None and self.rng.random() >= cfg.policy.cap_coverage:
-                cap = None
+            if cap is not None and not is_covered(state, unit):
+                cap = None  # not a declared municipality: no cap applies to this unit
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
                 if fundamental_ask > cap and complies:

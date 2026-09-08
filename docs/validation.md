@@ -280,18 +280,37 @@ rents rise +1.7% at elasticity 2 — a small version of the spillover Spain show
 ladder. **The gate is met.** Ownership rises +0.5pp under every cap (withdrawals sold to
 tenants). Tightness in the capped zone rises from 1.1 to 1.3 (ε=0) → 1.8 (ε=2).
 
-**T7 — partial coverage is not reportable on the pooled rent.** With `coverage` 0.42 (Spain's
-317 declared municipalities mapped onto the model's tensioned zone) the *pooled* new-contract
-rent comes out **+7.7% ± 12.5** (ε=1) and **+18% ± 17** (ε=2) against baseline, while contracts
-fall −10% / −26%. The covered 42% of units are capped and part of them withdraw; the uncovered
-58% share the same queue, see the tightness the withdrawals create (1.1 → 1.7–2.3) and raise
-their asks through the congestion premium, and the median of new contracts shifts toward
-them. The direction is the Incasòl spillover — non-declared neighbours' rents rise — but the
-magnitude is unstable across seeds because it is a composition effect on one pooled median. The
-metrics do not yet split new contracts into capped and uncapped; until they do, coverage < 1 is
-a mechanism demonstration, not a result, and the UI slider says so. (The earlier R4 figure,
-−1.4% at coverage 0.42, was measured with the old hazard and the blind exit rule and is
-superseded.)
+**T7 — partial coverage: the pooled rent is a composition artefact, the segments are not.**
+With `coverage` 0.42 (Spain's 317 declared municipalities mapped onto the model's tensioned
+zone) the *pooled* new-contract rent comes out **+8.5% ± 9.6** above baseline at elasticity 2,
+while contracts fall −11%. That reading is an artefact, and the fix was to stop pooling.
+Coverage is now a persistent property of each unit (`Unit.declaration_draw`, drawn once at
+creation, so a municipality keeps its status for the whole run and raising coverage *adds*
+municipalities instead of reshuffling them), and `metrics.py` reports new contracts split by
+segment. Measured on 5 seeds, each against a same-seed baseline split on the same line:
+
+| coverage | ε | declared rents | free rents | pooled rents | declared contracts | free contracts | pooled contracts |
+|---|---|---|---|---|---|---|---|
+| 0.42 | 1 | **−2.3% ± 2.4** | +0.5% ± 3.9 | +0.4% | −12.0% | +8.9% | 0.0% |
+| 0.42 | 2 | **+0.4% ± 3.8** | +8.5% ± 9.6 | +8.5% | −37.4% | +7.1% | −11.2% |
+| 0.70 | 1 | −2.9% ± 2.6 | −2.3% ± 1.8 | −2.9% | −1.4% | +12.5% | +2.9% |
+| 0.70 | 2 | −2.2% ± 2.3 | −1.2% ± 1.3 | −1.8% | −6.8% | +8.3% | −2.3% |
+
+Read across the top two rows: the cap holds the declared segment flat to −2.3% and takes 12%
+to 37% of its contracts out, while the non-declared segment signs 7–9% more contracts at
+rents up to 8.5% higher. That is Catalonia's own signature — **tensioned rents +1.6% against
+non-tensioned +9.4% in 2025** (Incasòl) — reproduced from nothing but a shared queue and
+priced-out demand, and it is invisible in the pooled series, which simply follows whichever
+segment is signing the contracts. At coverage 0.70 the free segment is too small to absorb the
+displacement and both segments fall together, so the pooled number becomes honest again.
+
+Two caveats on the table. The declared segment's **+0.4% at elasticity 2** is itself a
+composition effect one level down: 37% of its contracts are gone, and the units still letting
+are the ones worth letting under the cap. And the free segment's dispersion (± 9.6pp) is wide
+because it is a small median under heavy displacement. Report coverage < 1 by segment, with
+contract counts alongside — never the pooled rent alone. Pinned by
+`test_partial_coverage_pushes_demand_into_the_free_segment`. (The earlier R4 figure, −1.4% at
+coverage 0.42, was measured with the old hazard and the blind exit rule and is superseded.)
 
 ## KB refresh 2026-09 revision (2026-09-08)
 

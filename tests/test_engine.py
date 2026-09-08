@@ -319,3 +319,76 @@ def test_formation_zone_weights_are_a_distribution():
     assert weights is not None
     assert sum(weights) == pytest.approx(1.0, abs=1e-3)
     assert weights[0] > cfg.zones[0].household_share  # metro-weighted by design
+
+
+# --- rent-cap coverage as a regulatory segment ----------------------------------------------
+
+
+def test_coverage_is_a_persistent_monotone_property_of_the_unit():
+    """A municipality is declared or it is not: the same unit must stay on the same side of
+    the line for the whole run, and raising coverage must ADD municipalities rather than
+    reshuffle them. Both follow from `Unit.declaration_draw` being drawn once at creation."""
+    from resim.agents.landlord import is_covered
+
+    cfg = SimConfig.baseline(seed=6, ticks=12).with_policy(cap_coverage=0.42)
+    engine = Engine(Scenario(name="c", baseline=cfg))
+    state = engine.initialise()
+    covered_at_start = {u.id for u in state.stock.units.values() if is_covered(state, u)}
+    assert 0 < len(covered_at_start) < len(state.stock.units)
+    for _ in range(12):
+        engine.step(state)
+        still = {u.id for u in state.stock.units.values() if is_covered(state, u)}
+        assert covered_at_start <= still  # membership never lapses (new units may join)
+    # monotone in the parameter: the 0.42 set is a subset of the 0.70 set
+    state.config = state.config.with_policy(cap_coverage=0.70)
+    wider = {u.id for u in state.stock.units.values() if is_covered(state, u)}
+    assert covered_at_start < wider
+
+
+def test_new_contracts_split_into_declared_and_free_segments():
+    """The two segment counts partition the zone's non-public new contracts, and with the
+    whole zone declared the free segment is empty."""
+    from resim.scenario import RentCap
+
+    for coverage, free_expected in ((0.42, True), (1.0, False)):
+        cfg = SimConfig.baseline(seed=2, ticks=28)
+        sc = Scenario(
+            name="c", baseline=cfg, interventions=(RentCap(start_tick=12, coverage=coverage),)
+        )
+        frame = metrics.to_frame(Engine(sc).run()).loc[16:]
+        split = frame["new_leases_declared_tensioned"] + frame["new_leases_free_tensioned"]
+        assert (split <= frame["new_leases_tensioned"]).all()  # ≤: public units are excluded
+        if free_expected:
+            assert frame["new_leases_free_tensioned"].sum() > 0
+        else:
+            assert frame["new_leases_free_tensioned"].sum() == 0
+
+
+def test_partial_coverage_pushes_demand_into_the_free_segment():
+    """Spain's spillover signature: under a partial cap the non-declared segment takes more
+    contracts and prices above the declared one.
+
+    Catalonia 2025: rents +1.6% inside the tensioned zones against +9.4% outside (Incasòl).
+    The pooled median cannot show this — it mixes the two and moves with the mix, which is
+    why the segments are reported apart (docs/validation.md T7).
+    """
+    from resim.scenario import RentCap
+
+    declared_gap, lease_shift = [], []
+    for seed in (1, 2, 3):
+        cfg = SimConfig.baseline(seed=seed, ticks=40)
+        sc = Scenario(
+            name="c",
+            baseline=cfg,
+            interventions=(RentCap(start_tick=20, supply_response_elasticity=2.0, coverage=0.42),),
+        )
+        frame = metrics.to_frame(Engine(sc).run()).loc[24:]
+        declared_gap.append(
+            frame["rent_new_free_tensioned"].mean() / frame["rent_new_declared_tensioned"].mean()
+        )
+        lease_shift.append(
+            frame["new_leases_free_tensioned"].mean()
+            / frame["new_leases_declared_tensioned"].mean()
+        )
+    assert float(np.mean(declared_gap)) > 1.0  # the free segment prices above the capped one
+    assert float(np.mean(lease_shift)) > 1.0  # and signs more of the contracts

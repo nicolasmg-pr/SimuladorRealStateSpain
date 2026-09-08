@@ -40,6 +40,13 @@ class Unit:
     vacant_since: int = -1  # tick the unit became vacant (for vacancy tax)
     withheld: bool = False  # deliberately kept off the market (2nd home / strategic)
     is_public: bool = False
+    # U(0,1) drawn once from the engine's seeded Generator when the unit is created. The unit
+    # sits in a DECLARED tensioned municipality iff this is below `PolicyConfig.cap_coverage`
+    # (`landlord.is_covered`). A persistent draw, not a per-tick coin flip: a municipality is
+    # declared or it is not, and the same unit must stay on the same side of the line for the
+    # whole run. It also makes coverage monotone — raising it adds municipalities to the
+    # declared set instead of reshuffling them — so two coverage levels are comparable.
+    declaration_draw: float = 1.0
 
 
 class Stock:

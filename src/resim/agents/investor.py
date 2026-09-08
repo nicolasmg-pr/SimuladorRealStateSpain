@@ -17,7 +17,7 @@ from ..market.stock import LARGE_INVESTOR_ID, Tenure
 from ..state import WorldState
 from .bank import itp_wedge
 from .base import Intent, ListForRent, ListForSale, MakeOffer
-from .landlord import cap_level
+from .landlord import cap_level, is_covered
 
 PRIME_HURDLE_SPREAD = 0.015  # required gross yield over bond [CBRE prime 3.8–4.0 — medium]
 EXIT_LIST_SHARE = 0.05  # share of portfolio listed for sale per tick when exiting [medium]
@@ -45,17 +45,19 @@ class LargeInvestor:
             # asking index is the cap itself once a cap is on
             cap_binds = cap is not None and cap < zs.shadow_rent
 
-            # a cap-driven exit only concerns the covered part of the portfolio (no declared
-            # municipality, no exit); a yield-driven one concerns all of it
-            coverage = state.config.policy.cap_coverage
-            exiting = gross_yield < hurdle or (cap_binds and coverage > 0.0)
-            if exiting and zone_units:
-                reach = 1.0 if gross_yield < hurdle else coverage
-                n_list = max(1, int(EXIT_LIST_SHARE * reach * len(zone_units)))
+            # a cap-driven exit only concerns the DECLARED part of the portfolio, unit by
+            # unit; a yield-driven one concerns all of it
+            yield_exit = gross_yield < hurdle
+            reachable = (
+                zone_units if yield_exit else [u for u in zone_units if is_covered(state, u)]
+            )
+            exiting = yield_exit or (cap_binds and reachable)
+            if exiting and reachable:
+                n_list = max(1, int(EXIT_LIST_SHARE * len(reachable)))
                 # piso a piso: vacant units first, then tenanted ones (sold on or at
                 # rotation — displaced tenants re-enter the search queue at settlement)
                 sellable = sorted(
-                    (u for u in zone_units if u.id not in state.sale_listings),
+                    (u for u in reachable if u.id not in state.sale_listings),
                     key=lambda u: u.tenure is not Tenure.VACANT,
                 )
                 for u in sellable[:n_list]:
@@ -87,7 +89,7 @@ class LargeInvestor:
                     )
 
             # rent out vacant portfolio units — at the cap when regulated and the unit sits
-            # inside a declared municipality (coverage draw, as for small landlords)
+            # inside a declared municipality (same persistent coverage test as small landlords)
             for u in zone_units:
                 if (
                     u.tenure is Tenure.VACANT
@@ -97,7 +99,7 @@ class LargeInvestor:
                     ask = zs.rent_index * u.quality * (1.0 + zs.expected_rent_growth)
                     capped = False
                     ucap = cap_level(state, zone, u.quality)
-                    if ucap is not None and self.rng.random() >= coverage:
+                    if ucap is not None and not is_covered(state, u):
                         ucap = None
                     if ucap is not None:
                         ask, capped = min(ask, ucap), ask > ucap

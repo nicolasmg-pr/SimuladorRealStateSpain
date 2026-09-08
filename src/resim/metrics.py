@@ -153,6 +153,10 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     credit = state.config.credit
     fees = state.config.market.buyer_fees
     rate = state.macro.mortgage_rate
+    # the declared/non-declared line units are sorted on (agents/landlord.is_covered). With no
+    # cap in force the whole zone reads as "declared", so the split degenerates to the pooled
+    # series and nothing spurious is reported.
+    cap_coverage = state.config.policy.cap_coverage
     access_ok = access_total = 0
     zone_weights: dict[ZoneType, float] = {}
     for zone in ZoneType:
@@ -181,6 +185,25 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"new_leases_{z}"] = sum(
             1 for r in rentals if state.stock.units[r.unit_id].zone is zone
         )
+        # New contracts split by REGULATORY SEGMENT, so a partial-coverage cap can be read.
+        # The pooled median mixes declared and non-declared municipalities and moves with the
+        # mix, not with either segment's rent: at coverage 0.42 it comes out ABOVE baseline
+        # while both segments' own rents behave sensibly, because withdrawals in the declared
+        # part push demand into the free part and shift the median toward it (validation.md
+        # T7). Reported per zone; NaN where the segment had no contract this tick. Public
+        # units are excluded from both, as everywhere else in the rent series.
+        declared, free = [], []
+        for r in rentals:
+            unit = state.stock.units[r.unit_id]
+            if unit.zone is not zone or unit.is_public:
+                continue
+            adjusted = r.rent / max(unit.quality, 1e-9)
+            side = declared if unit.declaration_draw < cap_coverage else free
+            side.append(adjusted)
+        row[f"rent_new_declared_{z}"] = float(np.median(declared)) if declared else float("nan")
+        row[f"rent_new_free_{z}"] = float(np.median(free)) if free else float("nan")
+        row[f"new_leases_declared_{z}"] = len(declared)
+        row[f"new_leases_free_{z}"] = len(free)
         row[f"seasonal_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.SEASONAL)
         zone_hhs = [h for h in hhs if h.zone is zone]
         zone_weights[zone] = len(zone_hhs) / n_hh
