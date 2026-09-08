@@ -1,15 +1,12 @@
 # Experiment 1 — Catalonia-style rent cap (Phase 7)
 
-> **Status 2026-09-08: the results table below is stale and the gate is NOT currently met on
-> the supply leg.** It was measured on 2026-08-07, before the 2026-08-10 audit and the
-> 2026-08-14 Funcas revision, and never re-run. Re-measured with the same design (see
-> "Re-measurement 2026-09-08" at the end): contract rents −2.2% at every elasticity (price leg
-> passes, pinned by `test_rent_cap_lowers_contract_rents`), new tenancies **+2.5 to +4%**
-> (supply leg fails, strict xfail `test_rent_cap_supply_response_spans_monras`). Do not quote
-> the numbers below as model results; see `docs/validation.md` R3.
-
-Date: 2026-08-07. Raw ensemble: `runs/rentcap_sweep_seeds123.csv` (gitignored; regenerate
-with the snippet at the bottom).
+> **Status 2026-09-08 (second pass): gate met again.** The table below is the original
+> 2026-08-07 measurement and is kept for provenance; it stopped reproducing after the August
+> audit and Funcas revision (see "Re-measurement 2026-09-08" at the end). The tensioned-
+> tightness revision (`docs/validation.md`) restored the credibility test with three changes —
+> metro-weighted household formation, a shadow rent landlords compare the cap against, and a
+> re-fitted hazard scale. **Current numbers are in "Re-measurement 2026-09-08, after the
+> tightness revision" at the end of this file; quote those.**
 
 ## Design
 
@@ -116,3 +113,33 @@ OLS at 0.07 — the 0–2 dial is exactly that span; Incasòl Q4 2025 shows tens
 +1.6% against +9.4% outside the zones (a spillover the model cannot produce) and the first fall
 in seasonal contracts (−1,233) after the seasonal cap; O-HB counts +1,374 contracts in
 Barcelona since the regulation against portal listings −56%.
+
+
+## Re-measurement 2026-09-08, after the tightness revision
+
+Same design, 5 seeds (1–5), `HAZARD_SCALE` 3.0, `formation_zone_weights` 0.55 / 0.286 / 0.164,
+shadow rent active. ± is the seed standard deviation.
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | seasonal units gained | Δ sale prices |
+|---|---|---|---|---|---|
+| 0.0 | −4.6% ± 2.4 | −4.2% | **+1.6%** ± 2.3 | 0 | −3.0% |
+| 0.5 | −4.4% ± 2.4 | −4.0% | −0.8% ± 4.9 | +11 | −3.1% |
+| 1.0 | −4.1% ± 2.4 | −3.8% | −2.6% ± 2.8 | +17 | −4.1% |
+| 1.5 | −3.2% ± 2.5 | −3.3% | −6.5% ± 4.8 | +21 | −4.7% |
+| 2.0 | −3.6% ± 2.6 | −3.5% | **−11.6%** ± 6.7 | +25 | −5.0% |
+
+- Jofre-Monseny, Martínez-Mazza & Segú (2023): rents −4/−5%, no supply effect — elasticity 0
+  (−4.6%, +1.6%). ✓
+- Monràs & García-Montalvo (2023; CEPR 2025, IV ≈2.0): rents −5%, contracts −10% — elasticity
+  2 (−3.6%, −11.6%). ✓
+- Pérez García (2026): −13% tenancies, weak price effect — just past the dial (≈2.2); the
+  weak-price world still needs the second dial (compliance ≈0.25 or discount ≈0). ~✓
+
+What changed since the original table: the withdrawal now runs on the shadow rent (the cap no
+longer blinds the landlord), the tensioned queue starts at ≈1.1 applicants per listing instead
+of 0.5, and the hazard scale is 3.0 instead of 1.75. Rents fall a little less than in August
+(−3.6…−4.6% vs −4.1%) because the IRAV-indexed reference now grows at 0.75 of the income anchor
+rather than above it. New in this table: the secondary zone's contract rents rise +1.7% at
+elasticity 2 (priced-out seekers migrating down the ladder), a small version of Catalonia's
+non-tensioned +9.4%. Partial coverage (`coverage` < 1) is measured in `docs/validation.md` T7
+and is not reportable on the pooled rent yet.

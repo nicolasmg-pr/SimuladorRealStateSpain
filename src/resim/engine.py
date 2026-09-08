@@ -36,7 +36,7 @@ from .agents.base import (
 )
 from .agents.developer import Developer
 from .agents.government import Government
-from .agents.household import Households
+from .agents.household import Households, search_burden
 from .agents.investor import LargeInvestor
 from .agents.landlord import SmallLandlords, cap_level, required_rent
 from .config import ZoneType
@@ -109,6 +109,7 @@ class Engine:
                 price_index=price,
                 rent_index=rent,
                 reference_rent=rent * (1.0 - cfg.policy.cap_reference_discount),
+                shadow_rent=rent,
             )
 
         for zcfg in cfg.zones:
@@ -263,6 +264,7 @@ class Engine:
         state.tick_events = {
             "sales_by_zone": state.tick_events.get("sales_by_zone", {}),
             "rental_tightness": state.tick_events.get("rental_tightness", {}),
+            "renter_capacity": state.tick_events.get("renter_capacity", {}),
         }
 
         self._macro_update(state)  # 1
@@ -356,7 +358,13 @@ class Engine:
         rng = self.rng
         n_new = int(rng.poisson(pop.formation_per_tick))
         state.tick_events["formation"] = n_new
-        shares = np.array([z.household_share for z in cfg.zones])
+        # new households land where growth is: metro-weighted when configured, else in
+        # proportion to the existing population [PopulationConfig.formation_zone_weights]
+        shares = np.array(
+            pop.formation_zone_weights
+            if pop.formation_zone_weights is not None
+            else [z.household_share for z in cfg.zones]
+        )
         zone_ids = rng.choice(len(cfg.zones), size=n_new, p=shares / shares.sum())
         for zi in zone_ids:
             zcfg = cfg.zones[int(zi)]
@@ -592,7 +600,21 @@ class Engine:
                 )
 
     def _record_tightness(self, state: WorldState, bundle: IntentBundle) -> None:
-        """Applicants per rental listing, by zone — landlords read it next tick."""
+        """Applicants per rental listing, and the zone's renter paying capacity.
+
+        Tightness is what a landlord sees when a unit is advertised. Paying capacity — the
+        median of (accepted burden × income) over the zone's non-owner households — feeds
+        `ZoneState.shadow_rent` (see _update_indices), which matters because the asking index
+        collapses onto the cap once a cap is active (every posted ask is clipped), so without
+        it landlords lose sight of the uncapped market within a few ticks and the withdrawal
+        decision goes inert. Two queue-based anchors were tried and rejected: the marginal
+        quantile 1 − listings/applicants rises with every withdrawal and ran away (tightness
+        1.6 → 38, contracts 61 → 9 per tick); the median of this tick's applicants falls under
+        a cap because cheaper rents pull lower-income sitting tenants into the queue, and the
+        exits stopped after ten ticks. Capacity over ALL non-owners moves only with incomes,
+        the sharing margin and tenure transitions — nothing the cap or the exits cause within
+        a quarter (docs/validation.md, tensioned-tightness revision). Landlords read next tick.
+        """
         apps: dict[ZoneType, int] = dict.fromkeys(ZoneType, 0)
         for a in bundle.rent_applications:
             apps[a.zone] += 1
@@ -600,6 +622,24 @@ class Engine:
         for lst in state.rent_listings.values():
             listings[state.stock.units[lst.unit_id].zone] += 1
         state.tick_events["rental_tightness"] = {z: apps[z] / max(1, listings[z]) for z in ZoneType}
+
+        capacity: dict[ZoneType, list[float]] = {z: [] for z in ZoneType}
+        for hh in state.households.values():
+            if hh.status is HouseholdStatus.OWNER:
+                continue
+            burden = (
+                search_burden(hh) if hh.status is HouseholdStatus.SEEKER else hh.max_rent_burden
+            )
+            capacity[hh.zone].append(burden * hh.income / 12.0)
+        previous = state.tick_events.get("renter_capacity", {})
+        state.tick_events["renter_capacity"] = {
+            z: (
+                float(np.median(capacity[z]))
+                if capacity[z]
+                else previous.get(z, state.zones[z].rent_index)
+            )
+            for z in ZoneType
+        }
 
     # -- indices --------------------------------------------------------------
 
@@ -656,6 +696,23 @@ class Engine:
                 zs.reference_rent = 0.9 * zs.reference_rent + 0.1 * zs.rent_index * (
                     1.0 - cfg.policy.cap_reference_discount
                 )
+
+            # shadow rent: what a standard unit would fetch with no cap. Equal to the asking
+            # index while the market is free. Under a cap the asking index is the cap itself,
+            # so landlords fall back on what the zone's renters can pay — the median paying
+            # capacity of non-owner households (_record_tightness), scaled by its ratio to the
+            # index on the tick the cap switched on (the last free observation), smoothed like
+            # the price index. It moves with incomes and the sharing margin, not with the cap.
+            # Without it the withdrawal decision goes inert within ~4 ticks (validation.md).
+            capacity = state.tick_events.get("renter_capacity", {}).get(zone)
+            if cap_here and capacity:
+                if zs.shadow_anchor is None:
+                    zs.shadow_anchor = old_r / max(capacity, 1e-9)
+                    zs.shadow_rent = old_r
+                zs.shadow_rent = (1 - s) * zs.shadow_rent + s * zs.shadow_anchor * capacity
+            else:
+                zs.shadow_anchor = None
+                zs.shadow_rent = zs.rent_index
         state.tick_events["sales_by_zone"] = sales_by_zone
 
     # -- 8 ------------------------------------------------------------------

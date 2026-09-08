@@ -51,8 +51,10 @@ Exactly this order, expressed once in `engine.py`:
 
 1. **Macro & policy update** — apply interventions active at this tick; update euríbor
    path, IRAV; government intents.
-2. **Demography** — household formation (new aspiring households), inter-zone migration;
-   exits (death/dissolution ≈ formation × 0.35, guess), on which the **whole estate** passes
+2. **Demography** — household formation (new aspiring households, landing by
+   `formation_zone_weights` — metro-weighted 0.55 / 0.29 / 0.16, because Spanish household
+   growth is where the tensioned markets are [EC Country Report 2026; INE ECP]), inter-zone
+   migration; exits (death/dissolution ≈ formation × 0.35, guess), on which the **whole estate** passes
    to a surviving household — the home *and* any rental units, or dissolved small landlords
    leave orphaned stock behind that still behaves as a landlord. Foreign-buyer arrivals are
    generated in step 4 with the other purchase intents, not here: their arrival rate is
@@ -129,6 +131,25 @@ asks without a global auctioneer).
   willingness to pay, which is a share of income — and the *only* route for the rent index to
   outrun income growth is the level of burden households accept, i.e. the sharing margin above.
   This is why §9 target 7's rent leg fails: see §10 and docs/validation.md.
+- **The shadow rent — what landlords compare a cap against.** `ZoneState.shadow_rent` is the
+  rent a standard unit would fetch with *no* cap. In a free market it *is* the asking index.
+  Under a cap the asking index is useless for that purpose: every posted ask is clipped, so
+  the index collapses onto the cap within ~4 ticks and a landlord reading it sees no loss —
+  the withdrawal decision went inert, which is how the Phase-7 gate broke unnoticed
+  (validation.md R3). Landlords therefore fall back on what the zone's renters can pay: the
+  median of accepted burden × income over all non-owner households in the zone (the
+  engine's `renter_capacity`), scaled by its ratio to the asking index on the tick the cap
+  switched on — the last free observation — and smoothed like the price index. It moves with
+  incomes, the sharing margin and tenure transitions, and with nothing the cap or the exits
+  cause within a quarter. Two queue-based anchors were tried and rejected, and the reasons are
+  part of the specification: the *marginal* quantile (1 − listings/applicants) rises with
+  every withdrawal and ran away (tightness 1.6 → 38, contracts 61 → 9 per tick in four
+  years); the median of *this tick's applicants* falls under a cap because cheaper rents pull
+  lower-income sitting tenants into the queue, and exits stopped after ten ticks. The exit
+  hazard in `agents/landlord.py` uses `ln(shadow-based fundamental ask / cap)`; the posted ask
+  still carries the queue-congestion premium, which under a cap cannot be charged and must not
+  enter the exit decision either (measured: it turns exits into a spiral). The large investor's
+  "cap binds" test reads the same shadow.
 - **Insider/outsider split**: sitting tenants' rent moves only by the update cap;
   all price discovery happens at rotation (new contracts) [investor-small §3]. Reported as
   `insider_outsider_wedge` — a **rent-level** ratio, not a rent/income one. Matching is
@@ -250,6 +271,9 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | ICO guarantee wealth cap | €150,000 net wealth, added by the Jul 2026 adenda (with ≤35 y and ≤7.5×IPREM); line extended to 31 Dec 2027; uptake 8,549 ops / €206.6M guarantees to Oct 2025 (≈10% of €2.5bn) | € | BOE-A-2026-14404 (2 Jul 2026) [demand-subsidy Update 2026-09-08]; `PolicyConfig.guarantee_wealth_cap` | high |
 | Tourist-rental (VUT) stock | 341,001 dwellings, May 2026 (−10.7% y/y; 1.28% of INE's 26.6M total stock); model seasonal units weight to ≈345k | dwellings | INE Estadística experimental de viviendas turísticas, 24 Jun 2026 | medium |
 | Households (level) | 19,874,860 at 1 Jul 2026 (ECP) — the 1:2,000 anchor | households | INE ECP 2T 2026 | high |
+| Formation zone weights | T 0.55 / S 0.286 / R 0.164 (None = household shares 0.45/0.35/0.20). Screened 0.45–0.65 on 3 seeds: 0.55 puts the tensioned queue at ≈1 applicant per listing (was 0.5) with every §9 moment in band | share of new households | EC Country Report 2026 Annex 16 (Madrid+Barcelona ≈27% of household growth), INE ECP; level calibrated [validation.md tensioned-tightness] | medium (direction) / guess (level) |
+| Shadow-rent anchor | median renter paying capacity (burden × income) over non-owners, ratio to the asking index fixed at cap activation, smoothing = `price_index_smoothing` 0.3 | €/month, standard unit | mechanism (§5); no free parameter beyond the smoothing it shares with the price index | mechanism high |
+| Exit hazard scale (`HAZARD_SCALE`) | maps the per-listing quarterly hazard onto the studies' annual contract elasticity; re-fitted after the shadow rent so elasticity 2 reaches Monràs's −10% contracts — value and sweep in validation.md / experiments/rent-cap.md | dimensionless | Monràs & García-Montalvo 2023/2025 (IV ≈2) | calibrated |
 | Public social-rental stock | 1.5–3.3% of stock | % stock | MIVAU/Provivienda [government §6] | medium |
 | Emancipation/formation age anchor | first purchase ≈41y; buyers 25–44 ≈ 62% | years | Fotocasa [household-owner §6] | medium |
 
@@ -319,15 +343,14 @@ result is reported:
 8. **Rent-cap credibility test** (Phase 7 gate): sweeping supply-response elasticity
    0→2 must span Jofre-Monseny (rents −4…−5%, tenancies 0), Monràs (−5%, −10%), and
    Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4]. **Status
-   2026-09-08: the price leg passes (contract rents −2.2% at any elasticity, pinned by
-   `test_rent_cap_lowers_contract_rents`); the tenancy leg fails and is a strict xfail** —
-   at elasticity 2 new tenancies move +2%, not −10%, because the tensioned rental market runs
-   slack in the current baseline (0.6–0.8 applicants per listing before the cap against ≈65
-   in Barcelona), so withdrawals do not bite until the slack is gone. The experiment table in
-   `experiments/rent-cap.md` predates the August audit and Funcas revision and no longer
-   reproduces; see validation.md "Rent-cap gate re-measured". The gate is therefore **not**
-   currently met, and no rent-cap supply-response claim should be reported until the
-   tensioned zone's tightness is recalibrated.
+   2026-09-08: met** (validation.md T6, 5 seeds): elasticity 0 → rents −4.6%, contracts
+   +1.6%; elasticity 2 → rents −3.6%, contracts −11.6% ± 6.7; Pérez García's −13% at ≈2.2.
+   Both legs are ordinary passing tests (`test_rent_cap_lowers_contract_rents`,
+   `test_rent_cap_supply_response_spans_monras`). It had silently failed since the August
+   audit — the asking index collapses onto an active cap and blinded the landlord's exit
+   decision, and the tensioned queue ran slack — and was repaired by the shadow rent (§5),
+   metro-weighted formation (§4 step 2) and a re-fitted hazard scale. Partial coverage
+   (`coverage` < 1) is **not** reportable on the pooled rent (T7).
 
 Calibration: direct where observable (EFF distributions, lags, tenure); latin-hypercube
 sweep on free parameters (λ, WTP dispersion, ask-decay, matching frictions) against
@@ -388,16 +411,19 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
   Spain, by a factor of roughly 8–15 on the cash share. Fixing it needs the household wealth
   distribution and the inheritance channel to move together: 62,000 parental money gifts a
   year averaging €90k, tripled since 2019 [BdE via El Independiente, Jun 2026].
-- **The tensioned rental market runs slack, so the rent-cap supply leg cannot bite.**
-  Before a cap, applicants per listing in the tensioned zone sit at 0.6–0.8 (Barcelona:
-  ≈65 contacts per listing, idealista 2026). Landlord withdrawals under a cap therefore
-  reduce leftover listings without reducing the number of contracts signed: measured at
-  elasticity 2, new tenancies +2% against Monràs & García-Montalvo's −10%, while the price
-  leg (contract rents −2.2%) works. The §9.8 gate is not met on the supply leg (strict xfail,
-  `test_rent_cap_supply_response_spans_monras`). The fix is a tightness recalibration of the
-  tensioned zone — fewer mobilisable vacant units or more formation landing there — which
-  moves ownership, vacancy and overburden jointly, so it is a calibration decision, not a
-  hazard-scale tweak. **Do not report any rent-cap supply-response result until it lands.**
+- **Partial rent-cap coverage is a mechanism demonstration, not a result.** With `coverage`
+  < 1 the capped and uncapped units of the zone share one queue; withdrawals from the covered
+  part tighten it, the uncovered part charges the congestion premium, and the pooled median
+  of new contracts shifts toward the uncovered segment (coverage 0.42: pooled contract rents
+  +8 to +18% against baseline, σ 12–17pp on 5 seeds, contracts −10 to −26%). The direction is
+  Spain's spillover (Catalan non-tensioned rents +9.4% vs tensioned +1.6%); the magnitude is a
+  composition effect the metrics cannot yet split. Report coverage < 1 only once new contracts
+  are recorded capped vs uncapped (validation.md T7).
+- **The tensioned rental market's tightness is calibrated, not observed.** Formation is
+  metro-weighted (0.55) to put the tensioned queue at ≈1.1 applicants per listing; the level is
+  a guess with a sourced direction, and it sets frictional tensioned vacancy at 2.9% and
+  ownership at 69.98% — the very edge of the EFF band. A per-CCAA formation series would
+  replace the guess.
 - **Reference-index indexation is read relative to the income anchor.** IRAV is 2.20–2.44%
   in Spain against ≈3–4% nominal wage growth; the model's anchor is 2%/yr, so
   `within_contract_update` is 0.015, not the nominal 0.025. At 0.025 the frozen reference

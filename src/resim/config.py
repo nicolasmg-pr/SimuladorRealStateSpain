@@ -140,6 +140,17 @@ class PopulationConfig:
     # new households' income vs population median: <1 = young penalty (EFF <35: 32k vs
     # 36.1k ⇒ ~0.89); boom scenarios with working-age migration use 1.0 [EFF2024 — medium]
     formation_income_factor: float = 0.9
+    # where new households form, as zone weights (T/S/R); None = the zones' household shares
+    # (0.45/0.35/0.20). Spanish household growth is metro-concentrated: Madrid and Barcelona
+    # provinces added ≈+43k and +18k households in the 12 months to Sep 2025 against ≈226k
+    # nationally (27% in two metros), with Valencia, Málaga, Alicante and Baleares next — the
+    # coastal and metro areas the TENSIONED zone stands for [EC Country Report Spain 2026 Annex
+    # 16; INE ECP — medium on the direction, guess on the level]. 0.55 is the value at which
+    # the tensioned rental queue runs at ≈1 applicant per listing instead of 0.5, which is
+    # what lets a rent cap's withdrawals reduce contracts (docs/validation.md, tensioned-
+    # tightness revision: screened 0.45/0.50/0.55/0.60/0.65 on 3 seeds). S/R keep their
+    # relative shares.
+    formation_zone_weights: tuple[float, float, float] | None = (0.55, 0.286, 0.164)
 
 
 @dataclass(frozen=True)

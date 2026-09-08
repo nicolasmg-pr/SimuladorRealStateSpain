@@ -276,3 +276,46 @@ def test_guarantee_wealth_cap_excludes_wealthy_first_time_buyers():
     assert rich.id not in guaranteed_ids
     for aid in guaranteed_ids:
         assert state.households[aid].wealth <= 150_000.0
+
+
+# --- tensioned-tightness revision: shadow rent and formation weights ------------------------
+
+
+def test_shadow_rent_equals_the_index_in_a_free_market():
+    """With no cap the shadow rent IS the asking index, in every zone, every tick — the
+    mechanism must be invisible until a cap switches on (model-spec §5)."""
+    frame = run_frame(seed=4, ticks=12)
+    for zone in ("tensioned", "secondary", "rural"):
+        pd.testing.assert_series_equal(
+            frame[f"shadow_rent_{zone}"], frame[f"rent_{zone}"], check_names=False
+        )
+
+
+def test_shadow_rent_stays_anchored_under_a_cap():
+    """Under a cap the shadow must NOT follow the asking index down onto the cap, and must
+    not run away either: it tracks renter paying capacity, so it stays within a narrow band
+    of its activation value while the asking index drops to the reference."""
+    from resim.scenario import RentCap
+
+    cfg = SimConfig.baseline(seed=1, ticks=40)
+    sc = Scenario(name="cap", baseline=cfg, interventions=(RentCap(start_tick=20),))
+    frame = metrics.to_frame(Engine(sc).run())
+    at_activation = frame["shadow_rent_tensioned"].loc[19]
+    post = frame.loc[21:40]
+    # bounded: no runaway (the rejected marginal-quantile anchor tripled it), no collapse
+    assert (post["shadow_rent_tensioned"] / at_activation).between(0.9, 1.25).all()
+    # the asking index drops onto the cap at activation; the shadow must NOT follow it down —
+    # that is the whole point of the mechanism (the blind exit rule read the index and went
+    # inert within four ticks). Asserted over the two years after activation, before IRAV
+    # indexation of the reference can close the gap on its own.
+    early = frame.loc[21:28]
+    assert (early["shadow_rent_tensioned"] > early["rent_tensioned"]).all()
+    assert early["rent_tensioned"].mean() < at_activation
+
+
+def test_formation_zone_weights_are_a_distribution():
+    cfg = SimConfig.baseline()
+    weights = cfg.population.formation_zone_weights
+    assert weights is not None
+    assert sum(weights) == pytest.approx(1.0, abs=1e-3)
+    assert weights[0] > cfg.zones[0].household_share  # metro-weighted by design

@@ -163,6 +163,11 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"rent_{z}"] = zs.rent_index
         row[f"rent_transacted_{z}"] = zs.rent_transacted
         row[f"reference_rent_{z}"] = zs.reference_rent
+        # the uncapped clearing rent landlords compare a cap against (= rent index when free)
+        row[f"shadow_rent_{z}"] = zs.shadow_rent
+        row[f"rental_tightness_{z}"] = state.tick_events.get("rental_tightness", {}).get(
+            zone, float("nan")
+        )
         row[f"price_growth_{z}"] = zs.price_growth[-1] if zs.price_growth else 0.0
         row[f"rent_growth_{z}"] = zs.rent_growth[-1] if zs.rent_growth else 0.0
         row[f"vacancy_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.VACANT) / max(

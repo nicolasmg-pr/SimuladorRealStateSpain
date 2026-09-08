@@ -83,7 +83,11 @@ def lever_params(lever: str) -> dict:
             "población). España a julio de 2026: 317 municipios en 5 CCAA (Cataluña 271, "
             "Euskadi 18, Navarra 21, Galicia 2, Asturias 5), 9,3M de personas = 19% del "
             "país ≈ 0,42 de la zona tensionada del modelo (BOE 29-jul-2026). Madrid, "
-            "Andalucía, Valencia, Murcia y Castilla y León: 0.",
+            "Andalucía, Valencia, Murcia y Castilla y León: 0. ⚠️ Con cobertura parcial el "
+            "alquiler medio de contratos nuevos MEZCLA pisos topados y no topados: el "
+            "segmento no topado sube al absorber la demanda desplazada (el desbordamiento "
+            "que muestra Cataluña) y la dispersión entre semillas es enorme. Es una "
+            "demostración del mecanismo, no un resultado (docs/validation.md T7).",
         )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(

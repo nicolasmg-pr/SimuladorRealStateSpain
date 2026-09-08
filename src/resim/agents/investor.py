@@ -41,7 +41,9 @@ class LargeInvestor:
                 continue
             gross_yield = zs.rent_index * 12.0 / max(zs.price_index, 1.0)
             cap = cap_level(state, zone, 1.0)
-            cap_binds = cap is not None and cap < zs.rent_index
+            # binds against the SHADOW rent (what the units would fetch uncapped) — the
+            # asking index is the cap itself once a cap is on
+            cap_binds = cap is not None and cap < zs.shadow_rent
 
             # a cap-driven exit only concerns the covered part of the portfolio (no declared
             # municipality, no exit); a yield-driven one concerns all of it

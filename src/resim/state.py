@@ -53,6 +53,11 @@ class ZoneState:
     price_index: float  # € per standard unit (quality 1)
     rent_index: float  # €/month per standard unit, ASKING basis (idealista-like)
     reference_rent: float  # official reference index (SERPAVI-analogue), €/month
+    # €/month a standard unit would clear at with NO cap: equals rent_index in a free market;
+    # under a cap it is inferred from the applicant queue (engine._update_indices). This is
+    # what landlords compare the cap against when deciding to withdraw a unit.
+    shadow_rent: float = 0.0
+    shadow_anchor: float | None = None  # index / queue-clearing ratio fixed at cap activation
     rent_transacted: float = 0.0  # €/month, median new-contract rent (SERPAVI-like)
     price_growth: list[float] = field(default_factory=list)  # trailing per-tick growth
     rent_growth: list[float] = field(default_factory=list)

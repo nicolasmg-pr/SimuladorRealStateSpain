@@ -4,6 +4,10 @@ Baseline = `SimConfig.baseline()`, 60 ticks, seeds {1..5}, last 20 ticks average
 Enforced continuously by `tests/test_validation.py` — no scenario result is reported unless
 that suite passes (engineering standard, `plan.md`).
 
+Revised 2026-09-08, second pass ("Tensioned-tightness revision" below): the rent-cap gate's
+supply leg is met — metro-weighted formation, a shadow rent landlords compare the cap against,
+hazard scale re-fitted; every §9 moment re-measured on 5 seeds.
+
 Revised 2026-09-08 after the KB refresh (`docs/kb-refresh-2026-09.md`, section "KB refresh
 2026-09 revision" below): baseline moments unchanged within seed noise, three new contrast
 rows, and the Phase-7 rent-cap gate re-measured and found **not met on its supply leg**.
@@ -175,6 +179,119 @@ price and volume legs stay as ordinary passing assertions.
 Not attempted: the second-home/other-province purchase stream (≈10% of Spanish transactions),
 age and nationality structure in tenure, landlord income taxation, and utilities. All are
 listed in `model-spec` §10 with their figures.
+
+## Tensioned-tightness revision (2026-09-08)
+
+Follow-up to R3 of the KB refresh below: the Phase-7 rent-cap gate was not met on its supply
+leg because landlord withdrawals under a cap did not reduce the number of contracts. This
+revision fixes it. It took a calibration change *and* a mechanism, and two rejected mechanism
+variants are recorded because their failure modes are part of the specification (model-spec
+§5, "The shadow rent").
+
+**T1 — the tensioned rental market was slack, and formation is where it should be.** Applicants
+per listing in the tensioned zone ran at 0.5 before a cap. Spanish household growth is
+metro-concentrated — Madrid and Barcelona provinces alone added ≈27% of the national household
+growth in the twelve months to Sep 2025 (EC Country Report 2026, INE ECP) — while the model
+landed new households in proportion to the existing population (0.45 / 0.35 / 0.20). New
+field `PopulationConfig.formation_zone_weights`, screened at 0.45 / 0.50 / 0.55 / 0.60 / 0.65 on
+3 seeds: tightness 0.52 / 0.65 / 0.97 / 1.01 / 1.29. **0.55 / 0.286 / 0.164** chosen — the
+lowest weight at which the queue runs at ≈1 applicant per listing. At 0.60 the counterfactual
+rent path steepens so much that a cap measures −13% against it, outside every study. Level is
+a guess; direction is sourced.
+
+**T2 — tightness alone did nothing, because the cap blinds the landlord.** With the market
+tight and the old exit rule, tenancies at elasticity 2 still moved +2.7%. Instrumented (seed 1,
+formation weight 0.60): exits 13 → 4 → 0 within four ticks of activation, because the asking
+index — every posted ask clipped — collapsed onto the cap, so `ln(ask / cap)` went to zero
+while the same-seed baseline rent kept climbing (1,181 → 1,575 over the window). The landlord
+had no view of the uncapped market. This is the actual reason the gate failed; slack only
+hid it.
+
+**T3 — the shadow rent, and the two versions that failed.** `ZoneState.shadow_rent` is what a
+standard unit would fetch with no cap: the asking index in a free market; under a cap, an
+anchored demand-side measure. Three anchors were built and measured on the same seed:
+
+| Anchor for the shadow under a cap | Outcome at elasticity 2, formation weight 0.60, seed 1 | Verdict |
+|---|---|---|
+| Marginal applicant quantile 1 − listings/applicants (queue-implied clearing rent) | Tightness 1.6 → 38, shadow 1,181 → 3,756, contracts 61 → 9 per tick: every withdrawal raises the marginal quantile, which widens the gap, which drives more withdrawals | rejected — runaway |
+| Median willingness of this tick's applicants | Exits 13 → 19 → 9 → 1 → 0 by tick 30: cheaper rents pull lower-income sitting tenants into the queue and the median falls below the reference | rejected — composition |
+| **Median paying capacity (accepted burden × income) over all non-owners in the zone**, ratio to the index fixed at activation, smoothed at 0.3 | Shadow 1,181 → 1,233 (+4.4% over five years, tracking incomes and the sharing margin); reference 1,116 → 1,203 (IRAV); gap 5.5% → 2.5%; exits 13 / 8 / 11 / 11 / 7 / 5 / 1 / 3 / 5 / 10 / 4 per two ticks; rented stock 1,452 → 1,313 (−10%), contracts 62 → 50 (−19%), seasonal +38 | **kept** |
+
+The exit hazard now reads the shadow-based fundamental ask (`ln(fundamental / cap)`), never
+the posted ask and never the congestion-inflated ask — comparing to the latter turned exits
+into a spiral in the first screen (tenancies −50 to −87%). The large investor's "cap binds"
+test reads the same shadow. In a free market the shadow equals the index, so the baseline is
+untouched by construction.
+
+**T4 — hazard scale re-fitted.** `HAZARD_SCALE` exists to map the per-listing hazard onto the
+studies' annual contract elasticity, and its 1.75 was fitted before the August audit on a
+baseline that no longer exists. Sweep at the new defaults (3 seeds, cap at tick 20 of 40,
+16 post-cap ticks; contracts σ ≈ 5–8pp):
+
+| `HAZARD_SCALE` | ε=0 rents / contracts | ε=1 rents / contracts | ε=2 rents / contracts | seasonal at ε=2 |
+|---|---|---|---|---|
+| 1.75 | −5.6% / +2.1% | −4.9% / −2.5% | −4.8% / −5.0% | +20 |
+| 2.5 | −5.6% / +2.1% | −3.8% / −4.6% | −3.9% / −7.4% | +20 |
+| **3.0** | −5.6% / +2.1% | −4.9% / −2.1% | **−4.6% / −12.6%** | +27 |
+
+3.0 chosen: elasticity 0 is Jofre-Monseny's world (rents −4…−6%, contracts ≈0), elasticity 2
+reaches Monràs & García-Montalvo's −10% and approaches Pérez García's −13%, all inside the
+0–2 dial, with rents −4.6…−5.6% throughout — the studies' −4…−6%. The five-seed table for the
+experiment note is in T6.
+
+**T5 — baseline moments after the revision** (5 seeds, last 20 of 60 ticks; previous value in
+brackets). Ownership **70.0%** (70.2), non-owners 30.0% (29.8), price-to-income 7.70 (7.68; σ
+0.28), transactions 3.6%/yr of households (3.6), completions/formation 57% (59), market-tenant
+overburden 29.5% (28.7), >30% share 58.9% (59.2), insider/outsider wedge +8.6% (+11.9),
+vacancy 8.7 / 12.5 / 17.8% by zone (10.0 / 12.3 / 18.0), national 12.0% (12.6), **market
+vacancy tensioned 2.9%** (4.3), individuals' rental share 86.3% (86.5), public 7.2% (7.3),
+seeker share 5.4% (5.8), T/R price ratio 3.20 → 1.80 (3.19 → 1.75). Every §9 gate holds. Two
+things moved on purpose and are recorded as such: tensioned market vacancy fell from 4.3% to
+2.9%, which is the tightness the revision set out to create (the `test_vacancy` floor moved
+from 3% to 2%; it was a convention, not a sourced band — investor-small §7.3 says no source
+separates frictional from total vacancy); and ownership sits at 69.98%, a hair under the 70%
+edge of the EFF band, so the contrast row now reads "below" by 0.02pp. Buyer-type wedges
+re-measured: a +0.90 non-resident surcharge cuts non-resident purchases 58% (3.3% → 1.4% of
+sales); the +0.10 investor surcharge is inside seed noise on the institutional share (0.98% →
+1.13%, σ 0.17pp) and its price effect (tensioned −0.9%) is what remains — the institutional
+buyer is too small a share of the model's sales for the row to resolve it.
+
+Both strict xfails from before stand (zone price ladder; boom-time rent growth — re-checked
+under the new defaults, still fails, no XPASS). `test_rent_cap_supply_response_spans_monras`
+is now an ordinary passing test.
+
+**T6 — the Phase-7 sweep, re-run** (5 seeds, cap at tick 20 of 40 in the tensioned zone, mean
+over the 16 post-cap ticks against the same-seed baseline; ± is the seed standard deviation):
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | seasonal units gained | Δ sale prices | Δ contract rents, secondary zone |
+|---|---|---|---|---|---|---|
+| 0.0 | −4.6% ± 2.4 | −4.2% | **+1.6% ± 2.3** | 0 | −3.0% | +0.1% |
+| 0.5 | −4.4% ± 2.4 | −4.0% | −0.8% ± 4.9 | +11 | −3.1% | 0.0% |
+| 1.0 | −4.1% ± 2.4 | −3.8% | −2.6% ± 2.8 | +17 | −4.1% | +0.6% |
+| 1.5 | −3.2% ± 2.5 | −3.3% | −6.5% ± 4.8 | +21 | −4.7% | +1.1% |
+| 2.0 | −3.6% ± 2.6 | −3.5% | **−11.6% ± 6.7** | +25 | −5.0% | **+1.7% ± 0.5** |
+
+Credibility test (§9.8): Jofre-Monseny at elasticity 0 (rents −4…−5%, contracts unchanged),
+Monràs & García-Montalvo at elasticity 2 (rents −5%, contracts −10%), Pérez García's −13% just
+past the dial's end (≈2.2). Rents fall 3–5% at every elasticity; the price effect grows with
+withdrawals (units sold to owner-occupiers, sale prices −3 → −5%); the secondary zone's contract
+rents rise +1.7% at elasticity 2 — a small version of the spillover Spain shows (Catalan tensioned
++1.6% vs non-tensioned +9.4%), produced here only through priced-out seekers migrating down the
+ladder. **The gate is met.** Ownership rises +0.5pp under every cap (withdrawals sold to
+tenants). Tightness in the capped zone rises from 1.1 to 1.3 (ε=0) → 1.8 (ε=2).
+
+**T7 — partial coverage is not reportable on the pooled rent.** With `coverage` 0.42 (Spain's
+317 declared municipalities mapped onto the model's tensioned zone) the *pooled* new-contract
+rent comes out **+7.7% ± 12.5** (ε=1) and **+18% ± 17** (ε=2) against baseline, while contracts
+fall −10% / −26%. The covered 42% of units are capped and part of them withdraw; the uncovered
+58% share the same queue, see the tightness the withdrawals create (1.1 → 1.7–2.3) and raise
+their asks through the congestion premium, and the median of new contracts shifts toward
+them. The direction is the Incasòl spillover — non-declared neighbours' rents rise — but the
+magnitude is unstable across seeds because it is a composition effect on one pooled median. The
+metrics do not yet split new contracts into capped and uncapped; until they do, coverage < 1 is
+a mechanism demonstration, not a result, and the UI slider says so. (The earlier R4 figure,
+−1.4% at coverage 0.42, was measured with the old hazard and the blind exit rule and is
+superseded.)
 
 ## KB refresh 2026-09 revision (2026-09-08)
 
@@ -466,9 +583,6 @@ Defects found and fixed. Each was verified by measurement before and after, not 
 
 ## Known gaps
 
-- **Rent-cap supply leg (target 8)** — the tensioned rental market runs slack (0.6–0.8 applicants per
-  listing), so withdrawals do not cut contracts; strict xfail. Needs the tightness recalibration
-  described in R3. Blocking for every rent-cap supply-response claim.
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
 - Rent level and cash-purchase share, both exposed by the Funcas 104 contrast rows (F7).
 - No second-home/other-province demand stream, no age or nationality structure in tenure, no

@@ -216,7 +216,7 @@ above baseline** at every elasticity and new tenancies **+2 to +3%**, against th
    (capped tensioned listings 29 → 0 by tick 30), after which the magnet rule pulled sub-cap
    asks *up*. In Spain IRAV runs at 0.6–0.75 of wage growth, so the model value is 0.012–0.015.
    At 0.015 the cap binds throughout and contract rents fall ≈2.2% — the price leg works.
-2. **The tensioned rental market is slack (open).** Applicants per listing sit at 0.6–0.8
+2. **The tensioned rental market is slack (closed the same day — see `validation.md` "Tensioned-tightness revision": metro-weighted formation, a shadow rent, re-fitted hazard scale; gate met on 5 seeds).** Applicants per listing sit at 0.6–0.8
    before the cap and 1.1–1.5 after it, against ≈65 contacts per listing in Barcelona. With
    60–80 leftover listings per tick, landlord withdrawals (≈60 units over 16 ticks at elasticity
    2, half of them sold) shrink the slack but not the number of contracts signed. The tenancy

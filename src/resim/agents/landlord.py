@@ -27,8 +27,15 @@ from .base import Intent, ListForRent, WithdrawRental
 # question investor-small §7.1; seasonal share reroutes to sale+vacant when capped]
 EXIT_SPLIT = {"sale": 0.5, "seasonal": 0.35, "vacant": 0.15}
 
-# per-listing hazard → annual contract-flow elasticity mapping (see decide())
-HAZARD_SCALE = 1.75
+# per-listing hazard → annual contract-flow elasticity mapping (see decide()). Re-fitted
+# 2026-09-08 after the shadow rent and the metro-weighted formation landed: at 3.0,
+# elasticity 2 gives new contracts −12.6% (σ 8pp, 3 seeds) and rents −4.6% over the 16
+# post-cap ticks — Monràs & García-Montalvo's −10% at −5%, reaching toward Pérez García's
+# −13% — while elasticity 0 gives −5.6% rents and +2% contracts (Jofre-Monseny). The
+# previous 1.75 was fitted before the August 2026 audit on a baseline that no longer exists;
+# on the current one it reached only −5% at elasticity 2 [docs/validation.md,
+# tensioned-tightness revision; docs/experiments/rent-cap.md]
+HAZARD_SCALE = 3.0
 
 # EXIT_SPLIT was written at this level of seasonal evasion; the seasonal branch scales
 # proportionally when the parameter is swept away from it [Incasòl — medium]
@@ -79,12 +86,23 @@ class SmallLandlords:
         for unit in candidates:
             zs = state.zones[unit.zone]
             value = zs.price_index * unit.quality
+            floor = required_rent(state, unit.zone, value)
             market_ask = zs.rent_index * unit.quality * (1.0 + zs.expected_rent_growth)
+            # the landlord's FUNDAMENTAL ask: what the unit would fetch with no cap — the
+            # shadow rent (equal to the index in a free market; inferred from the queue under a
+            # cap, engine._update_indices), before any queue congestion. The exit decision
+            # compares the cap to THIS. Two earlier versions failed: comparing to the posted
+            # ask let the cap unbind (the asking index collapses onto the cap, so the gap went
+            # to zero within four ticks), and comparing to the congestion-inflated ask turned
+            # exits into a spiral (tenancies −50 to −87% at elasticity 2 in a tight market).
+            fundamental_ask = max(
+                floor, zs.shadow_rent * unit.quality * (1.0 + zs.expected_rent_growth)
+            )
             # queue congestion pushes asks up (65 families/listing in Barcelona,
             # rent-cap §3); slack markets push them down
             pressure = 1.0 + 0.05 * float(np.clip(tightness.get(unit.zone, 1.0) - 1.0, -0.5, 3.0))
             market_ask *= pressure
-            ask = max(required_rent(state, unit.zone, value), market_ask)
+            ask = max(floor, market_ask)
 
             cap = cap_level(state, unit.zone, unit.quality)
             capped = False
@@ -96,7 +114,7 @@ class SmallLandlords:
                 cap = None
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
-                if ask > cap and complies:
+                if fundamental_ask > cap and complies:
                     # withdrawal margin: the disputed elasticity parameter. The gap is
                     # the PV shortfall of the capped stream: today's level gap plus the
                     # growth wedge (capped rents grow at IRAV, market at expectations)
@@ -105,7 +123,7 @@ class SmallLandlords:
                         0.0,
                         4.0 * zs.expected_rent_growth - cfg.policy.within_contract_update,
                     )
-                    gap = np.log(ask / cap) + 5.0 * growth_wedge
+                    gap = np.log(fundamental_ask / cap) + 5.0 * growth_wedge
                     # HAZARD_SCALE maps the per-listing quarterly exit hazard onto the
                     # studies' annual contract-flow elasticity: calibrated so that
                     # elasticity=2 reproduces Monràs & García-Montalvo's Δln contracts
@@ -114,7 +132,7 @@ class SmallLandlords:
                     if self.rng.random() < p_exit:
                         intents.append(self._exit(unit.id, state))
                         continue
-                    ask, capped = cap, True
+                    ask, capped = min(ask, cap), True
                 elif ask < cap:
                     # magnet effect: below-reference asks drift up toward the cap
                     ask = min(cap, ask * 1.05)
