@@ -359,6 +359,9 @@ subclasses; effect direction = theory prediction, magnitude must EMERGE from cle
 
 ## 9. Validation (contract for Phase 6)
 
+What may be *claimed* from a passing target is governed by the reporting contract (§13):
+targets pass or fail here, but a passing target is not automatically a reportable magnitude.
+
 Baseline (no intervention, 2015–2025-like inputs) must reproduce, before any scenario
 result is reported:
 
@@ -581,3 +584,74 @@ as authoritative whether or not it deserves to:
 
 Rows whose model side is a calibrated *input* rather than a result (household formation,
 supply elasticity) are labelled as such: they verify the scale conversion, not the model.
+
+## 13. Reporting contract
+
+What the model is allowed to claim, and on what basis. This section governs every other
+section: a result that violates it is not reported, however well it fits.
+
+**The standard is the framing, not the outcome.** What is under the project's control is the
+specification — which primitives, which assumptions, which evidence, and what the model
+refuses to say. A realised future is not a test of the framing.
+
+### 13.1 Reporting categories
+
+Every quantity carries exactly one:
+
+- **magnitude** — reportable as a number with a seed band. Requires: a sourced empirical band
+  it is measured against, ≥10 seeds, and no `assumed` parameter above the variance threshold
+  (§13.2).
+- **direction** — reportable as a sign and an ordering only.
+- **not reportable** — measured internally, used as a diagnostic, never quoted.
+
+### 13.2 Variance rule
+
+> No quantity is reported as a **magnitude** if an `assumed` parameter explains more than 25%
+> of its variance in the Sobol decomposition.
+
+Applied to the current model this downgrades to direction-only: `price_to_income`
+(`overbid_sigma`, 56%), `rent_overburden_share` and the rent level
+(`landlord_required_spread`, 65% and 40%), and tensioned market vacancy (74%). The rule sets
+the evidence-work priority order without argument: source the parameter, or stop quoting the
+number.
+
+### 13.3 Derived-or-reduced-form rule
+
+> Every behavioural rule is either **derived** from a declared primitive — an optimisation, an
+> arbitrage condition, an accounting constraint — or explicitly labelled **reduced form**, with
+> the episode that identifies it and the range the evidence admits. There is no third category.
+
+A reduced-form rule with no identifying episode is a defect, not a simplification. The nine
+rules currently failing this test are listed in `docs/assumptions.md`.
+
+### 13.4 Calibration protocol
+
+1. Calibrate on **2014–2025 moments only**. 2008–2013 is sealed (`docs/holdout-2008-2013.md`).
+2. **Nothing measured is fitted.** A parameter with a direct Tier-1 measurement is data, not a
+   degree of freedom.
+3. Fitting order: LHS over free parameters → Morris screening → Sobol on survivors → variance
+   rule applied → *then* the hold-out is run **once** and reported, pass or fail. A failure is
+   reported as a failure. Re-fitting against the hold-out destroys it as evidence and is the
+   one irreparable objection available against this project.
+4. Runs cached to `runs/` with seed and config hash, with a pre-registration file committed
+   before the run (`docs/prereg/TEMPLATE.md`).
+5. Nothing is reported on fewer than 10 seeds once phase E has landed.
+
+### 13.5 Falsification
+
+Every mechanism in §5–§7 declares the observation that would kill it. A mechanism that cannot
+fail is not saying anything, and is the objection most often fatal to public housing
+commentary.
+
+### 13.6 Adversarial referee pass
+
+Each phase closes with an explicit hostile-reader pass: every objection answered **or conceded
+in writing**. `docs/validation.md` "Honest qualifications" is the register; it is procedure,
+not goodwill.
+
+## 14. Exogenous boundary
+
+What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
+boundary": macro feedback, employment and income paths, policy rates, foreign origin-country
+conditions, geography below the zone, construction input costs, landlord taxation and
+utilities, and unmodellable shocks. Being outside is not a defect. Leaving it unsaid would be.
