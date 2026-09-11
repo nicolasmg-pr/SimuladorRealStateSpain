@@ -33,7 +33,10 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
-extend-exclude = ["docs"]
+# Protect prose from the formatter wherever it lives — `docs/` excluded the directory but
+# left root-level README.md / CLAUDE.md exposed, and hid any future Python under docs/ from
+# `ruff check` as a side effect. Markdown is the thing to exclude, not the folder.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

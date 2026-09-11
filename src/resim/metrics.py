@@ -49,6 +49,9 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # time to sell, in ticks (model-spec §9 target 13). Reported, not gated: the idealista
     # days-on-market distribution is not yet a row in docs/sources.md. It is the observable
     # that identifies the phase-D auction without touching the price level (spec §7.7).
+    # Unit of the scale, for whoever converts that distribution to quarters: listings age at
+    # the top of `engine._apply_listings`, before clearing, so a listing created and matched
+    # inside the same tick reads 0, not 1 — "sold within the tick" maps to 0, not to ≤1.
     row["median_ticks_to_sale"] = (
         float(np.median([t.ticks_listed for t in trades])) if trades else float("nan")
     )
@@ -94,10 +97,26 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     )
     row["public_rental_share"] = sum(1 for u in rented if u.is_public) / max(1, len(rented))
     # how many HOUSEHOLDS are landlords — the anchor for buy-to-let entry (spec §7.3).
-    # Reported, not gated: the EFF2024 second-property share and the AEAT count of taxpayers
-    # declaring rental income are not yet rows in docs/sources.md. Today the model has no
-    # entry margin at all (a household buyer always becomes an owner-occupier), so this can
-    # only fall over a run — which is the defect it exists to measure.
+    #
+    # BASIS: this is the EFF "owns other real estate" basis — any household owning a unit it
+    # does not live in, so vacant second homes, withheld stock, seasonal units and the
+    # inherited-but-vacant dwellings the assumption register flags as an ownership leak all
+    # count. It is NOT the AEAT "declares rental income" basis. Phase B will need a sibling
+    # column restricted to units at `Tenure.RENTED` — that is the AEAT basis, and it is the
+    # one buy-to-let entry should be judged on. Not added here: phase 0 adds no mechanism.
+    #
+    # Reported, not gated. Both anchors ARE registered — EFF 36.1% of households own other
+    # real estate (2022) and AEAT 2.37M landlord declarants ≈ 11.9% of the model's 19.87M
+    # household anchor [docs/sources.md, model-spec §7]. They differ by a factor of three
+    # because they measure different things, so they bracket rather than band this column;
+    # what is missing is the EFF wealth-percentile gradient that would say where inside the
+    # bracket the model should sit (redesign spec §9 retrieval list).
+    #
+    # Today the model has no entry margin at all (a household buyer always becomes an
+    # owner-occupier), which is the defect this column exists to measure. It does NOT follow
+    # that the share can only fall: measured 0.27116 at tick 1 against 0.27097 at tick 60
+    # (3-seed mean, a 0.02pp move), rising on roughly half the tick transitions, because
+    # dissolution hands whole estates to surviving households.
     landlord_ids = {
         u.owner_id
         for u in all_units
@@ -239,6 +258,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"seasonal_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.SEASONAL)
         zone_hhs = [h for h in hhs if h.zone is zone]
         zone_weights[zone] = len(zone_hhs) / n_hh
+        # tenure mix by zone — the ranking leg of model-spec §9 target 1, which was stubbed
+        # out in the validation fixture and so went unmeasured. Renting is a metro tenure in
+        # Spain: T 0.27–0.30 / S ≈0.20 / R 0.12–0.17 [model-spec §7; household-tenant §6].
+        row[f"tenant_share_{z}"] = sum(
+            1 for h in zone_hhs if h.status is HouseholdStatus.TENANT
+        ) / max(1, len(zone_hhs))
         zi = float(np.median([h.income for h in zone_hhs])) if zone_hhs else median_income
         row[f"price_to_income_{z}"] = zs.price_index / (zi * DISPOSABLE_FACTOR)
 

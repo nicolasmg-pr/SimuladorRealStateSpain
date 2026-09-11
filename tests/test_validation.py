@@ -61,7 +61,11 @@ def baseline_moments():
                 ),
                 "price_ratio_tr": (tail["price_tensioned"] / tail["price_rural"]).mean(),
                 "price_ratio_ts": (tail["price_tensioned"] / tail["price_secondary"]).mean(),
-                "tenant_ranking": True,  # checked per-zone below via rent levels
+                "tenant_ranking": (
+                    tail["tenant_share_tensioned"].mean()
+                    > tail["tenant_share_secondary"].mean()
+                    > tail["tenant_share_rural"].mean()
+                ),
                 "vacancy_t": tail["vacancy_tensioned"].mean(),
                 "vacancy_s": tail["vacancy_secondary"].mean(),
                 "vacancy_r": tail["vacancy_rural"].mean(),
@@ -80,6 +84,24 @@ def test_tenure_shares(baseline_moments):
     """
     assert 0.69 <= baseline_moments["ownership"] <= 0.75
     assert 0.25 <= baseline_moments["non_owner"] <= 0.32
+
+
+def test_tenant_share_ranking(baseline_moments):
+    """Target 1, ranking leg: tenant share must rank T > S > R.
+
+    This leg was carried in the fixture as a hardcoded `True` with a comment claiming it was
+    "checked per-zone below via rent levels" — it was not, by that test or any other, so the
+    leg was unmeasured. Now measured on `tenant_share_*` (metrics.snapshot): 31.4 / 22.7 /
+    17.0% on 3 seeds, and it holds on each seed separately.
+
+    Ranking only, not levels. Renting is a metro tenure in Spain and the ordering is not in
+    doubt [model-spec §7: T 0.27–0.30 / S ≈0.20 / R 0.12–0.17; household-tenant §6], but the
+    model's tensioned leg runs above that band, so a level gate here would be a claim the
+    zone abstraction cannot support (a tensioned zone holding 45% of households is not
+    Madrid). Asserted at exactly 1.0 — the fixture averages a per-seed boolean, so anything
+    less would let one seed of three carry the ranking.
+    """
+    assert baseline_moments["tenant_ranking"] == 1.0
 
 
 def test_price_to_income(baseline_moments):
@@ -158,8 +180,15 @@ def test_rent_level_ordering(baseline_moments):
     rural rent index above the metro one survived unnoticed. Spanish rent levels rank
     strictly the other way at every published basis [idealista, SERPAVI, EPF regional
     averages — €675/month Madrid against €277 Extremadura, Funcas 104 ch.5].
+
+    Asserted at exactly 1.0, not on truthiness. `rent_ranking` is a per-seed boolean and the
+    fixture collapses it with `float(np.mean(...))`, so any nonzero mean is truthy: a partial
+    fix that put one seed of three in the right order would read as "fixed", the strict xfail
+    would flip, and the target would be deleted while two seeds still had rural above the
+    metro. == 1.0 means ALL THREE seeds rank T > S > R, not an average that is merely
+    nonzero. This target exists to flip in phase B, once, and for the right reason.
     """
-    assert baseline_moments["rent_ranking"]
+    assert baseline_moments["rent_ranking"] == 1.0
 
 
 @pytest.mark.xfail(
@@ -314,10 +343,21 @@ def test_holdout_boom_rent_growth():
 def test_boom_compresses_the_gross_yield():
     """Target 10: in a boom the gross rental yield must COMPRESS.
 
-    Sign test only. Spain 2014-25 ran prices ahead of rents and gross yields fell; the
-    level band needs the idealista yield series, which is not yet a row in
-    `docs/sources.md`, so only the direction is asserted here (model-spec §13.1:
-    direction, not magnitude).
+    Sign test only. Spain 2014-25 ran prices ahead of rents and gross yields fell.
+
+    A band on the *level* of the compression would need the 2014–25 idealista yield **time
+    series**. What `docs/sources.md` registers is the Q4-2025/Q1-2026 **cross-section**
+    (Spain 6.7%, Madrid 4.7%, Barcelona 5.6%, capitals to 7.5%) — enough to anchor the zone
+    ladder in target 9, and silent about the path. The direction is what is asserted here
+    (model-spec §13.1: direction, not magnitude).
+
+    **The margin is thin, deliberately left as it is.** 5 seeds, change in the tensioned
+    gross yield over the boom: −29.6 / −22.2 / −1.5 / −2.9 / −34.8 bp, mean −18.2bp
+    (0.0539 → 0.0521). All five compress, but two are all but flat, and the assertion carries
+    no seed band. Tightening a gate belongs to a measurement campaign, not to a fix wave, so
+    phase B should revisit whether this needs a band — by which time compression is the
+    hurdle rule's direct prediction rather than the lag artefact described below, and the
+    right band will be a different question.
 
     Mechanically this is the signature of the landlord's reservation rule. Under the current
     rule the reservation rent is a fixed multiple of value, so the yield floor tracks price

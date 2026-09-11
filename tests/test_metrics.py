@@ -59,7 +59,6 @@ def test_landlord_household_share_counts_owners_of_units_they_do_not_live_in():
     }
     assert row["landlord_households"] == len(expected)
     assert row["landlord_household_share"] == len(expected) / max(1, len(state.households))
-    assert 0.0 <= row["landlord_household_share"] <= 1.0
 
 
 def test_trade_carries_the_listing_age():
@@ -105,3 +104,41 @@ def test_median_ticks_to_sale_is_the_median_of_matched_listing_ages():
     ]
     row = metrics.snapshot(state, trades=trades)
     assert row["median_ticks_to_sale"] == 3
+
+
+def test_gross_yield_columns_are_rent_over_price_not_a_mean_of_zones():
+    """Two definitions the yield columns carry that only a mechanical test can hold.
+
+    Their only other test is target 9's strict xfail, which cannot validate a definition:
+    drop the × 12 or invert the ratio and it still xfails, silently.
+
+    1. Each zone column is that zone's annualised asking rent over its price index.
+    2. The national column is built from the household-weighted national indices, NOT from
+       the mean of the three zone yields. On the baseline those differ substantially
+       (≈6.8% against ≈9.5%, the mean dragged up by rural's ≈17%), and phase B reads this
+       column to judge the total-return hurdle, so the basis is pinned before it does.
+
+    Indices are hand-set to an inverted ladder — rural rent above the metro rent, as the
+    model in fact produces — so the second assertion cannot pass by the two bases happening
+    to coincide on a well-behaved state.
+    """
+    _, state = small_state()
+    levels = {
+        ZoneType.TENSIONED: (300_000.0, 1_250.0),
+        ZoneType.SECONDARY: (150_000.0, 825.0),
+        ZoneType.RURAL: (80_000.0, 1_150.0),
+    }
+    for zone, (price, rent) in levels.items():
+        state.zones[zone].price_index = price
+        state.zones[zone].rent_index = rent
+
+    row = metrics.snapshot(state)
+    for zone, (price, rent) in levels.items():
+        assert row[f"gross_yield_{zone.value}"] == rent * 12.0 / price
+
+    assert row["gross_yield_national"] == row["rent_national"] * 12.0 / row["price_national"]
+    zone_mean = float(np.mean([row[f"gross_yield_{z.value}"] for z in ZoneType]))
+    assert abs(row["gross_yield_national"] - zone_mean) > 0.01, (
+        f"national yield {row['gross_yield_national']:.4f} collapsed onto the "
+        f"mean of the zone yields {zone_mean:.4f} — the basis is no longer pinned"
+    )
