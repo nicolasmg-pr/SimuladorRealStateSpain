@@ -53,12 +53,22 @@ Finding 11 was not in the original critique and is more damaging than several th
 > labelled **reduced form**, with the episode that identifies it and the range the evidence
 > admits. There is no third category.
 
-The nine rules that currently fail this test, and must be rewritten or relabelled:
+The rules that currently fail this test, and must be rewritten or relabelled. This spec named
+nine; the phase-0 assumption register found ten more when the same criterion — `assumed`, and
+naming neither an identifying episode nor an admitted range — was applied row by row. **Nineteen:**
 
 `PARTICIPATION_GROWTH_SENSITIVITY=15` · `PARTICIPATION_RATE_SENSITIVITY=20` ·
 `MOMENTUM_GAIN=5` · `CONGESTION_GAIN=0.05` · cap magnet `×1.05` ·
 `can_buy ≥ 0.6 × median_price` · `EXIT_SPLIT 0.5/0.35/0.15` · `HAZARD_SCALE=0.7` ·
-inventory markdown `0.02/tick`
+inventory markdown `0.02/tick` · `NET_INCOME_FACTOR=0.78` · `buy_attempt_prob=0.50` ·
+`max_listing_ticks=6` · frictionless assortative rental matching · search tolerance
+`ask ≤ budget × 1.05` · `EXIT_SPLIT_EVASION_BASE=0.15` · investor accumulation band `×1.15` ·
+`PRIME_HURDLE_SPREAD=0.015` · `EXIT_LIST_SHARE=0.05` · `MAX_BUYS_PER_TICK=4`
+
+`ask_decay=0.03` was audited at the same time and **passes**: it names an episode (sticky asks
+2008–13) and a range (.02–.05). The count covers rules to be rewritten or relabelled; rows
+already scheduled for wholesale replacement in phases A–D would also fail read literally, and
+are tracked by their phase (`docs/assumptions.md`).
 
 ### 3.2 Variance rule
 
