@@ -166,6 +166,10 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"price_{z}"] = zs.price_index
         row[f"rent_{z}"] = zs.rent_index
         row[f"rent_transacted_{z}"] = zs.rent_transacted
+        # gross rental yield, EMERGENT (model-spec §9 target 9). `ZoneConfig.gross_yield` is
+        # an initial condition only; the ladder the model then produces is a prediction, and
+        # the one observable that tells us whether the landlord's reservation rule is right.
+        row[f"gross_yield_{z}"] = zs.rent_index * 12.0 / max(zs.price_index, 1.0)
         row[f"reference_rent_{z}"] = zs.reference_rent
         # the uncapped clearing rent landlords compare a cap against (= rent index when free)
         row[f"shadow_rent_{z}"] = zs.shadow_rent
@@ -228,6 +232,7 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         sum(state.zones[z].price_index * zone_weights[z] for z in ZoneType)
     )
     row["rent_national"] = float(sum(state.zones[z].rent_index * zone_weights[z] for z in ZoneType))
+    row["gross_yield_national"] = row["rent_national"] * 12.0 / max(row["price_national"], 1.0)
     # household-weighted national growth, per tick. The zone series already exist; these are
     # the national aggregates the published Spanish figures (INE IPV, BdE) are quoted on.
     row["price_growth_national"] = sum(

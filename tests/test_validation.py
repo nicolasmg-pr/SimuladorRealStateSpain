@@ -46,6 +46,9 @@ def baseline_moments():
                 "pti_tensioned": tail["price_to_income_tensioned"].mean(),
                 "pti_secondary": tail["price_to_income_secondary"].mean(),
                 "pti_rural": tail["price_to_income_rural"].mean(),
+                "gy_tensioned": tail["gross_yield_tensioned"].mean(),
+                "gy_secondary": tail["gross_yield_secondary"].mean(),
+                "gy_rural": tail["gross_yield_rural"].mean(),
                 "price_ranking": (
                     tail["price_tensioned"].mean()
                     > tail["price_secondary"].mean()
@@ -108,6 +111,30 @@ def test_zone_price_ladder_holds(baseline_moments):
     """
     assert baseline_moments["price_ratio_tr"] > 2.6
     assert baseline_moments["price_ratio_ts"] > 1.3
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: rural gross yield runs to ≈18.8% against a sourced 7–9%. "
+    "required_rent pins the yield floor to price, rural rental supply has no entry "
+    "margin (investor skips rural, households never buy to let) and downward-only "
+    "migration funnels every priced-out seeker into it. Fixed by the total-return "
+    "hurdle and buy-to-let entry (spec §7.1, §7.3 — phase B).",
+)
+def test_zone_gross_yield_ladder(baseline_moments):
+    """Target 9: the gross rental yield ladder must EMERGE, not be imposed.
+
+    Sourced levels, idealista + BdE RBA [model-spec §7, investor-small §6]:
+    tensioned 4.7–5.6%, secondary 6.5–7.5%, rural 7–9%. Bands widened by 0.5pp on each
+    side for seed noise, the same tolerance convention as the other zone targets.
+
+    This is a target only because §7.1 of the redesign makes the yield an output.
+    `ZoneConfig.gross_yield` is an initial condition; what the model does with it afterwards
+    is a prediction, and right now the prediction is wrong.
+    """
+    assert 0.042 <= baseline_moments["gy_tensioned"] <= 0.061
+    assert 0.060 <= baseline_moments["gy_secondary"] <= 0.080
+    assert 0.065 <= baseline_moments["gy_rural"] <= 0.095
 
 
 def test_transaction_volume(baseline_moments):
