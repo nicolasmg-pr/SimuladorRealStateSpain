@@ -54,8 +54,9 @@ Finding 11 was not in the original critique and is more damaging than several th
 > admits. There is no third category.
 
 The rules that currently fail this test, and must be rewritten or relabelled. This spec named
-nine; the phase-0 assumption register found ten more when the same criterion — `assumed`, and
-naming neither an identifying episode nor an admitted range — was applied row by row. **Nineteen:**
+nine; the phase-0 assumption register found eleven more when the same criterion — `assumed`,
+and either naming no identifying episode or no admitted range (both are required to pass) —
+was applied row by row. **Twenty:**
 
 `PARTICIPATION_GROWTH_SENSITIVITY=15` · `PARTICIPATION_RATE_SENSITIVITY=20` ·
 `MOMENTUM_GAIN=5` · `CONGESTION_GAIN=0.05` · cap magnet `×1.05` ·
@@ -63,7 +64,8 @@ naming neither an identifying episode nor an admitted range — was applied row 
 inventory markdown `0.02/tick` · `NET_INCOME_FACTOR=0.78` · `buy_attempt_prob=0.50` ·
 `max_listing_ticks=6` · frictionless assortative rental matching · search tolerance
 `ask ≤ budget × 1.05` · `EXIT_SPLIT_EVASION_BASE=0.15` · investor accumulation band `×1.15` ·
-`PRIME_HURDLE_SPREAD=0.015` · `EXIT_LIST_SHARE=0.05` · `MAX_BUYS_PER_TICK=4`
+`PRIME_HURDLE_SPREAD=0.015` · `EXIT_LIST_SHARE=0.05` · `MAX_BUYS_PER_TICK=4` · pace leg of
+`SEARCH_BURDEN_ESCALATION=0.04`
 
 `ask_decay=0.03` was audited at the same time and **passes**: it names an episode (sticky asks
 2008–13) and a range (.02–.05). The count covers rules to be rewritten or relabelled; rows
@@ -322,8 +324,10 @@ distribution, which is BdE data. It is also the missing mechanism behind "volume
 prices are sticky" — today carried by the hand-fitted `PARTICIPATION_RATE_SENSITIVITY` — and it
 closes the magnitude gap in target 6b (−1.9% against an observed +4.0%).
 
-Two of the nine ad-hoc rules die here: the seller reserve and the participation rate
-sensitivity.
+Two ad-hoc rules die here: the participation rate sensitivity — one of the twenty rules §3.1
+counts as failing the derived-or-reduced-form rule — and the seller reserve, which was never
+in that count; it sits in the phase A–D replacement group `docs/assumptions.md` excludes from
+the count rather than in §3.1's list.
 
 ## 8. What breaks
 

@@ -101,7 +101,7 @@ suite reports. Reporting categories follow `model-spec.md §13.1`.
 | 11 | Rent level ordering T > S > R | strict, at every published basis | False; R +13.5% over T (tail mean) | ✗ **strict xfail** — rural overtakes the metro around tick 35–40; phase B |
 | 12 | Net internal migration into TENSIONED > 0 | direction only (INE Migraciones not yet sourced) | −433.67 (cumulative sum over the run, not a tail mean; seeds −424 / −432 / −445) | ✗ **strict xfail** — the rule is downward-only; phase B |
 | 13 | Time to sell (`median_ticks_to_sale`) | idealista days on market — **to verify** | 0.0 ticks | reported, not gated; phase D gates it |
-| 14 | Landlord households (`landlord_household_share`), **EFF basis** — owns a dwelling it does not live in | A **bracket**, not a band: EFF 36.1% of households own other real estate (2022) — the *ownership* basis, which is what the column measures — against AEAT's 2.37M landlord declarants over the 19.87M household anchor (`model-spec §7`) ≈ **11.9%**, a *declaring-rental-income* basis. Both registered in `docs/sources.md`; what is missing is the EFF **wealth-percentile gradient** (redesign spec §9 retrieval list) | 27.1% — between the two ends | reported, not gated. Two bases a factor of three apart bracket the column, they do not band it; which end the gate is set against is a phase-B decision, and depends on the AEAT-basis sibling column described below |
+| 14 | Landlord households (`landlord_household_share`), **EFF basis** — owns a dwelling it does not live in | A **bracket**, not a band: EFF 36.1% of households own other real estate (2022 wave), revised to 45.3% in the register's most recent wave (2024, DO 2610) — the *ownership* basis, which is what the column measures — against AEAT's 2.37M landlord declarants over the 19.87M household anchor (`model-spec §7`) ≈ **11.9%**, a *declaring-rental-income* basis. Both waves registered in `docs/sources.md`; what is missing is the EFF **wealth-percentile gradient** (redesign spec §9 retrieval list) | 27.1% — between the two ends | reported, not gated. Two bases roughly three-to-four-fold apart bracket the column, they do not band it; which end the gate is set against is a phase-B decision, and depends on the AEAT-basis sibling column described below |
 | 15 | Foreclosure flow | CGPJ — **to verify** | not measurable | deferred to phase C: no insolvency mechanism exists, so no test is written. Registered in `docs/holdout-2008-2013.md` |
 
 Two of these are the same defect seen from different sides: the rural rent level (11) and the
@@ -844,11 +844,12 @@ Objections a hostile reader can raise against phase 0, answered or conceded.
   Conceded, but for two different reasons, and the first version of this answer got the second
   one wrong. `median_ticks_to_sale` has no anchor at all: nothing in `docs/sources.md` carries
   days on market, the row says **to verify**, and phase D gates it.
-  `landlord_household_share` has *two* registered anchors — EFF 36.1% and the AEAT declarant
-  counts — which is precisely why it is not gated: on an ownership basis and a
-  declaring-rental-income basis they sit a factor of three apart, so they bracket the column
-  rather than banding it. Setting a gate would mean choosing a basis, and that choice needs the
-  EFF wealth-percentile gradient and the AEAT-basis sibling column, both phase B.
+  `landlord_household_share` has *two* registered anchors — EFF 36.1% (2022 wave) / 45.3%
+  (2024 wave, DO 2610) and the AEAT declarant counts — which is precisely why it is not gated:
+  on an ownership basis and a declaring-rental-income basis they sit roughly three-to-four-fold
+  apart, so they bracket the column rather than banding it. Setting a gate would mean choosing
+  a basis, and that choice needs the EFF wealth-percentile gradient and the AEAT-basis sibling
+  column, both phase B.
 - **"The assumption register is your own account of your own work."** True, and it is
   falsifiable in the only way that matters: every row names a code site, so any row can be
   checked against the code, and a rule with no row is a finding against the register.

@@ -106,11 +106,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # one buy-to-let entry should be judged on. Not added here: phase 0 adds no mechanism.
     #
     # Reported, not gated. Both anchors ARE registered — EFF 36.1% of households own other
-    # real estate (2022) and AEAT 2.37M landlord declarants ≈ 11.9% of the model's 19.87M
-    # household anchor [docs/sources.md, model-spec §7]. They differ by a factor of three
-    # because they measure different things, so they bracket rather than band this column;
-    # what is missing is the EFF wealth-percentile gradient that would say where inside the
-    # bracket the model should sit (redesign spec §9 retrieval list).
+    # real estate (2022 wave), revised to 45.3% in the register's most recent wave (2024, DO
+    # 2610) — and AEAT 2.37M landlord declarants ≈ 11.9% of the model's 19.87M household
+    # anchor [docs/sources.md, model-spec §7]. They differ roughly three-to-four-fold because
+    # they measure different things, so they bracket rather than band this column; what is
+    # missing is the EFF wealth-percentile gradient that would say where inside the bracket
+    # the model should sit (redesign spec §9 retrieval list).
     #
     # Today the model has no entry margin at all (a household buyer always becomes an
     # owner-occupier), which is the defect this column exists to measure. It does NOT follow

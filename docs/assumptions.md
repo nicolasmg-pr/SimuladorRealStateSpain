@@ -13,22 +13,27 @@ Status is built from three values, per the derived-or-reduced-form rule
 - **assumed** — reduced form. Must name the episode that identifies it and the range the
   evidence admits. An assumed rule that names no identifying episode is a defect.
 
-Some rows carry a **compound** status — "derived, **inert**", "derived (mechanism), assumed
-(pace)", "derived (ordering), assumed (frictionless)", "measured (basis)". That is not
-sloppiness and it is not flattened here: a rule whose *form* follows from a primitive while its
-*level* or *pace* is a guess sits in a different position from one that is guessed end to end,
-and collapsing the two to a single word would hide exactly the distinction the
-derived-or-reduced-form rule exists to draw. Where a status is compound, the parentheses name
-which leg is which, and the **assumed** leg is the one the rule is tested against.
+Some rows carry a **compound** status — for instance "derived, **inert**", "derived
+(mechanism), assumed (pace)", "derived (ordering), assumed (frictionless)", "measured (basis)",
+or "derived (arbitrage form), assumed (hurdle level and band)". The list is illustrative, not
+exhaustive. That is not sloppiness and it is not flattened here: a rule whose *form* follows
+from a primitive while its *level* or *pace* is a guess sits in a different position from one
+that is guessed end to end, and collapsing the two to a single word would hide exactly the
+distinction the derived-or-reduced-form rule exists to draw. Where a status is compound, the
+parentheses name which leg is which, and the **assumed** leg is the one the rule is tested
+against.
 
 **Which rules fail the derived-or-reduced-form rule.** A row fails when it is `assumed` — in
-whole, or in one leg of a compound status — and names *neither* the episode that identifies it
-*nor* the range the evidence admits. The design spec named nine (`§3.1`). The phase-0 additions
-below add **ten** more: `NET_INCOME_FACTOR`, `buy_attempt_prob`, `max_listing_ticks`, the
-frictionless leg of assortative rental matching, the 5% over-budget search tolerance,
-`EXIT_SPLIT_EVASION_BASE`, the investor's ×1.15 accumulation band, `PRIME_HURDLE_SPREAD`,
-`EXIT_LIST_SHARE` and `MAX_BUYS_PER_TICK` — **nineteen** in total. `ask_decay` is the one
-addition that passes: it names both an episode (sticky asks 2008–13) and a range (.02–.05).
+whole, or in one leg of a compound status — and it either names no episode that identifies it,
+or names no range the evidence admits: both are required to pass, so missing either one fails
+it. The design spec named nine (`§3.1`). The phase-0 additions below add **eleven** more:
+`NET_INCOME_FACTOR`, `buy_attempt_prob`, `max_listing_ticks`, the frictionless leg of
+assortative rental matching, the 5% over-budget search tolerance, `EXIT_SPLIT_EVASION_BASE`,
+the investor's ×1.15 accumulation band, `PRIME_HURDLE_SPREAD`, `EXIT_LIST_SHARE`,
+`MAX_BUYS_PER_TICK` and the pace leg of search-burden escalation (`SEARCH_BURDEN_ESCALATION`
+below: it names a range, 0.02–0.06, but no identifying episode) — **twenty** in total.
+`ask_decay` is the one addition that passes: it names both an episode (sticky asks 2008–13)
+and a range (.02–.05).
 
 Scope of that count, stated so it can be checked rather than trusted: it is the set of rules to
 be **rewritten or relabelled**. Several pre-existing rows already scheduled for wholesale

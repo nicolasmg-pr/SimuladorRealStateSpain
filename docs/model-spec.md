@@ -463,18 +463,22 @@ pass is allowed to mean.
     the §9 retrieval list and phase D gates this once it lands. It is the observable that
     identifies the phase-D ascending auction *without* touching the price level (spec §7.7).
     Its governing assumptions today are `MarketConfig.ask_decay` and `max_listing_ticks`,
-    both guesses (`docs/assumptions.md`). Conversion note: listings age before clearing, so
+    both guesses (`docs/assumptions.md`) — "guess" and "fails the derived-or-reduced-form
+    rule" are different predicates, though: `ask_decay` is a guessed *level* that still names
+    an identifying episode and an admitted range, so of the two only `max_listing_ticks` is
+    among the twenty failing rules. Conversion note: listings age before clearing, so
     "sold within the tick" is 0 ticks, not ≤1.
 14. **Landlord households** (`landlord_household_share`): **reported, not gated**, on an
     explicit **EFF basis** — households owning a dwelling they do not live in, which includes
     vacant second homes, withheld and seasonal stock. Two anchors are registered and they
-    bracket rather than band it: EFF 36.1% of households own other real estate (2022), and
-    AEAT's 2.37M landlord declarants over the 19.87M household anchor (§7) ≈ 11.9% on a
-    *declaring-rental-income* basis. A factor of three apart, because they measure different
-    things. What is missing is the EFF **wealth-percentile gradient** (spec §9 retrieval
-    list), which is what would say where inside the bracket a model with no buy-to-let entry
-    margin should sit. Phase B specifies the AEAT-basis sibling column (rented units only)
-    and decides which basis the gate is set against.
+    bracket rather than band it: EFF 36.1% of households own other real estate (2022 wave),
+    revised to 45.3% in the register's most recent wave (2024, DO 2610), and AEAT's 2.37M
+    landlord declarants over the 19.87M household anchor (§7) ≈ 11.9% on a
+    *declaring-rental-income* basis. Roughly three-to-four-fold apart, because they measure
+    different things. What is missing is the EFF **wealth-percentile gradient** (spec §9
+    retrieval list), which is what would say where inside the bracket a model with no
+    buy-to-let entry margin should sit. Phase B specifies the AEAT-basis sibling column
+    (rented units only) and decides which basis the gate is set against.
 15. **Foreclosure flow** [CGPJ mortgage foreclosures initiated, quarterly]: **deferred to
     phase C** and deliberately **not written as a test**. No insolvency mechanism exists
     (`engine._household_flows` absorbs non-payment), so there is nothing to measure: a test
@@ -685,13 +689,13 @@ number.
 > the episode that identifies it and the range the evidence admits. There is no third category.
 
 A reduced-form rule with no identifying episode is a defect, not a simplification.
-**Nineteen** rules currently fail this test: the nine named in the redesign spec §3.1, plus ten
-the phase-0 register pass added — `NET_INCOME_FACTOR`, `buy_attempt_prob`, `max_listing_ticks`,
-the frictionless leg of assortative rental matching, the 5% over-budget search tolerance,
-`EXIT_SPLIT_EVASION_BASE`, the investor's ×1.15 accumulation band, `PRIME_HURDLE_SPREAD`,
-`EXIT_LIST_SHARE` and `MAX_BUYS_PER_TICK`. The criterion, the full list and the scope of the
-count are in `docs/assumptions.md`; a rule with no row there is a finding against the
-register.
+**Twenty** rules currently fail this test: the nine named in the redesign spec §3.1, plus
+eleven the phase-0 register pass added — `NET_INCOME_FACTOR`, `buy_attempt_prob`,
+`max_listing_ticks`, the frictionless leg of assortative rental matching, the 5% over-budget
+search tolerance, `EXIT_SPLIT_EVASION_BASE`, the investor's ×1.15 accumulation band,
+`PRIME_HURDLE_SPREAD`, `EXIT_LIST_SHARE`, `MAX_BUYS_PER_TICK` and the pace leg of
+`SEARCH_BURDEN_ESCALATION`. The criterion, the full list and the scope of the count are in
+`docs/assumptions.md`; a rule with no row there is a finding against the register.
 
 ### 13.4 Calibration protocol
 
