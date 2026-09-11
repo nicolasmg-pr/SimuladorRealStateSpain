@@ -46,6 +46,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["seeker_share"] = seekers / n_hh
     row["transactions"] = len(trades)
     row["new_leases"] = len(rentals)
+    # time to sell, in ticks (model-spec §9 target 13). Reported, not gated: the idealista
+    # days-on-market distribution is not yet a row in docs/sources.md. It is the observable
+    # that identifies the phase-D auction without touching the price level (spec §7.7).
+    row["median_ticks_to_sale"] = (
+        float(np.median([t.ticks_listed for t in trades])) if trades else float("nan")
+    )
     row["mortgage_rate"] = state.macro.mortgage_rate
     # how the purchase was paid for. Spain 2023: 973,637 sales against 381,560 new mortgage
     # deeds ⇒ 60.8% of purchases carried no registered mortgage [INE via Funcas 104 ch.3],

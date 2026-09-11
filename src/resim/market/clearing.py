@@ -45,6 +45,7 @@ class Trade:
     price: float
     cash: bool = False
     guaranteed: bool = False
+    ticks_listed: int = 0  # age of the listing when it matched — time-to-sale diagnostic
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,7 @@ def clear_sales(
                     price=best_bid,
                     cash=best_offer.cash,
                     guaranteed=best_offer.guaranteed,
+                    ticks_listed=lst.ticks_listed,
                 )
             )
             if best_offer.agent_id >= 0:

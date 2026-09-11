@@ -60,3 +60,33 @@ def test_landlord_household_share_counts_owners_of_units_they_do_not_live_in():
     assert row["landlord_households"] == len(expected)
     assert row["landlord_household_share"] == len(expected) / max(1, len(state.households))
     assert 0.0 <= row["landlord_household_share"] <= 1.0
+
+
+def test_trade_carries_the_listing_age():
+    """A matched trade reports how long its listing had been on the market."""
+    from resim.agents.base import MakeOffer
+    from resim.market.clearing import clear_sales
+    from resim.state import SaleListing
+
+    _, state = small_state()
+    unit = next(u for u in state.stock.units.values() if u.owner_id >= 0)
+    zs = state.zones[unit.zone]
+    ask = zs.price_index * unit.quality
+    state.sale_listings.clear()
+    state.sale_listings[unit.id] = SaleListing(
+        unit_id=unit.id, ask=ask, reserve=ask * 0.5, ticks_listed=3
+    )
+    # a negative agent id is an aggregate cash buyer, so no credit screen and no
+    # one-purchase-per-buyer dedup interferes with the assertion
+    offers = [MakeOffer(agent_id=-99, zone=unit.zone, budget=ask * 2.0, cash=True)]
+    trades = clear_sales(state, offers, np.random.default_rng(0))
+    assert trades, "a cash offer at twice the ask must clear"
+    assert trades[0].ticks_listed == 3
+
+
+def test_median_ticks_to_sale_is_reported():
+    """The column exists and is non-negative wherever the tick had trades."""
+    _, state = small_state()
+    row = state.history[-1]
+    value = row["median_ticks_to_sale"]
+    assert np.isnan(value) or value >= 0
