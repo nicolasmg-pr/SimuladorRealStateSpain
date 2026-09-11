@@ -5,6 +5,9 @@ measurement against the state. A column that is wrong here makes every target
 that reads it meaningless.
 """
 
+import numpy as np
+
+from resim import metrics
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
 from resim.scenario import Scenario
@@ -27,12 +30,33 @@ def test_net_migration_columns_sum_to_zero():
     assert total == 0
 
 
-def test_net_migration_counts_the_recorded_flows():
-    """The column is inflows minus outflows of the tick's recorded moves."""
+def test_net_migration_is_inflow_minus_outflow_on_known_flows():
+    """Hand-built flows, hand-computed expectations — no formula shared with the metric.
+
+    The previous version of this test recomputed the production expression on the same
+    dict, so it could catch a wiring regression but never a wrong definition.
+    """
     _, state = small_state()
-    flows = state.tick_events["migration"]
+    state.tick_events["migration"] = {
+        (ZoneType.TENSIONED, ZoneType.SECONDARY): 3,
+        (ZoneType.SECONDARY, ZoneType.RURAL): 2,
+    }
+    row = metrics.snapshot(state)
+    assert row["net_migration_tensioned"] == -3
+    assert row["net_migration_secondary"] == 1
+    assert row["net_migration_rural"] == 2
+
+
+def test_landlord_household_share_counts_owners_of_units_they_do_not_live_in():
+    """A landlord household owns at least one unit that is not its own home."""
+    _, state = small_state()
     row = state.history[-1]
-    for zone in ZoneType:
-        inflow = sum(n for (_, dest), n in flows.items() if dest is zone)
-        outflow = sum(n for (origin, _), n in flows.items() if origin is zone)
-        assert row[f"net_migration_{zone.value}"] == inflow - outflow
+    expected = {
+        hh.id
+        for hh in state.households.values()
+        for u in state.stock.units.values()
+        if u.owner_id == hh.id and u.id != hh.unit_id
+    }
+    assert row["landlord_households"] == len(expected)
+    assert row["landlord_household_share"] == len(expected) / max(1, len(state.households))
+    assert 0.0 <= row["landlord_household_share"] <= 1.0

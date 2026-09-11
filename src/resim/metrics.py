@@ -87,6 +87,20 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         1, len(rented)
     )
     row["public_rental_share"] = sum(1 for u in rented if u.is_public) / max(1, len(rented))
+    # how many HOUSEHOLDS are landlords — the anchor for buy-to-let entry (spec §7.3).
+    # Reported, not gated: the EFF2024 second-property share and the AEAT count of taxpayers
+    # declaring rental income are not yet rows in docs/sources.md. Today the model has no
+    # entry margin at all (a household buyer always becomes an owner-occupier), so this can
+    # only fall over a run — which is the defect it exists to measure.
+    landlord_ids = {
+        u.owner_id
+        for u in all_units
+        if u.owner_id >= 0
+        and u.owner_id in state.households
+        and state.households[u.owner_id].unit_id != u.id
+    }
+    row["landlord_households"] = len(landlord_ids)
+    row["landlord_household_share"] = len(landlord_ids) / n_hh
     row["vacancy_rate"] = sum(1 for u in all_units if u.tenure is Tenure.VACANT) / max(
         1, len(state.stock)
     )
