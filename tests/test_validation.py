@@ -46,14 +46,26 @@ def baseline_moments():
                 "pti_tensioned": tail["price_to_income_tensioned"].mean(),
                 "pti_secondary": tail["price_to_income_secondary"].mean(),
                 "pti_rural": tail["price_to_income_rural"].mean(),
+                "gy_tensioned": tail["gross_yield_tensioned"].mean(),
+                "gy_secondary": tail["gross_yield_secondary"].mean(),
+                "gy_rural": tail["gross_yield_rural"].mean(),
                 "price_ranking": (
                     tail["price_tensioned"].mean()
                     > tail["price_secondary"].mean()
                     > tail["price_rural"].mean()
                 ),
+                "rent_ranking": (
+                    tail["rent_tensioned"].mean()
+                    > tail["rent_secondary"].mean()
+                    > tail["rent_rural"].mean()
+                ),
                 "price_ratio_tr": (tail["price_tensioned"] / tail["price_rural"]).mean(),
                 "price_ratio_ts": (tail["price_tensioned"] / tail["price_secondary"]).mean(),
-                "tenant_ranking": True,  # checked per-zone below via rent levels
+                "tenant_ranking": (
+                    tail["tenant_share_tensioned"].mean()
+                    > tail["tenant_share_secondary"].mean()
+                    > tail["tenant_share_rural"].mean()
+                ),
                 "vacancy_t": tail["vacancy_tensioned"].mean(),
                 "vacancy_s": tail["vacancy_secondary"].mean(),
                 "vacancy_r": tail["vacancy_rural"].mean(),
@@ -72,6 +84,24 @@ def test_tenure_shares(baseline_moments):
     """
     assert 0.69 <= baseline_moments["ownership"] <= 0.75
     assert 0.25 <= baseline_moments["non_owner"] <= 0.32
+
+
+def test_tenant_share_ranking(baseline_moments):
+    """Target 1, ranking leg: tenant share must rank T > S > R.
+
+    This leg was carried in the fixture as a hardcoded `True` with a comment claiming it was
+    "checked per-zone below via rent levels" — it was not, by that test or any other, so the
+    leg was unmeasured. Now measured on `tenant_share_*` (metrics.snapshot): 31.4 / 22.7 /
+    17.0% on 3 seeds, and it holds on each seed separately.
+
+    Ranking only, not levels. Renting is a metro tenure in Spain and the ordering is not in
+    doubt [model-spec §7: T 0.27–0.30 / S ≈0.20 / R 0.12–0.17; household-tenant §6], but the
+    model's tensioned leg runs above that band, so a level gate here would be a claim the
+    zone abstraction cannot support (a tensioned zone holding 45% of households is not
+    Madrid). Asserted at exactly 1.0 — the fixture averages a per-seed boolean, so anything
+    less would let one seed of three carry the ranking.
+    """
+    assert baseline_moments["tenant_ranking"] == 1.0
 
 
 def test_price_to_income(baseline_moments):
@@ -108,6 +138,79 @@ def test_zone_price_ladder_holds(baseline_moments):
     """
     assert baseline_moments["price_ratio_tr"] > 2.6
     assert baseline_moments["price_ratio_ts"] > 1.3
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: rural gross yield runs to ≈17.2% against a sourced 7–9%. "
+    "required_rent pins the yield floor to price, rural rental supply has no entry "
+    "margin (investor skips rural, households never buy to let) and downward-only "
+    "migration funnels every priced-out seeker into it. Fixed by the total-return "
+    "hurdle and buy-to-let entry (spec §7.1, §7.3 — phase B).",
+)
+def test_zone_gross_yield_ladder(baseline_moments):
+    """Target 9: the gross rental yield ladder must EMERGE, not be imposed.
+
+    Sourced levels, idealista + BdE RBA [model-spec §7, investor-small §6]:
+    tensioned 4.7–5.6%, secondary 6.5–7.5%, rural 7–9%. Bands widened by 0.5pp on each
+    side for seed noise, the same tolerance convention as the other zone targets.
+
+    This is a target only because §7.1 of the redesign makes the yield an output.
+    `ZoneConfig.gross_yield` is an initial condition; what the model does with it afterwards
+    is a prediction, and right now the prediction is wrong.
+    """
+    assert 0.042 <= baseline_moments["gy_tensioned"] <= 0.061
+    assert 0.060 <= baseline_moments["gy_secondary"] <= 0.080
+    assert 0.065 <= baseline_moments["gy_rural"] <= 0.095
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: rural asking rent overtakes the tensioned index around tick 35-40 "
+    "and ends ≈13.5% above it on 3 seeds. The location premium discounts purchase "
+    "willingness in rural but nothing discounts rent acceptance (model-spec §5b), while "
+    "downward-only migration funnels seekers there and the sharing margin lifts accepted "
+    "burden to 0.55. Fixed by bidirectional migration and buy-to-let entry "
+    "(spec §7.3, §7.5 — phase B).",
+)
+def test_rent_level_ordering(baseline_moments):
+    """Target 11: asking rent levels must rank tensioned > secondary > rural.
+
+    The price ladder is gated (targets 2b-2d) and the rent ladder is not, which is how a
+    rural rent index above the metro one survived unnoticed. Spanish rent levels rank
+    strictly the other way at every published basis [idealista, SERPAVI, EPF regional
+    averages — €675/month Madrid against €277 Extremadura, Funcas 104 ch.5].
+
+    Asserted at exactly 1.0, not on truthiness. `rent_ranking` is a per-seed boolean and the
+    fixture collapses it with `float(np.mean(...))`, so any nonzero mean is truthy: a partial
+    fix that put one seed of three in the right order would read as "fixed", the strict xfail
+    would flip, and the target would be deleted while two seeds still had rural above the
+    metro. == 1.0 means ALL THREE seeds rank T > S > R, not an average that is merely
+    nonzero. This target exists to flip in phase B, once, and for the right reason.
+    """
+    assert baseline_moments["rent_ranking"] == 1.0
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: the migration rule is downward-only (engine._demography), so net "
+    "internal migration into the tensioned zone cannot be positive by construction. "
+    "Spain's net internal flow runs rural→metro. Fixed by bidirectional flows identified "
+    "on INE Migraciones y Variaciones Residenciales (spec §7.5 — phase B).",
+)
+def test_net_internal_migration_favours_the_metro():
+    """Target 12: cumulative net internal migration into TENSIONED must be positive.
+
+    Direction only — the level needs the INE series, which is not yet in
+    `docs/sources.md`. The sign is not in doubt and the model has it inverted: households
+    can only move down the ladder, so the tensioned zone is a net loser of internal
+    migrants in every run.
+    """
+    nets = []
+    for seed in (1, 2, 3):
+        frame = metrics.to_frame(Engine(build_scenario("baseline", seed, 60)).run())
+        nets.append(frame["net_migration_tensioned"].sum())
+    assert float(np.mean(nets)) > 0
 
 
 def test_transaction_volume(baseline_moments):
@@ -235,6 +338,54 @@ def test_holdout_boom_rent_growth():
     """
     _, rent, _ = _holdout_boom((3, 5, 7, 8, 9, 11, 13, 17, 19, 23))
     assert float(np.mean(rent)) > 0.025
+
+
+def test_boom_compresses_the_gross_yield():
+    """Target 10: in a boom the gross rental yield must COMPRESS.
+
+    Sign test only. Spain 2014-25 ran prices ahead of rents and gross yields fell.
+
+    A band on the *level* of the compression would need the 2014–25 idealista yield **time
+    series**. What `docs/sources.md` registers is the Q4-2025/Q1-2026 **cross-section**
+    (Spain 6.7%, Madrid 4.7%, Barcelona 5.6%, capitals to 7.5%) — enough to anchor the zone
+    ladder in target 9, and silent about the path. The direction is what is asserted here
+    (model-spec §13.1: direction, not magnitude).
+
+    **The margin is thin, deliberately left as it is.** 5 seeds, change in the tensioned
+    gross yield over the boom: −29.6 / −22.2 / −1.5 / −2.9 / −34.8 bp, mean −18.2bp
+    (0.0539 → 0.0521). All five compress, but two are all but flat, and the assertion carries
+    no seed band. Tightening a gate belongs to a measurement campaign, not to a fix wave, so
+    phase B should revisit whether this needs a band — by which time compression is the
+    hurdle rule's direct prediction rather than the lag artefact described below, and the
+    right band will be a different question.
+
+    Mechanically this is the signature of the landlord's reservation rule. Under the current
+    rule the reservation rent is a fixed multiple of value, so the yield floor tracks price
+    one-for-one and compression can only come from the gap between the asking index and that
+    floor. Under the total-return hurdle (spec §7.1) compression is the rule's direct
+    prediction: E[g] up ⇒ required rent yield down.
+    """
+    starts, ends = [], []
+    for seed in (3, 5, 7, 8, 9):
+        cfg = SimConfig.baseline(seed=seed, ticks=40)
+        cfg = dataclasses.replace(
+            cfg,
+            population=dataclasses.replace(
+                cfg.population, formation_per_tick=33, formation_income_factor=1.0
+            ),
+            developer=dataclasses.replace(
+                cfg.developer, base_starts_per_tick=11, max_starts_per_tick=12
+            ),
+        )
+        scenario = Scenario(
+            name="holdout",
+            baseline=cfg,
+            interventions=(RateShock(start_tick=20, euribor=0.005),),
+        )
+        frame = metrics.to_frame(Engine(scenario).run())
+        starts.append(frame["gross_yield_tensioned"].iloc[20:24].mean())
+        ends.append(frame["gross_yield_tensioned"].iloc[36:40].mean())
+    assert float(np.mean(ends)) < float(np.mean(starts))
 
 
 def test_holdout_2021_2025_runup():

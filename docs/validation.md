@@ -50,14 +50,16 @@ Two parameters are now *derived* rather than fitted, which removes two degrees o
 
 ## Validation targets vs baseline (model-spec §9)
 
-5-seed means, last 20 of 60 ticks. **Current as of the 2026-09-08 fourth pass — every target
-passes and the suite carries no xfails.** The revision sections below are dated records of how
+5-seed means, last 20 of 60 ticks. **Current as of the 2026-09-08 fourth pass — every target in
+*this* table passes.** The suite does carry three strict xfails; they belong to the phase-0
+targets below (9, 11, 12), added 2026-09-11. The revision sections below are dated records of how
 each one was reached; where their numbers differ from this table, this table is the live one.
 
 | # | Target | Empirical range | Model | Pass |
 |---|---|---|---|---|
 | 1 | Ownership rate | 70–74% (EFF2024); 75.3–76.4% (MITMA/EPF, Funcas 104) | 69.3% | ✓ gate (69–75), but **below the EFF band** — see "Honest qualifications" |
 | 1b | Non-owner share (tenant + seeker ≈ ceded/sharing) | 24–31% | 30.8% (25.2 + 5.6) | ✓ |
+| 1c | Tenant share ranking T > S > R | strict; renting is a metro tenure [model-spec §7: T 0.27–0.30 / S ≈0.20 / R 0.12–0.17] | **31.4 / 22.7 / 17.0%** (3 seeds), ranking holds on each seed | ✓ **ranking gated; levels are not** — the tensioned leg runs above its band, same zone-aggregation qualification as 2d. Was an unmeasured stub until 2026-09-12 |
 | 2 | Price-to-income (disposable basis, BdE) | 7–8 | 7.15 | ✓ |
 | 2b | Price *level* ranking T > S > R | — | holds | ✓ |
 | 2c | Price-to-**income** ranking T > S > R | — | **8.35 / 6.24 / 4.78** | ✓ **fixed by the location premium (§5b); was inverted** |
@@ -78,12 +80,63 @@ each one was reached; where their numbers differ from this table, this table is 
 | — | National supply elasticity (zone-weighted) | 0.45–0.58 | 0.49 | ✓ |
 | — | Zone dwellings/household weight to the national anchor | 1.12 ± 0.01 | 1.13 | ✓ invariant |
 
-Targets 3, 4 and 5 are asserted on their **sourced** bands. **No target is an xfail.** Two were
+Targets 3, 4 and 5 are asserted on their **sourced** bands. **No target in this table is an xfail.** Two were
 until 2026-09-08: the zone price ladder (2c), fixed by the location premium, and the hold-out
 rent leg (7r), fixed by the tightness recalibration without touching the rent mechanism. What
 remains is not a failing target but two *qualified* ones — 7r reaches only ≈40% of the observed
 magnitude, and 1 sits below the EFF ownership band — both carried in "Honest qualifications"
 and `model-spec` §10.
+
+## Phase-0 targets (2026-09-11)
+
+Seven observable moments added by the redesign's phase 0
+(`docs/superpowers/specs/2026-09-11-model-redesign-design.md` §6). Several are red on
+arrival — that is their purpose: they make defects that were invisible into failures the
+suite reports. Reporting categories follow `model-spec.md §13.1`.
+
+| # | Target | Empirical range | Model | Status |
+|---|---|---|---|---|
+| 9 | Zone gross-yield ladder, emergent | T 4.7–5.6 / S 6.5–7.5 / R 7–9% (idealista + BdE RBA) | T 5.1 / S 6.6 / R 17.2% | ✗ **strict xfail** — rural ≈2× the band; phase B |
+| 10 | Boom compresses the gross yield | direction only. `sources.md` registers an idealista **cross-section** (Q4-2025/Q1-2026: Spain 6.7%, Madrid 4.7%, Barcelona 5.6%, capitals to 7.5%); a band on the *compression* needs the 2014–25 **time series**, which is not registered | 5.39% → 5.21% (5 seeds × 40 ticks, hold-out boom — not the table's 3-seed tail-mean basis). Per-seed: −29.6 / −22.2 / −1.5 / −2.9 / −34.8 bp — all compress, two are all but flat | ✓ **pass** — live gate, thin margin (0.18pp, no seed band); phase B should revisit whether it needs one |
+| 11 | Rent level ordering T > S > R | strict, at every published basis | False; R +13.5% over T (tail mean) | ✗ **strict xfail** — rural overtakes the metro around tick 35–40; phase B |
+| 12 | Net internal migration into TENSIONED > 0 | direction only (INE Migraciones not yet sourced) | −433.67 (cumulative sum over the run, not a tail mean; seeds −424 / −432 / −445) | ✗ **strict xfail** — the rule is downward-only; phase B |
+| 13 | Time to sell (`median_ticks_to_sale`) | idealista days on market — **to verify** | 0.0 ticks | reported, not gated; phase D gates it |
+| 14 | Landlord households (`landlord_household_share`), **EFF basis** — owns a dwelling it does not live in | A **bracket**, not a band: EFF 36.1% of households own other real estate (2022 wave), revised to 45.3% in the register's most recent wave (2024, DO 2610) — the *ownership* basis, which is what the column measures — against AEAT's 2.37M landlord declarants over the 19.87M household anchor (`model-spec §7`) ≈ **11.9%**, a *declaring-rental-income* basis. Both waves registered in `docs/sources.md`; what is missing is the EFF **wealth-percentile gradient** (redesign spec §9 retrieval list) | 27.1% — between the two ends | reported, not gated. Two bases roughly three-to-four-fold apart bracket the column, they do not band it; which end the gate is set against is a phase-B decision, and depends on the AEAT-basis sibling column described below |
+| 15 | Foreclosure flow | CGPJ — **to verify** | not measurable | deferred to phase C: no insolvency mechanism exists, so no test is written. Registered in `docs/holdout-2008-2013.md` |
+
+Two of these are the same defect seen from different sides: the rural rent level (11) and the
+rural yield (9). The zone ladder was gated on prices only, so a rural asking rent above the
+metro index survived 60 ticks and 3 seeds unnoticed.
+
+Target 15 is deliberately **not** written as a test. A test that cannot run is not evidence of
+anything, and an xfail on a missing mechanism would be decoration.
+
+**Target 14 measures ownership, not letting.** `landlord_household_share` counts any household
+owning a unit it does not live in, so vacant second homes, withheld stock, seasonal units and
+the inherited-but-vacant dwellings the assumption register flags as an ownership leak all count.
+That is the EFF "owns other real estate" basis, and it is not the basis of the AEAT end of the
+bracket. Phase B needs a **sibling column restricted to `Tenure.RENTED` units** — the AEAT
+basis, and the one buy-to-let entry should actually be judged on. It is not added here: phase 0
+adds no mechanism, and specifying that measurement is phase B's job.
+
+Two corrections to what was previously written about this column. Its anchors are **not**
+unregistered — EFF 36.1% and the AEAT declarant counts are both rows in `docs/sources.md`; the
+figure the redesign spec's retrieval list is still missing is the EFF wealth-percentile
+gradient. And the share does **not** "only fall over a run": measured 0.27116 at tick 1 against
+0.27097 at tick 60 (3-seed mean, a 0.02pp move), and rising on roughly half the tick
+transitions. The claim does not hold analytically either, because the dissolution rule hands
+whole estates to surviving households, which creates landlord households as readily as the
+absence of a buy-to-let margin retires them.
+
+**Target 1's ranking leg is now measured.** `model-spec §9` target 1 has a "tenant share
+ranking T > S > R" leg that the validation fixture carried as a hardcoded `True`, with a comment
+claiming it was checked via rent levels — it was not, by that test or any other, so the leg was
+unmeasured. Measured on the new `tenant_share_*` columns, 3 seeds, last 20 of 60 ticks:
+**31.4 / 22.7 / 17.0%**, ranking correctly on every seed separately (seed 1: 31.1 / 22.5 / 17.2;
+seed 2: 31.7 / 22.9 / 17.7; seed 3: 31.6 / 22.8 / 16.1). Now gated, on the ranking only: the
+tensioned leg runs above the 0.27–0.30 band in `model-spec §7`, which is the same
+zone-aggregation qualification that target 2d carries — a tensioned zone holding 45% of
+households is not Madrid.
 
 ## Zone price ladder — the one failing target
 
@@ -774,6 +827,51 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   it. But 0.02 is *directly observed* (tensioned-zone yield 4.7–5.6 against a ~3% bond), and
   the gap turned out to be a measurement-basis error, not a parameter error (D5 below).
   Bending an observed parameter to fix a mis-specified indicator would have hidden the bug.
+
+### Phase-0 referee pass (2026-09-11)
+
+Objections a hostile reader can raise against phase 0, answered or conceded.
+
+- **"You widened the yield bands by 0.5pp until the test said what you wanted."** Conceded as
+  a judgement call, not as a fit: the widening is symmetric, applied before the test was run,
+  and the test fails anyway by roughly a factor of two on the rural leg. The convention matches the
+  other zone targets (3 seeds, last 20 of 60 ticks).
+- **"Three xfails is three failures you are choosing to live with."** Conceded, and that is the
+  point of writing them down. Each names the mechanism that will fix it and the phase it
+  lands in. Strict xfail means an accidental pass also fails the suite, so none of them can
+  quietly stop being true.
+- **"`median_ticks_to_sale` and `landlord_household_share` are gates you declined to set."**
+  Conceded, but for two different reasons, and the first version of this answer got the second
+  one wrong. `median_ticks_to_sale` has no anchor at all: nothing in `docs/sources.md` carries
+  days on market, the row says **to verify**, and phase D gates it.
+  `landlord_household_share` has *two* registered anchors — EFF 36.1% (2022 wave) / 45.3%
+  (2024 wave, DO 2610) and the AEAT declarant counts — which is precisely why it is not gated:
+  on an ownership basis and a declaring-rental-income basis they sit roughly three-to-four-fold
+  apart, so they bracket the column rather than banding it. Setting a gate would mean choosing
+  a basis, and that choice needs the EFF wealth-percentile gradient and the AEAT-basis sibling
+  column, both phase B.
+- **"The assumption register is your own account of your own work."** True, and it is
+  falsifiable in the only way that matters: every row names a code site, so any row can be
+  checked against the code, and a rule with no row is a finding against the register.
+- **"Sealing the hold-out is unverifiable — you could have looked."** Partly conceded. What is
+  verifiable is the order of commits: the seal predates the bust inputs, which predate the
+  run. What is not verifiable is what the authors knew. The 2008–13 episode is public
+  knowledge; the claim is not that nobody knows how it ended, but that no *parameter* was
+  fitted to it, which the history does evidence.
+- **"Target 10 passes, so the model gets yield compression right."** Conceded, and this is
+  phase 0's most important qualification. Under the current rule a landlord's reservation rent
+  is a fixed multiple of the unit's value, so the compression measured here (5.39% → 5.21%,
+  5 seeds, hold-out boom, ticks 20:24 against 36:40) is a byproduct of asking rents lagging
+  prices, not of a required yield responding to expected appreciation. The lag figures quoted
+  for that reading, +3.6%/yr rents against +4.4%/yr prices, are the **10-seed `_holdout_boom`**
+  numbers (3.57 / 4.38) on a ticks-24:40 window — a different basis from the compression
+  measurement. The 5-seed basis agrees (3.78 / 4.57), which is why the reasoning stands; every
+  other basis on this branch is labelled and this one now is too. The target passes
+  for a reason that is not the mechanism it was written to identify, which makes it
+  uninformative until phase B replaces the reservation rule with a total-return condition and
+  compression becomes that rule's direct prediction. A target that passes for the wrong reason
+  is worse than one that fails, because it stops being evidence. Re-read this row after
+  phase B.
 
 ## Sensitivity screen, superseded (OAT, seed 42)
 

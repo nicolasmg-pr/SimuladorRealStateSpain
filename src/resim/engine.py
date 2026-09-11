@@ -413,13 +413,20 @@ class Engine:
                     if unit.owner_id in gone:
                         unit.owner_id = int(heirs[int(rng.integers(len(heirs)))])
 
-        # migration: priced-out seekers slide down the zone ladder [guess]
+        # migration: priced-out seekers slide down the zone ladder [guess — reduced form with
+        # no identifying episode, and the WRONG SIGN: Spain's net internal flow runs
+        # rural→metro. Replaced by bidirectional flows in phase B, spec §7.5. The flows are
+        # counted here so the defect is measurable before it is fixed.]
         ladder = {ZoneType.TENSIONED: ZoneType.SECONDARY, ZoneType.SECONDARY: ZoneType.RURAL}
+        flows: dict[tuple[ZoneType, ZoneType], int] = {}
         for hh in state.households.values():
             if hh.status is HouseholdStatus.SEEKER and hh.zone in ladder:
                 zs = state.zones[hh.zone]
                 if zs.rent_index * 12 > hh.max_rent_burden * hh.income and rng.random() < 0.10:
-                    hh.zone = ladder[hh.zone]
+                    origin, dest = hh.zone, ladder[hh.zone]
+                    hh.zone = dest
+                    flows[(origin, dest)] = flows.get((origin, dest), 0) + 1
+        state.tick_events["migration"] = flows
 
     # -- 3 ------------------------------------------------------------------
 

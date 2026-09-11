@@ -46,6 +46,15 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["seeker_share"] = seekers / n_hh
     row["transactions"] = len(trades)
     row["new_leases"] = len(rentals)
+    # time to sell, in ticks (model-spec §9 target 13). Reported, not gated: the idealista
+    # days-on-market distribution is not yet a row in docs/sources.md. It is the observable
+    # that identifies the phase-D auction without touching the price level (spec §7.7).
+    # Unit of the scale, for whoever converts that distribution to quarters: listings age at
+    # the top of `engine._apply_listings`, before clearing, so a listing created and matched
+    # inside the same tick reads 0, not 1 — "sold within the tick" maps to 0, not to ≤1.
+    row["median_ticks_to_sale"] = (
+        float(np.median([t.ticks_listed for t in trades])) if trades else float("nan")
+    )
     row["mortgage_rate"] = state.macro.mortgage_rate
     # how the purchase was paid for. Spain 2023: 973,637 sales against 381,560 new mortgage
     # deeds ⇒ 60.8% of purchases carried no registered mortgage [INE via Funcas 104 ch.3],
@@ -87,6 +96,37 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         1, len(rented)
     )
     row["public_rental_share"] = sum(1 for u in rented if u.is_public) / max(1, len(rented))
+    # how many HOUSEHOLDS are landlords — the anchor for buy-to-let entry (spec §7.3).
+    #
+    # BASIS: this is the EFF "owns other real estate" basis — any household owning a unit it
+    # does not live in, so vacant second homes, withheld stock, seasonal units and the
+    # inherited-but-vacant dwellings the assumption register flags as an ownership leak all
+    # count. It is NOT the AEAT "declares rental income" basis. Phase B will need a sibling
+    # column restricted to units at `Tenure.RENTED` — that is the AEAT basis, and it is the
+    # one buy-to-let entry should be judged on. Not added here: phase 0 adds no mechanism.
+    #
+    # Reported, not gated. Both anchors ARE registered — EFF 36.1% of households own other
+    # real estate (2022 wave), revised to 45.3% in the register's most recent wave (2024, DO
+    # 2610) — and AEAT 2.37M landlord declarants ≈ 11.9% of the model's 19.87M household
+    # anchor [docs/sources.md, model-spec §7]. They differ roughly three-to-four-fold because
+    # they measure different things, so they bracket rather than band this column; what is
+    # missing is the EFF wealth-percentile gradient that would say where inside the bracket
+    # the model should sit (redesign spec §9 retrieval list).
+    #
+    # Today the model has no entry margin at all (a household buyer always becomes an
+    # owner-occupier), which is the defect this column exists to measure. It does NOT follow
+    # that the share can only fall: measured 0.27116 at tick 1 against 0.27097 at tick 60
+    # (3-seed mean, a 0.02pp move), rising on roughly half the tick transitions, because
+    # dissolution hands whole estates to surviving households.
+    landlord_ids = {
+        u.owner_id
+        for u in all_units
+        if u.owner_id >= 0
+        and u.owner_id in state.households
+        and state.households[u.owner_id].unit_id != u.id
+    }
+    row["landlord_households"] = len(landlord_ids)
+    row["landlord_household_share"] = len(landlord_ids) / n_hh
     row["vacancy_rate"] = sum(1 for u in all_units if u.tenure is Tenure.VACANT) / max(
         1, len(state.stock)
     )
@@ -157,6 +197,8 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # cap in force the whole zone reads as "declared", so the split degenerates to the pooled
     # series and nothing spurious is reported.
     cap_coverage = state.config.policy.cap_coverage
+    # inter-zone moves recorded by engine._demography this tick, keyed (origin, destination)
+    migration = state.tick_events.get("migration", {})
     access_ok = access_total = 0
     zone_weights: dict[ZoneType, float] = {}
     for zone in ZoneType:
@@ -166,6 +208,10 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"price_{z}"] = zs.price_index
         row[f"rent_{z}"] = zs.rent_index
         row[f"rent_transacted_{z}"] = zs.rent_transacted
+        # gross rental yield, EMERGENT (model-spec §9 target 9). `ZoneConfig.gross_yield` is
+        # an initial condition only; the ladder the model then produces is a prediction, and
+        # the one observable that tells us whether the landlord's reservation rule is right.
+        row[f"gross_yield_{z}"] = zs.rent_index * 12.0 / max(zs.price_index, 1.0)
         row[f"reference_rent_{z}"] = zs.reference_rent
         # the uncapped clearing rent landlords compare a cap against (= rent index when free)
         row[f"shadow_rent_{z}"] = zs.shadow_rent
@@ -185,6 +231,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"new_leases_{z}"] = sum(
             1 for r in rentals if state.stock.units[r.unit_id].zone is zone
         )
+        # net internal migration, model-scale households/tick (model-spec §9 target 12).
+        # Spain's net internal flow runs rural→metro; the current rule can only produce the
+        # opposite sign, which is why this is measured before it is fixed.
+        row[f"net_migration_{z}"] = sum(
+            n for (_, dest), n in migration.items() if dest is zone
+        ) - sum(n for (origin, _), n in migration.items() if origin is zone)
         # New contracts split by REGULATORY SEGMENT, so a partial-coverage cap can be read.
         # The pooled median mixes declared and non-declared municipalities and moves with the
         # mix, not with either segment's rent: at coverage 0.42 it comes out ABOVE baseline
@@ -207,6 +259,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"seasonal_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.SEASONAL)
         zone_hhs = [h for h in hhs if h.zone is zone]
         zone_weights[zone] = len(zone_hhs) / n_hh
+        # tenure mix by zone — the ranking leg of model-spec §9 target 1, which was stubbed
+        # out in the validation fixture and so went unmeasured. Renting is a metro tenure in
+        # Spain: T 0.27–0.30 / S ≈0.20 / R 0.12–0.17 [model-spec §7; household-tenant §6].
+        row[f"tenant_share_{z}"] = sum(
+            1 for h in zone_hhs if h.status is HouseholdStatus.TENANT
+        ) / max(1, len(zone_hhs))
         zi = float(np.median([h.income for h in zone_hhs])) if zone_hhs else median_income
         row[f"price_to_income_{z}"] = zs.price_index / (zi * DISPOSABLE_FACTOR)
 
@@ -228,6 +286,7 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         sum(state.zones[z].price_index * zone_weights[z] for z in ZoneType)
     )
     row["rent_national"] = float(sum(state.zones[z].rent_index * zone_weights[z] for z in ZoneType))
+    row["gross_yield_national"] = row["rent_national"] * 12.0 / max(row["price_national"], 1.0)
     # household-weighted national growth, per tick. The zone series already exist; these are
     # the national aggregates the published Spanish figures (INE IPV, BdE) are quoted on.
     row["price_growth_national"] = sum(

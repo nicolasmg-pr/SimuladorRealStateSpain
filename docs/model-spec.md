@@ -359,11 +359,17 @@ subclasses; effect direction = theory prediction, magnitude must EMERGE from cle
 
 ## 9. Validation (contract for Phase 6)
 
+What may be *claimed* from a passing target is governed by the reporting contract (§13):
+targets pass or fail here, but a passing target is not automatically a reportable magnitude.
+
 Baseline (no intervention, 2015–2025-like inputs) must reproduce, before any scenario
 result is reported:
 
 1. **Tenure shares**: owner 70–74% (EFF basis; ECV 2025 gives 73.3% owners, 20.2% renting,
    6.5% ceded), tenant 24–27% national; tenant share ranking T > S > R [household-tenant §6].
+   The ranking leg is gated since 2026-09-12 on the `tenant_share_*` columns (31.4 / 22.7 /
+   17.0%, holding on each of 3 seeds); its *levels* are not gated — the tensioned leg runs
+   above the 0.27–0.30 band in §7, the same zone-aggregation qualification target 2d carries.
 2. **Price-to-income**: national 7–8 (2024–26 window); T > S > R
    [household-owner §6]. Both legs pass since the location premium (§5b): 8.35 / 6.24 / 4.78
    with national 7.15, and the tensioned/rural price ratio holds at 2.87 against its initial
@@ -417,6 +423,70 @@ result is reported:
    tensioned queue ran slack) and was repaired by the shadow rent (§5b), metro-weighted
    formation (§4 step 2) and two hazard re-fits. Partial coverage (`coverage` < 1) is **not**
    reportable on the pooled rent (T7).
+
+Targets 9–15 are the **phase-0 precision contract** (redesign spec §5, §6): seven observable
+moments the model could already have been failing silently. Several are red on arrival — that
+is their purpose. Measured values live in `docs/validation.md` "Phase-0 targets" and are not
+repeated here; what is fixed here is what each target asserts, on what evidence, and what a
+pass is allowed to mean.
+
+9. **Zone gross-yield ladder, EMERGENT**: tensioned 4.7–5.6%, secondary 6.5–7.5%, rural 7–9%
+   [idealista Q4-2025/Q1-2026 cross-section — Spain 6.7%, Madrid 4.7%, Barcelona 5.6%,
+   capitals to 7.5%; BdE DO 2432 RBA 5.5%]. Bands widened symmetrically by 0.5pp for seed
+   noise, the same convention as the other zone targets. Gated. `ZoneConfig.gross_yield` is an
+   initial condition only: the ladder the model then produces is a prediction, and the single
+   observable that says whether the landlord's reservation rule is right. **Strict xfail** —
+   the rural leg runs at roughly twice the band. Fixed by the total-return hurdle and
+   buy-to-let entry (spec §7.1, §7.3 — **phase B**).
+10. **Boom compresses the gross yield**: direction only. Spain 2014–25 ran prices ahead of
+    rents and gross yields fell. Gated on the sign, and only on the sign: the registered
+    idealista row is a **cross-section**, not the 2014–25 **time series** a band on the
+    compression itself would need. Passing — and this is phase 0's most important
+    qualification, because under the current reservation rule it passes as a byproduct of
+    asking rents lagging prices, not as the prediction of a required yield responding to
+    expected appreciation (`docs/validation.md`, referee pass). Re-read it after phase B.
+11. **Rent level ordering T > S > R**: strict, at every published basis [idealista, SERPAVI,
+    EPF regional averages — €675/month Madrid against €277 Extremadura, Funcas 104 ch.5].
+    Gated. The zone ladder was gated on *prices* only (target 2b), which is how a rural asking
+    rent above the metro index survived 60 ticks and 3 seeds unnoticed. Asserted on all three
+    seeds, not on a seed average. **Strict xfail** — rural overtakes the metro around tick
+    35–40. Fixed by bidirectional migration and buy-to-let entry (spec §7.3, §7.5 —
+    **phase B**).
+12. **Net internal migration into TENSIONED > 0**: direction only; the level needs INE
+    Migraciones y Variaciones Residenciales, which is not yet registered. Gated on the sign.
+    Spain's net internal flow runs rural→metro and the model has it inverted by construction
+    (`engine._demography` moves households one step *down* the ladder and never up). **Strict
+    xfail** — it cannot be positive until the rule changes. Fixed by bidirectional flows
+    identified on the INE series (spec §7.5 — **phase B**).
+13. **Time to sell** (`median_ticks_to_sale`, quarters): **reported, not gated**. No source in
+    `docs/sources.md` carries days on market; the idealista days-on-market distribution is on
+    the §9 retrieval list and phase D gates this once it lands. It is the observable that
+    identifies the phase-D ascending auction *without* touching the price level (spec §7.7).
+    Its governing assumptions today are `MarketConfig.ask_decay` and `max_listing_ticks`,
+    both guesses (`docs/assumptions.md`) — "guess" and "fails the derived-or-reduced-form
+    rule" are different predicates, though: `ask_decay` is a guessed *level* that still names
+    an identifying episode and an admitted range, so of the two only `max_listing_ticks` is
+    among the twenty failing rules. Conversion note: listings age before clearing, so
+    "sold within the tick" is 0 ticks, not ≤1.
+14. **Landlord households** (`landlord_household_share`): **reported, not gated**, on an
+    explicit **EFF basis** — households owning a dwelling they do not live in, which includes
+    vacant second homes, withheld and seasonal stock. Two anchors are registered and they
+    bracket rather than band it: EFF 36.1% of households own other real estate (2022 wave),
+    revised to 45.3% in the register's most recent wave (2024, DO 2610), and AEAT's 2.37M
+    landlord declarants over the 19.87M household anchor (§7) ≈ 11.9% on a
+    *declaring-rental-income* basis. Roughly three-to-four-fold apart, because they measure
+    different things. What is missing is the EFF **wealth-percentile gradient** (spec §9
+    retrieval list), which is what would say where inside the bracket a model with no
+    buy-to-let entry margin should sit. Phase B specifies the AEAT-basis sibling column
+    (rented units only) and decides which basis the gate is set against.
+15. **Foreclosure flow** [CGPJ mortgage foreclosures initiated, quarterly]: **deferred to
+    phase C** and deliberately **not written as a test**. No insolvency mechanism exists
+    (`engine._household_flows` absorbs non-payment), so there is nothing to measure: a test
+    that cannot run is not evidence, and an xfail on a missing mechanism is decoration.
+    Registered in `docs/holdout-2008-2013.md` and in the assumption register.
+
+Three of these (9, 11, 12) are strict xfails. Strict means an accidental pass also fails the
+suite, so none of them can quietly stop being true, and none can be retired by a partial fix.
 
 Calibration: direct where observable (EFF distributions, lags, tenure); latin-hypercube
 sweep on free parameters (λ, WTP dispersion, ask-decay, matching frictions) against
@@ -581,3 +651,80 @@ as authoritative whether or not it deserves to:
 
 Rows whose model side is a calibrated *input* rather than a result (household formation,
 supply elasticity) are labelled as such: they verify the scale conversion, not the model.
+
+## 13. Reporting contract
+
+What the model is allowed to claim, and on what basis. This section governs every other
+section: a result that violates it is not reported, however well it fits.
+
+**The standard is the framing, not the outcome.** What is under the project's control is the
+specification — which primitives, which assumptions, which evidence, and what the model
+refuses to say. A realised future is not a test of the framing.
+
+### 13.1 Reporting categories
+
+Every quantity carries exactly one:
+
+- **magnitude** — reportable as a number with a seed band. Requires: a sourced empirical band
+  it is measured against, ≥10 seeds, and no `assumed` parameter above the variance threshold
+  (§13.2).
+- **direction** — reportable as a sign and an ordering only.
+- **not reportable** — measured internally, used as a diagnostic, never quoted.
+
+### 13.2 Variance rule
+
+> No quantity is reported as a **magnitude** if an `assumed` parameter explains more than 25%
+> of its variance in the Sobol decomposition.
+
+Applied to the current model this downgrades to direction-only: `price_to_income`
+(`overbid_sigma`, 56%), `rent_overburden_share` and the rent level
+(`landlord_required_spread`, 65% and 40%), and tensioned market vacancy (74%). The rule sets
+the evidence-work priority order without argument: source the parameter, or stop quoting the
+number.
+
+### 13.3 Derived-or-reduced-form rule
+
+> Every behavioural rule is either **derived** from a declared primitive — an optimisation, an
+> arbitrage condition, an accounting constraint — or explicitly labelled **reduced form**, with
+> the episode that identifies it and the range the evidence admits. There is no third category.
+
+A reduced-form rule with no identifying episode is a defect, not a simplification.
+**Twenty** rules currently fail this test: the nine named in the redesign spec §3.1, plus
+eleven the phase-0 register pass added — `NET_INCOME_FACTOR`, `buy_attempt_prob`,
+`max_listing_ticks`, the frictionless leg of assortative rental matching, the 5% over-budget
+search tolerance, `EXIT_SPLIT_EVASION_BASE`, the investor's ×1.15 accumulation band,
+`PRIME_HURDLE_SPREAD`, `EXIT_LIST_SHARE`, `MAX_BUYS_PER_TICK` and the pace leg of
+`SEARCH_BURDEN_ESCALATION`. The criterion, the full list and the scope of the count are in
+`docs/assumptions.md`; a rule with no row there is a finding against the register.
+
+### 13.4 Calibration protocol
+
+1. Calibrate on **2014–2025 moments only**. 2008–2013 is sealed (`docs/holdout-2008-2013.md`).
+2. **Nothing measured is fitted.** A parameter with a direct Tier-1 measurement is data, not a
+   degree of freedom.
+3. Fitting order: LHS over free parameters → Morris screening → Sobol on survivors → variance
+   rule applied → *then* the hold-out is run **once** and reported, pass or fail. A failure is
+   reported as a failure. Re-fitting against the hold-out destroys it as evidence and is the
+   one irreparable objection available against this project.
+4. Runs cached to `runs/` with seed and config hash, with a pre-registration file committed
+   before the run (`docs/prereg/TEMPLATE.md`).
+5. Nothing is reported on fewer than 10 seeds once phase E has landed.
+
+### 13.5 Falsification
+
+Every mechanism in §5–§7 declares the observation that would kill it. A mechanism that cannot
+fail is not saying anything, and is the objection most often fatal to public housing
+commentary.
+
+### 13.6 Adversarial referee pass
+
+Each phase closes with an explicit hostile-reader pass: every objection answered **or conceded
+in writing**. `docs/validation.md` "Honest qualifications" is the register; it is procedure,
+not goodwill.
+
+## 14. Exogenous boundary
+
+What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
+boundary": macro feedback, employment and income paths, policy rates, foreign origin-country
+conditions, geography below the zone, construction input costs, landlord taxation and
+utilities, and unmodellable shocks. Being outside is not a defect. Leaving it unsaid would be.
