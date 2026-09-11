@@ -85,6 +85,30 @@ remains is not a failing target but two *qualified* ones — 7r reaches only ≈
 magnitude, and 1 sits below the EFF ownership band — both carried in "Honest qualifications"
 and `model-spec` §10.
 
+## Phase-0 targets (2026-09-11)
+
+Seven observable moments added by the redesign's phase 0
+(`docs/superpowers/specs/2026-09-11-model-redesign-design.md` §6). Several are red on
+arrival — that is their purpose: they make defects that were invisible into failures the
+suite reports. Reporting categories follow `model-spec.md §13.1`.
+
+| # | Target | Empirical range | Model | Status |
+|---|---|---|---|---|
+| 9 | Zone gross-yield ladder, emergent | T 4.7–5.6 / S 6.5–7.5 / R 7–9% (idealista + BdE RBA) | T 5.1 / S 6.6 / R 17.2% | ✗ **strict xfail** — rural ≈3× the band; phase B |
+| 10 | Boom compresses the gross yield | direction only (idealista series not yet sourced) | 5.39% → 5.21% (5 seeds) | ✓ **pass** — live gate |
+| 11 | Rent level ordering T > S > R | strict, at every published basis | False; R +13.5% over T (tail mean) | ✗ **strict xfail** — rural overtakes the metro around tick 35–40; phase B |
+| 12 | Net internal migration into TENSIONED > 0 | direction only (INE Migraciones not yet sourced) | −433.67 (cumulative sum over the run, not a tail mean; seeds −424 / −432 / −445) | ✗ **strict xfail** — the rule is downward-only; phase B |
+| 13 | Time to sell (`median_ticks_to_sale`) | idealista days on market — **to verify** | 0.0 ticks | reported, not gated; phase D gates it |
+| 14 | Landlord households (`landlord_household_share`) | EFF2024 second-property share; AEAT declarants — **to verify** | 27.1% | reported, not gated; phase B gates it |
+| 15 | Foreclosure flow | CGPJ — **to verify** | not measurable | deferred to phase C: no insolvency mechanism exists, so no test is written. Registered in `docs/holdout-2008-2013.md` |
+
+Two of these are the same defect seen from different sides: the rural rent level (11) and the
+rural yield (9). The zone ladder was gated on prices only, so a rural asking rent above the
+metro index survived 60 ticks and 3 seeds unnoticed.
+
+Target 15 is deliberately **not** written as a test. A test that cannot run is not evidence of
+anything, and an xfail on a missing mechanism would be decoration.
+
 ## Zone price ladder — the one failing target
 
 **Symptom.** The tensioned/rural price ratio decays from 3.18× at tick 1 to 1.89× at tick 60,
