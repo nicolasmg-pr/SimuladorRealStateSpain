@@ -94,8 +94,8 @@ suite reports. Reporting categories follow `model-spec.md §13.1`.
 
 | # | Target | Empirical range | Model | Status |
 |---|---|---|---|---|
-| 9 | Zone gross-yield ladder, emergent | T 4.7–5.6 / S 6.5–7.5 / R 7–9% (idealista + BdE RBA) | T 5.1 / S 6.6 / R 17.2% | ✗ **strict xfail** — rural ≈3× the band; phase B |
-| 10 | Boom compresses the gross yield | direction only (idealista series not yet sourced) | 5.39% → 5.21% (5 seeds) | ✓ **pass** — live gate |
+| 9 | Zone gross-yield ladder, emergent | T 4.7–5.6 / S 6.5–7.5 / R 7–9% (idealista + BdE RBA) | T 5.1 / S 6.6 / R 17.2% | ✗ **strict xfail** — rural ≈2× the band; phase B |
+| 10 | Boom compresses the gross yield | direction only (idealista series not yet sourced) | 5.39% → 5.21% (5 seeds × 40 ticks, hold-out boom — not the table's 3-seed tail-mean basis) | ✓ **pass** — live gate |
 | 11 | Rent level ordering T > S > R | strict, at every published basis | False; R +13.5% over T (tail mean) | ✗ **strict xfail** — rural overtakes the metro around tick 35–40; phase B |
 | 12 | Net internal migration into TENSIONED > 0 | direction only (INE Migraciones not yet sourced) | −433.67 (cumulative sum over the run, not a tail mean; seeds −424 / −432 / −445) | ✗ **strict xfail** — the rule is downward-only; phase B |
 | 13 | Time to sell (`median_ticks_to_sale`) | idealista days on market — **to verify** | 0.0 ticks | reported, not gated; phase D gates it |
@@ -798,6 +798,40 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   it. But 0.02 is *directly observed* (tensioned-zone yield 4.7–5.6 against a ~3% bond), and
   the gap turned out to be a measurement-basis error, not a parameter error (D5 below).
   Bending an observed parameter to fix a mis-specified indicator would have hidden the bug.
+
+### Phase-0 referee pass (2026-09-11)
+
+Objections a hostile reader can raise against phase 0, answered or conceded.
+
+- **"You widened the yield bands by 0.5pp until the test said what you wanted."** Conceded as
+  a judgement call, not as a fit: the widening is symmetric, applied before the test was run,
+  and the test fails anyway by roughly a factor of two on the rural leg. The convention matches the
+  other zone targets (3 seeds, last 20 of 60 ticks).
+- **"Three xfails is three failures you are choosing to live with."** Conceded, and that is the
+  point of writing them down. Each names the mechanism that will fix it and the phase it
+  lands in. Strict xfail means an accidental pass also fails the suite, so none of them can
+  quietly stop being true.
+- **"`median_ticks_to_sale` and `landlord_household_share` are gates you declined to set."**
+  Conceded. Setting a band from memory would be exactly the defect this project exists to
+  avoid; both rows say **to verify** and name the source to retrieve.
+- **"The assumption register is your own account of your own work."** True, and it is
+  falsifiable in the only way that matters: every row names a code site, so any row can be
+  checked against the code, and a rule with no row is a finding against the register.
+- **"Sealing the hold-out is unverifiable — you could have looked."** Partly conceded. What is
+  verifiable is the order of commits: the seal predates the bust inputs, which predate the
+  run. What is not verifiable is what the authors knew. The 2008–13 episode is public
+  knowledge; the claim is not that nobody knows how it ended, but that no *parameter* was
+  fitted to it, which the history does evidence.
+- **"Target 10 passes, so the model gets yield compression right."** Conceded, and this is
+  phase 0's most important qualification. Under the current rule a landlord's reservation rent
+  is a fixed multiple of the unit's value, so the compression measured here (5.39% → 5.21%
+  over the hold-out boom) is a byproduct of asking rents lagging prices (+3.6%/yr against
+  +4.4%/yr), not of a required yield responding to expected appreciation. The target passes
+  for a reason that is not the mechanism it was written to identify, which makes it
+  uninformative until phase B replaces the reservation rule with a total-return condition and
+  compression becomes that rule's direct prediction. A target that passes for the wrong reason
+  is worse than one that fails, because it stops being evidence. Re-read this row after
+  phase B.
 
 ## Sensitivity screen, superseded (OAT, seed 42)
 
