@@ -162,6 +162,28 @@ def test_rent_level_ordering(baseline_moments):
     assert baseline_moments["rent_ranking"]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: the migration rule is downward-only (engine._demography), so net "
+    "internal migration into the tensioned zone cannot be positive by construction. "
+    "Spain's net internal flow runs rural→metro. Fixed by bidirectional flows identified "
+    "on INE Migraciones y Variaciones Residenciales (spec §7.5 — phase B).",
+)
+def test_net_internal_migration_favours_the_metro():
+    """Target 12: cumulative net internal migration into TENSIONED must be positive.
+
+    Direction only — the level needs the INE series, which is not yet in
+    `docs/sources.md`. The sign is not in doubt and the model has it inverted: households
+    can only move down the ladder, so the tensioned zone is a net loser of internal
+    migrants in every run.
+    """
+    nets = []
+    for seed in (1, 2, 3):
+        frame = metrics.to_frame(Engine(build_scenario("baseline", seed, 60)).run())
+        nets.append(frame["net_migration_tensioned"].sum())
+    assert float(np.mean(nets)) > 0
+
+
 def test_transaction_volume(baseline_moments):
     """Target 3: 2.5–3.6% of households transact per year.
 

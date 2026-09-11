@@ -157,6 +157,8 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # cap in force the whole zone reads as "declared", so the split degenerates to the pooled
     # series and nothing spurious is reported.
     cap_coverage = state.config.policy.cap_coverage
+    # inter-zone moves recorded by engine._demography this tick, keyed (origin, destination)
+    migration = state.tick_events.get("migration", {})
     access_ok = access_total = 0
     zone_weights: dict[ZoneType, float] = {}
     for zone in ZoneType:
@@ -189,6 +191,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"new_leases_{z}"] = sum(
             1 for r in rentals if state.stock.units[r.unit_id].zone is zone
         )
+        # net internal migration, model-scale households/tick (model-spec §9 target 12).
+        # Spain's net internal flow runs rural→metro; the current rule can only produce the
+        # opposite sign, which is why this is measured before it is fixed.
+        row[f"net_migration_{z}"] = sum(
+            n for (_, dest), n in migration.items() if dest is zone
+        ) - sum(n for (origin, _), n in migration.items() if origin is zone)
         # New contracts split by REGULATORY SEGMENT, so a partial-coverage cap can be read.
         # The pooled median mixes declared and non-declared municipalities and moves with the
         # mix, not with either segment's rent: at coverage 0.42 it comes out ABOVE baseline
