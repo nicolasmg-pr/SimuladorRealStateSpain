@@ -54,6 +54,11 @@ def baseline_moments():
                     > tail["price_secondary"].mean()
                     > tail["price_rural"].mean()
                 ),
+                "rent_ranking": (
+                    tail["rent_tensioned"].mean()
+                    > tail["rent_secondary"].mean()
+                    > tail["rent_rural"].mean()
+                ),
                 "price_ratio_tr": (tail["price_tensioned"] / tail["price_rural"]).mean(),
                 "price_ratio_ts": (tail["price_tensioned"] / tail["price_secondary"]).mean(),
                 "tenant_ranking": True,  # checked per-zone below via rent levels
@@ -135,6 +140,26 @@ def test_zone_gross_yield_ladder(baseline_moments):
     assert 0.042 <= baseline_moments["gy_tensioned"] <= 0.061
     assert 0.060 <= baseline_moments["gy_secondary"] <= 0.080
     assert 0.065 <= baseline_moments["gy_rural"] <= 0.095
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-11: rural asking rent overtakes the tensioned index around tick 35-40 "
+    "and ends 20-35% above it on 3 seeds. The location premium discounts purchase "
+    "willingness in rural but nothing discounts rent acceptance (model-spec §5b), while "
+    "downward-only migration funnels seekers there and the sharing margin lifts accepted "
+    "burden to 0.55. Fixed by bidirectional migration and buy-to-let entry "
+    "(spec §7.3, §7.5 — phase B).",
+)
+def test_rent_level_ordering(baseline_moments):
+    """Target 11: asking rent levels must rank tensioned > secondary > rural.
+
+    The price ladder is gated (targets 2b-2d) and the rent ladder is not, which is how a
+    rural rent index above the metro one survived unnoticed. Spanish rent levels rank
+    strictly the other way at every published basis [idealista, SERPAVI, EPF regional
+    averages — €675/month Madrid against €277 Extremadura, Funcas 104 ch.5].
+    """
+    assert baseline_moments["rent_ranking"]
 
 
 def test_transaction_volume(baseline_moments):
