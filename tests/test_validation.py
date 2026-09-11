@@ -120,7 +120,7 @@ def test_zone_price_ladder_holds(baseline_moments):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="2026-09-11: rural gross yield runs to ≈18.8% against a sourced 7–9%. "
+    reason="2026-09-11: rural gross yield runs to ≈17.2% against a sourced 7–9%. "
     "required_rent pins the yield floor to price, rural rental supply has no entry "
     "margin (investor skips rural, households never buy to let) and downward-only "
     "migration funnels every priced-out seeker into it. Fixed by the total-return "
@@ -145,7 +145,7 @@ def test_zone_gross_yield_ladder(baseline_moments):
 @pytest.mark.xfail(
     strict=True,
     reason="2026-09-11: rural asking rent overtakes the tensioned index around tick 35-40 "
-    "and ends 20-35% above it on 3 seeds. The location premium discounts purchase "
+    "and ends ≈13.5% above it on 3 seeds. The location premium discounts purchase "
     "willingness in rural but nothing discounts rent acceptance (model-spec §5b), while "
     "downward-only migration funnels seekers there and the sharing margin lifts accepted "
     "burden to 0.55. Fixed by bidirectional migration and buy-to-let entry "
@@ -309,6 +309,43 @@ def test_holdout_boom_rent_growth():
     """
     _, rent, _ = _holdout_boom((3, 5, 7, 8, 9, 11, 13, 17, 19, 23))
     assert float(np.mean(rent)) > 0.025
+
+
+def test_boom_compresses_the_gross_yield():
+    """Target 10: in a boom the gross rental yield must COMPRESS.
+
+    Sign test only. Spain 2014-25 ran prices ahead of rents and gross yields fell; the
+    level band needs the idealista yield series, which is not yet a row in
+    `docs/sources.md`, so only the direction is asserted here (model-spec §13.1:
+    direction, not magnitude).
+
+    Mechanically this is the signature of the landlord's reservation rule. Under the current
+    rule the reservation rent is a fixed multiple of value, so the yield floor tracks price
+    one-for-one and compression can only come from the gap between the asking index and that
+    floor. Under the total-return hurdle (spec §7.1) compression is the rule's direct
+    prediction: E[g] up ⇒ required rent yield down.
+    """
+    starts, ends = [], []
+    for seed in (3, 5, 7, 8, 9):
+        cfg = SimConfig.baseline(seed=seed, ticks=40)
+        cfg = dataclasses.replace(
+            cfg,
+            population=dataclasses.replace(
+                cfg.population, formation_per_tick=33, formation_income_factor=1.0
+            ),
+            developer=dataclasses.replace(
+                cfg.developer, base_starts_per_tick=11, max_starts_per_tick=12
+            ),
+        )
+        scenario = Scenario(
+            name="holdout",
+            baseline=cfg,
+            interventions=(RateShock(start_tick=20, euribor=0.005),),
+        )
+        frame = metrics.to_frame(Engine(scenario).run())
+        starts.append(frame["gross_yield_tensioned"].iloc[20:24].mean())
+        ends.append(frame["gross_yield_tensioned"].iloc[36:40].mean())
+    assert float(np.mean(ends)) < float(np.mean(starts))
 
 
 def test_holdout_2021_2025_runup():

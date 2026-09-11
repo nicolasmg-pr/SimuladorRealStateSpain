@@ -90,3 +90,18 @@ def test_median_ticks_to_sale_is_reported():
     row = state.history[-1]
     value = row["median_ticks_to_sale"]
     assert np.isnan(value) or value >= 0
+
+
+def test_median_ticks_to_sale_is_the_median_of_matched_listing_ages():
+    """Hand-built trades, hand-computed median — catches a mean-for-median swap."""
+    from resim.market.clearing import Trade
+
+    _, state = small_state()
+    unit_ids = [u.id for u in list(state.stock.units.values())[:3]]
+    trades = [
+        Trade(unit_id=unit_ids[0], buyer_id=1, seller_id=2, price=1.0, ticks_listed=1),
+        Trade(unit_id=unit_ids[1], buyer_id=1, seller_id=2, price=1.0, ticks_listed=5),
+        Trade(unit_id=unit_ids[2], buyer_id=1, seller_id=2, price=1.0, ticks_listed=3),
+    ]
+    row = metrics.snapshot(state, trades=trades)
+    assert row["median_ticks_to_sale"] == 3
