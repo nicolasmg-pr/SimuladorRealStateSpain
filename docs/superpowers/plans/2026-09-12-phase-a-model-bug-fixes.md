@@ -88,7 +88,16 @@ i.e. above roughly a 6.2% mortgage rate at baseline growth — so at every basel
 term is exactly 1.0 and multiplies the budget by nothing. The rate shock actually travels
 through `participation` (`PARTICIPATION_RATE_SENSITIVITY`), a few lines below.
 
-**Rule.** Delete `own_vs_rent` from the budget and move the rate-shock claim to the comment on
+> **AMENDED 2026-09-12, after measuring.** The premise below is false and the rule was not
+> executed. Instrumented on 3 seeds × 40 ticks the term is below 1.0 in 5.78% of baseline
+> decisions and 3.23% under `RateShock`; the 0.5 floor has never bound; removing it moves the
+> baseline price level −1.5%. It is not inert. The half of the finding that survives is worse
+> than registered: it engages LESS in the shock it was said to carry, because the yield
+> dominates the ratio. Action taken instead: comment corrected to the measurement, registered
+> in `docs/assumptions.md` as an unsourced reduced form, mechanism handed to phase D. Full
+> record in `docs/validation.md`, "Phase-A finding-6 correction".
+
+**Superseded rule.** Delete `own_vs_rent` from the budget and move the rate-shock claim to the comment on
 `participation`, which is where it is true. A real user-cost channel — tenure choice on the
 full cost of ownership against the cost of renting — is a mechanism, not a bug fix, and
 belongs in phase D with the sale-side redesign.

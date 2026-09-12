@@ -120,6 +120,33 @@ defect was generating is the move this project's standard exists to forbid. Phas
 the withdrawal margin from the arbitrage condition (spec §7.2) and the dial is re-derived
 there, not re-tuned here.
 
+## Phase-A finding-6 correction: the user-cost term is not dead (2026-09-12)
+
+The redesign spec registered finding 6 as *"`own_vs_rent` user-cost channel is inert (clipped
+to 1.0 below a ~6.2% mortgage rate) while its comment claims it carries the rate shock"*, and
+phase A was to delete it. **The first half of that finding is wrong.** Instrumented on 3 seeds
+× 40 ticks, recording every value the model computes:
+
+| Scenario | below 1.0 | min | mean |
+|---|---|---|---|
+| baseline | **5.78%** of decisions | 0.858 | 0.9951 |
+| `RateShock` | **3.23%** of decisions | 0.858 | 0.9978 |
+
+It is active, the 0.5 floor has never bound, and removing it moves the baseline price level by
+−1.5% (196,233 → 193,321 €, 3 seeds, tail of 40 ticks) and transactions by +2.2%.
+
+The second half of the finding stands, and is worse than registered: the term engages **less**
+under a rate shock than at baseline — the opposite of a rate channel. `gross_yield` dominates
+the ratio, and the shock lifts the yield (prices −10%, rents +22%), so the ratio clips to 1.0
+more often, not less. A term documented as carrying the rate shock moves against it.
+
+**Action taken:** the term is kept at its measured behaviour and its comment corrected to the
+measurement; it is registered in `docs/assumptions.md` as an unsourced reduced form with its
+falsifier. It is **not** deleted. Deleting an active channel is a modelling decision, phase A is
+bug fixes, and the decision belongs to phase D, where tenure choice is specified as a mechanism
+rather than as a clipped multiplier on a credit limit. The rate-shock claim now sits on
+`participation`, which is where it is true.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
