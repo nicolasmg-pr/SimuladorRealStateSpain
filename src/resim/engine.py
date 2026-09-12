@@ -389,29 +389,86 @@ class Engine:
                 eligibility_draw=float(rng.random()),
             )
 
-        # dissolutions: the WHOLE estate passes to a surviving household (inheritance) —
+        # dissolutions: the WHOLE estate passes to ONE surviving household (inheritance) —
         # the home *and* any rental units, otherwise dissolved small landlords leave
-        # permanently orphaned stock behind that still acts as a landlord
+        # permanently orphaned stock behind that still acts as a landlord.
+        #
+        # PHASE A (spec §2, finding 4). Two defects lived here.
+        #
+        # 1. The heir never took possession. `owner_id` was reassigned and nothing else was:
+        #    a SEEKER who inherited a dwelling stayed a SEEKER while owning an empty home.
+        #    `ownership_rate` counts `status is OWNER`, so ownership drifted 77.2% → 69.5%
+        #    over 60 ticks and target 1 sat below the EFF band for a reason that has nothing
+        #    to do with Spanish tenure. An heir with no home of their own now moves into the
+        #    inherited dwelling. An heir who already has one keeps it and holds the rest as
+        #    stock — the conservative branch, and the first path in the model by which a
+        #    household becomes a landlord without buying, which is the margin phase B has to
+        #    get right. A TENANT heir is deliberately left renting: moving in breaks a
+        #    tenancy, which is a behavioural claim the register carries no source for.
+        #
+        # 2. The estate was split. The draw sat INSIDE a loop over units, so a fresh heir was
+        #    drawn per unit while this comment and `docs/assumptions.md` both said the whole
+        #    estate passes to one household. Code and spec disagreed; the register is right.
+        #    Splitting an estate across N random strangers is not a choice anyone made, it is
+        #    what a loop over units does when the draw is inside it.
         n_exit = int(rng.poisson(pop.formation_per_tick * pop.dissolution_rate))
         ids = list(state.households.keys())
         if len(ids) > n_exit > 0:
-            gone = {int(h) for h in rng.choice(ids, size=n_exit, replace=False)}
+            gone = [int(h) for h in rng.choice(ids, size=n_exit, replace=False)]
+            # the deceased's own dwelling, where they owned the one they lived in: it is the
+            # unit an heir moves into by preference, and it is guaranteed vacant by this loop
+            vacated_home: dict[int, int] = {}
             for hid in gone:
                 hh = state.households.pop(hid)
                 if hh.unit_id is None:
                     continue
                 unit = state.stock.units[hh.unit_id]
+                owned_own_home = unit.owner_id == hid
                 unit.occupant_id = None
                 unit.tenure = Tenure.VACANT
                 unit.vacant_since = state.tick
                 unit.rent = 0.0
                 state.sale_listings.pop(hh.unit_id, None)
                 state.rent_listings.pop(hh.unit_id, None)
+                if owned_own_home:
+                    vacated_home[hid] = hh.unit_id
+
             heirs = list(state.households.keys())
             if heirs:
+                estates: dict[int, list] = {hid: [] for hid in gone}
                 for unit in state.stock.units.values():
-                    if unit.owner_id in gone:
-                        unit.owner_id = int(heirs[int(rng.integers(len(heirs)))])
+                    if unit.owner_id in estates:
+                        estates[unit.owner_id].append(unit)
+                inherited_homes = 0
+                for hid in gone:
+                    estate = estates[hid]
+                    if not estate:
+                        continue
+                    heir = state.households[int(heirs[int(rng.integers(len(heirs)))])]
+                    for unit in estate:
+                        unit.owner_id = heir.id
+                    if heir.unit_id is not None:
+                        continue  # already housed: the estate is stock, not a home
+                    # move in — the deceased's own home first, else any vacant unit of the
+                    # estate. Never a RENTED one: inheriting a landlord does not evict a
+                    # tenant (LAU: the lease runs with the dwelling, not with the owner).
+                    home = state.stock.units.get(vacated_home.get(hid, -1))
+                    if home is None or home.tenure is not Tenure.VACANT:
+                        home = next((u for u in estate if u.tenure is Tenure.VACANT), None)
+                    if home is None:
+                        continue
+                    state.sale_listings.pop(home.id, None)
+                    state.rent_listings.pop(home.id, None)
+                    home.occupant_id = heir.id
+                    home.tenure = Tenure.OWNER_OCCUPIED
+                    home.vacant_since = -1
+                    home.rent = 0.0
+                    home.withheld = False
+                    heir.unit_id = home.id
+                    heir.status = HouseholdStatus.OWNER
+                    heir.ticks_searching = 0
+                    inherited_homes += 1
+                state.tick_events["inherited_homes"] = inherited_homes
 
         # migration: priced-out seekers slide down the zone ladder [guess — reduced form with
         # no identifying episode, and the WRONG SIGN: Spain's net internal flow runs

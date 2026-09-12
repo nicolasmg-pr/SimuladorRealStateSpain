@@ -74,7 +74,7 @@ each one was reached; where their numbers differ from this table, this table is 
 | 6b | Rate shock: volume falls, prices sticky | 2023: sales −11%, prices +4% | direction holds (magnitude qualified) | ✓ |
 | 7 | Hold-out 2021–25: prices, volumes | prices +8–13%/yr (asking), record volumes | +4.4%/yr (transaction basis), volumes ×1.42 | ✓ qualified |
 | 7r | Hold-out 2021–25: **rents** | +8–11%/yr asking | **+3.6%/yr ± 0.8 (10 seeds, all positive)** | ✓ **passes; ≈40% of the sourced magnitude — direction only** |
-| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −4.9% rents, −0.7% contracts; ε=1 → −5.2%, −1.4%; ε=2 → −4.4%, **−7.3%** | ⚠️ **rent leg ✓, supply leg no longer spans** — see "Phase-A hazard-floor revision" |
+| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −3.8% rents, +3.6% contracts; ε=1 → −3.7%, −1.0%; ε=2 → −3.8%, **−1.6%** | ✗ **supply leg: two strict xfails**; rent leg now just below the studies' −4…−6% — see "Phase-A hazard-floor revision" and "finding-4 correction" |
 | — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.0% | ✓ |
 | — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 6.8% | ✓ qualified |
 
@@ -146,6 +146,72 @@ falsifier. It is **not** deleted. Deleting an active channel is a modelling deci
 bug fixes, and the decision belongs to phase D, where tenure choice is specified as a mechanism
 rather than as a clipped multiplier on a credit limit. The rate-shock claim now sits on
 `participation`, which is where it is true.
+
+## Phase-A effect on the rent-cap dial, end to end (2026-09-12)
+
+Two bug fixes compounded on target 8's supply leg. Measured the same way each time (3 seeds,
+cap from tick 20 of 40, mean over the 16 post-cap ticks):
+
+| ε | before phase A | after the hazard floor went (A3) | after inheritance was rewritten (A1) |
+|---|---|---|---|
+| 0 | −4.9% rents, −0.7% contracts | −4.9%, −0.7% | −3.8%, **+3.6%** |
+| 1 | −4.4%, −4.8% | −5.2%, −1.4% | −3.7%, −1.0% |
+| 2 | −4.4%, −13.6% | −4.4%, −7.3% | −3.8%, **−1.6%** |
+
+The two fixes act through different channels, and the ε=0 column proves it. A3 changed the
+exit *hazard*, and at ε=0 the hazard is multiplied by zero — so A3 could not and did not move
+that row. A1 moved it from −0.7% to +3.6%, which can only be composition: whole estates now
+land on one heir instead of being scattered per-unit, and heirs with no home take possession of
+vacant dwellings, so the rental stock a cap acts on is a different stock.
+
+Both forms of the supply leg are now dated strict xfails. `hazard_scale` is **not** re-fitted
+and inheritance is **not** reverted: the −13.6% was produced by a floor built from two
+exogenous constants, and the inheritance rewrite is verified against state invariants on 3
+seeds × 60 ticks (`tests/test_state_invariants.py`, five checks, zero violations). Re-fitting
+either to recover a number that two defects were generating is the move this project's
+standard exists to forbid. Phase B re-derives the withdrawal margin from the arbitrage
+condition (spec §7.2) and owns this target.
+
+The rent leg also slipped, from −4.4% to −3.8%, just below the studies' −4…−6%. It is not
+separately xfailed: `test_rent_cap_lowers_contract_rents` asserts a real fall and still passes,
+and the band is phase B's to re-derive along with the rest.
+
+## Phase-A finding-4 correction: the ownership drift is not an inheritance leak (2026-09-12)
+
+The redesign spec registered finding 4 as *"Inheritance leaks ownership: heir keeps SEEKER
+status while owning a vacated dwelling; ownership drifts 77.2% → 69.5%"*. The heir defect is
+real and is fixed. **It is not what causes the drift.**
+
+Measured, 3 seeds, 60 ticks, before and after the fix:
+
+| | before | after |
+|---|---|---|
+| ownership, tick 1 | 0.7693 | 0.7690 |
+| ownership, tail 20 | 0.6907 | **0.6934** |
+| drift | −7.86 pp | **−7.56 pp** |
+| `landlord_household_share` | 0.2715 | **0.2606** |
+
+The fix is worth 0.3 pp of a 7.9 pp drift — about 4% of it. It also consolidates estates onto
+one heir instead of scattering them per-unit, which is why the landlord share falls 1.1 pp.
+
+**The actual cause**, same runs:
+
+| | tick 1 | tick 60 | change |
+|---|---|---|---|
+| households | 10,041 | 11,159 | **+11.13%** |
+| owners | 7,722 | 7,668 | **−0.69%** |
+
+The owner stock is flat — slightly shrinking — while the population grows 11%. Ownership
+falls because the denominator grows and the numerator does not. Nothing leaks: the accounting
+identity holds exactly at every tick (owner-occupied units == owner households, 7,678 == 7,678
+on seed 1 at tick 60).
+
+That is a much larger problem than the one registered, and it is the reason target 1 sits below
+the EFF band. New households form as SEEKERs and the model does not convert them into owners at
+anything like the rate needed to hold the ratio. Whether that is a credit constraint, a
+supply constraint or a missing first-time-buyer margin is not answered here — it is a mechanism
+question, and phase A is bug fixes. Recorded as a finding for the spec, to be scoped before
+phase B's calibration leans on the ownership level.
 
 ## Config guards — not validation targets (moved 2026-09-12)
 
