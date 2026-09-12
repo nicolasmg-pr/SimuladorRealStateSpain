@@ -107,6 +107,48 @@ CHART_HELP: dict[str, str] = {
         "aguja?) y los tiempos (algunas actúan ya, otras tardan años). Para afinar los "
         "parámetros de una política concreta, usa la pestaña «Explorar»."
     ),
+    "yields": (
+        "**Qué muestra:** la rentabilidad bruta del alquiler por zona — alquiler anual "
+        "dividido entre el precio de compra. Es una **salida** del modelo, no un ajuste: "
+        "`ZoneConfig.gross_yield` sólo fija el punto de partida, y lo que el modelo hace "
+        "después con él es una predicción.\n\n"
+        "**Cómo leerlo:** las bandas publicadas (idealista + BdE RBA) son 4,7–5,6% en zona "
+        "tensionada, 6,5–7,5% en ciudad secundaria y 7–9% en rural. Sube la línea = el "
+        "alquiler se encarece respecto al precio, o el precio se abarata respecto al "
+        "alquiler.\n\n"
+        "**En qué fijarse:** la línea rural. Se va muy por encima de su banda — más del "
+        "doble — y ése es el defecto que fase B tiene que cerrar. Las otras dos encajan."
+    ),
+    "alquileres_diag": (
+        "**Qué muestra:** el mismo alquiler de contratos nuevos por zona que la pestaña "
+        "«Explorar», pero aquí mirado como **diagnóstico**: en España los alquileres "
+        "ordenan estrictamente tensionada > secundaria > rural, en toda base publicada "
+        "(675 €/mes Madrid contra 277 € Extremadura, Funcas 104 cap.5).\n\n"
+        "**Cómo leerlo:** si la línea rural cruza por encima de la tensionada, el modelo "
+        "está produciendo algo que no ocurre en España.\n\n"
+        "**En qué fijarse:** el cruce, alrededor del trimestre 35–40. La escalera de "
+        "*precios* sí estaba gatillada por los tests; la de *alquileres* no lo estaba, y "
+        "por eso este cruce sobrevivió sin que saltara nada."
+    ),
+    "migracion": (
+        "**Qué muestra:** migración interna neta por zona y trimestre, en hogares a escala "
+        "del modelo: entradas menos salidas. Positivo = la zona gana hogares de otras zonas "
+        "españolas.\n\n"
+        "**Cómo leerlo:** las tres líneas suman cero por construcción — nadie entra al país "
+        "por aquí, sólo se mueven entre zonas.\n\n"
+        "**En qué fijarse:** el **signo**. En España el flujo interno neto va rural → metro; "
+        "el modelo lo tiene al revés porque la regla actual sólo deja bajar la escalera. No "
+        "es una calibración floja: es imposible por construcción que salga positivo."
+    ),
+    "tenencia_zona": (
+        "**Qué muestra:** qué proporción de los hogares de cada zona son inquilinos.\n\n"
+        "**Cómo leerlo:** alquilar es una tenencia metropolitana en España, así que el orden "
+        "esperado es tensionada > secundaria > rural (referencia: 0,27–0,30 / ≈0,20 / "
+        "0,12–0,17).\n\n"
+        "**En qué fijarse:** el orden se cumple, y eso es lo que está gatillado. Los "
+        "*niveles* no lo están: la pata tensionada corre por encima de su banda, y una zona "
+        "tensionada que agrupa el 45% de los hogares no es Madrid."
+    ),
 }
 
 # --- Policy explanations -----------------------------------------------------
@@ -608,3 +650,40 @@ KPI_HELP: dict[str, str] = {
     "vacancy_rate": "Porcentaje del parque de viviendas sin ocupar (incluye retenidas "
     "y segundas residencias vacías).",
 }
+
+
+# --- Phase-0 diagnostic panel ------------------------------------------------
+# Mirrors docs/validation.md "Phase-0 targets (2026-09-11)". Criteria and bands live in
+# resim.diagnostics; this is only the framing the reader needs before the table.
+
+DIAGNOSTICS_INTRO = """
+Esta pestaña no explora ninguna política. Muestra **en qué se equivoca el modelo**.
+
+La fase 0 del rediseño añadió siete observables y **no cambió ni una regla de
+comportamiento**. Ése era su propósito: convertir defectos invisibles en fallos que la
+suite reporta. Tres salieron rojos de fábrica y siguen rojos — están registrados como
+*xfail estrictos*, no escondidos:
+
+- **Objetivo 9** — el yield bruto rural corre al doble de su banda publicada.
+- **Objetivo 11** — el alquiler pedido en rural adelanta al de la zona tensionada.
+- **Objetivo 12** — la migración interna neta tiene el signo invertido.
+
+Los tres los arregla la **fase B**. Hasta entonces se ven aquí.
+
+⚠️ **Esto no es la puerta de validación.** La suite promedia 3 semillas sobre los últimos
+20 de 60 trimestres (`tests/test_validation.py`); esta pestaña mide **la semilla que tengas
+puesta en la barra lateral**. Una fila puede salir ✅ aquí en una semilla y seguir siendo un
+xfail registrado — la columna *Estado* es la que manda, y las bandas de aquí están copiadas
+de las aserciones de los tests, no re-derivadas.
+"""
+
+DIAGNOSTICS_OUTRO = """
+**Por qué dos de estos son el mismo agujero.** El nivel de alquiler rural (objetivo 11) y el
+yield rural (objetivo 9) son el mismo defecto visto desde dos lados: la escalera de zona
+estaba gatillada **sólo en precios**, así que un alquiler rural por encima del metropolitano
+sobrevivió 60 trimestres y 3 semillas sin que nada saltara.
+
+**Por qué el objetivo 15 no es un test.** No existe mecanismo de insolvencia en el modelo.
+Un test que no puede correr no es evidencia de nada, y un xfail sobre un mecanismo ausente
+sería decoración. Está diferido a fase C y registrado en `docs/holdout-2008-2013.md`.
+"""

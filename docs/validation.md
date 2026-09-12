@@ -108,6 +108,14 @@ Two of these are the same defect seen from different sides: the rural rent level
 rural yield (9). The zone ladder was gated on prices only, so a rural asking rent above the
 metro index survived 60 ticks and 3 seeds unnoticed.
 
+These seven targets are also on screen, in the app's **🔬 Diagnóstico del modelo** tab
+(`src/resim/ui/app.py::diagnostics_tab`, criteria in `src/resim/diagnostics.py`). That panel
+is display-only and gates nothing; the bands it shows are copied from the assertions in
+`tests/test_validation.py`, and `tests/test_diagnostics.py` fails if the two drift apart. It
+evaluates whatever seed the sidebar is set to, not the 3-seed tail-mean basis this table is
+quoted on, so a row can read ✅ there while the target stays a registered xfail — the panel
+carries both columns and says which one is authoritative.
+
 Target 15 is deliberately **not** written as a test. A test that cannot run is not evidence of
 anything, and an xfail on a missing mechanism would be decoration.
 

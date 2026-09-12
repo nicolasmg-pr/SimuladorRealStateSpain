@@ -198,6 +198,13 @@ def test_app_renders_the_bde_tab():
     at = AppTest.from_file(str(app), default_timeout=900)
     at.run()
     assert not at.exception, [str(e.value) for e in at.exception]
+    # Streamlit renders every tab body eagerly into one flat element list, so a metric label
+    # reused by another tab would silently shadow this tab's counter here and the partition
+    # below would be checked against the wrong numbers. Guard the lookup before trusting it.
+    counters = ("Indicadores contrastados", "✅ Dentro de banda", "🔽 Por debajo", "🔼 Por encima")
+    labels = [m.label for m in at.metric]
+    for label in counters:
+        assert labels.count(label) == 1, f"{label!r} is not unique across the app's tabs"
     headline = {m.label: m.value for m in at.metric}
     assert headline["Indicadores contrastados"] == str(len(BENCHMARKS))
     # the four counters must partition the table
