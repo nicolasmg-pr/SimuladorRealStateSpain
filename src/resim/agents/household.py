@@ -127,8 +127,29 @@ class Households:
                 hh, macro.mortgage_rate, credit, itp, cfg.market.buyer_fees, ltv_boost
             )
             median_price = zs.price_index
-            # user-cost check: owning vs renting at the current rate — the channel a
-            # rate shock works through (2022–23: volume fell, prices stayed sticky)
+            # Budget shading when renting looks cheap against owning. The comment here used
+            # to call this "the channel a rate shock works through (2022–23)", and the
+            # redesign spec (§2, finding 6) registered it as an inert term clipped to 1.0
+            # below a ~6.2% mortgage rate. **Both statements are wrong, measured 2026-09-12
+            # on 3 seeds × 40 ticks, instrumenting every value the model computes:**
+            #
+            #   baseline    below 1.0 in 5.78% of decisions, min 0.858, mean 0.9951
+            #   RateShock   below 1.0 in 3.23% of decisions, min 0.858, mean 0.9978
+            #
+            # So it is not dead — removing it moves the baseline price level by −1.5% — and
+            # it engages LESS under a rate shock than at baseline, which is the opposite of
+            # what a rate channel does. The reason is that `gross_yield` dominates the ratio:
+            # the shock cuts prices ~10% and lifts rents ~22%, the yield rises, and the ratio
+            # clips to 1.0 more often, not less. The 0.5 floor has never bound in any run
+            # measured (min 0.858).
+            #
+            # What it actually is: an unsourced reduced form that shades the bid when the
+            # rental yield is low against the user cost of owning. Kept at its measured
+            # behaviour rather than removed, because removing an active channel is a
+            # modelling decision and phase A is bug fixes; registered in docs/assumptions.md
+            # with its falsifier, and owned by phase D, where tenure choice is specified
+            # properly instead of as a clipped multiplier on a credit limit.
+            # The rate shock reaches the market through `participation` below.
             user_cost = max(
                 0.005,
                 macro.mortgage_rate + 0.01 - 4.0 * zs.expected_price_growth,

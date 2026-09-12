@@ -74,11 +74,9 @@ each one was reached; where their numbers differ from this table, this table is 
 | 6b | Rate shock: volume falls, prices sticky | 2023: sales −11%, prices +4% | direction holds (magnitude qualified) | ✓ |
 | 7 | Hold-out 2021–25: prices, volumes | prices +8–13%/yr (asking), record volumes | +4.4%/yr (transaction basis), volumes ×1.42 | ✓ qualified |
 | 7r | Hold-out 2021–25: **rents** | +8–11%/yr asking | **+3.6%/yr ± 0.8 (10 seeds, all positive)** | ✓ **passes; ≈40% of the sourced magnitude — direction only** |
-| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −4.9% rents, +0.9% contracts; ε=2 → −4.2%, −13.6% | ✓ **all three inside the 0–2 dial** |
+| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −3.8% rents, +3.6% contracts; ε=1 → −3.7%, −1.0%; ε=2 → −3.8%, **−1.6%** | ✗ **supply leg: two strict xfails**; rent leg now just below the studies' −4…−6% — see "Phase-A hazard-floor revision" and "finding-4 correction" |
 | — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.0% | ✓ |
 | — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 6.8% | ✓ qualified |
-| — | National supply elasticity (zone-weighted) | 0.45–0.58 | 0.49 | ✓ |
-| — | Zone dwellings/household weight to the national anchor | 1.12 ± 0.01 | 1.13 | ✓ invariant |
 
 Targets 3, 4 and 5 are asserted on their **sourced** bands. **No target in this table is an xfail.** Two were
 until 2026-09-08: the zone price ladder (2c), fixed by the location premium, and the hold-out
@@ -86,6 +84,146 @@ rent leg (7r), fixed by the tightness recalibration without touching the rent me
 remains is not a failing target but two *qualified* ones — 7r reaches only ≈40% of the observed
 magnitude, and 1 sits below the EFF ownership band — both carried in "Honest qualifications"
 and `model-spec` §10.
+
+## Phase-A hazard-floor revision (2026-09-12)
+
+Phase A removed the additive hazard floor in `agents/landlord.decide` (spec §2, finding 9).
+The withdrawal margin used to read `gap = log(ask/cap) + 5 × growth_wedge`, and because the
+wedge is built from two exogenous constants, a cap binding by one euro produced the same
+`5 × wedge` term as a cap binding by a third of the rent. The exit hazard jumped from zero to
+a fixed positive floor the instant the cap touched the ask and stayed there however mild the
+cap was. The wedge now **scales** the level gap instead of being added to it, which makes the
+hazard continuous at the point the cap starts to bind: a cap that costs nothing produces no
+withdrawals, however long the unit is held.
+
+Measured effect on the Phase-7 dial (3 seeds, cap from tick 20 of 40, 16 post-cap ticks):
+
+| ε | rents, before | rents, after | contracts, before | contracts, after |
+|---|---|---|---|---|
+| 0 | −4.9% | −4.9% | −0.7% | −0.7% |
+| 1 | −4.4% | −5.2% | −4.8% | −1.4% |
+| 2 | −4.4% | −4.4% | −13.6% / −14.0% | **−7.3%** |
+
+ε=0 is identical, as it must be — `p_exit` is multiplied by the elasticity, so at zero the
+hazard change cannot reach the result. That the two ends move differently is the signature of
+a hazard change and not of seed noise.
+
+**What this costs, stated plainly.** The supply leg no longer spans the studies: at the top of
+the 0–2 dial the model gives −7.3% contracts against Monràs & García-Montalvo's −10% and Pérez
+García's −13%. Target 8's supply leg is therefore split in two — a weak form that still passes
+(`test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial`) and a strong form carried
+as a dated strict xfail (`test_rent_cap_supply_response_reaches_monras`).
+
+`hazard_scale` was **not** re-fitted to recover the old number. The −13.6% was produced by a
+floor built out of two exogenous constants; re-fitting a scale factor to reproduce a result a
+defect was generating is the move this project's standard exists to forbid. Phase B re-derives
+the withdrawal margin from the arbitrage condition (spec §7.2) and the dial is re-derived
+there, not re-tuned here.
+
+## Phase-A finding-6 correction: the user-cost term is not dead (2026-09-12)
+
+The redesign spec registered finding 6 as *"`own_vs_rent` user-cost channel is inert (clipped
+to 1.0 below a ~6.2% mortgage rate) while its comment claims it carries the rate shock"*, and
+phase A was to delete it. **The first half of that finding is wrong.** Instrumented on 3 seeds
+× 40 ticks, recording every value the model computes:
+
+| Scenario | below 1.0 | min | mean |
+|---|---|---|---|
+| baseline | **5.78%** of decisions | 0.858 | 0.9951 |
+| `RateShock` | **3.23%** of decisions | 0.858 | 0.9978 |
+
+It is active, the 0.5 floor has never bound, and removing it moves the baseline price level by
+−1.5% (196,233 → 193,321 €, 3 seeds, tail of 40 ticks) and transactions by +2.2%.
+
+The second half of the finding stands, and is worse than registered: the term engages **less**
+under a rate shock than at baseline — the opposite of a rate channel. `gross_yield` dominates
+the ratio, and the shock lifts the yield (prices −10%, rents +22%), so the ratio clips to 1.0
+more often, not less. A term documented as carrying the rate shock moves against it.
+
+**Action taken:** the term is kept at its measured behaviour and its comment corrected to the
+measurement; it is registered in `docs/assumptions.md` as an unsourced reduced form with its
+falsifier. It is **not** deleted. Deleting an active channel is a modelling decision, phase A is
+bug fixes, and the decision belongs to phase D, where tenure choice is specified as a mechanism
+rather than as a clipped multiplier on a credit limit. The rate-shock claim now sits on
+`participation`, which is where it is true.
+
+## Phase-A effect on the rent-cap dial, end to end (2026-09-12)
+
+Two bug fixes compounded on target 8's supply leg. Measured the same way each time (3 seeds,
+cap from tick 20 of 40, mean over the 16 post-cap ticks):
+
+| ε | before phase A | after the hazard floor went (A3) | after inheritance was rewritten (A1) |
+|---|---|---|---|
+| 0 | −4.9% rents, −0.7% contracts | −4.9%, −0.7% | −3.8%, **+3.6%** |
+| 1 | −4.4%, −4.8% | −5.2%, −1.4% | −3.7%, −1.0% |
+| 2 | −4.4%, −13.6% | −4.4%, −7.3% | −3.8%, **−1.6%** |
+
+The two fixes act through different channels, and the ε=0 column proves it. A3 changed the
+exit *hazard*, and at ε=0 the hazard is multiplied by zero — so A3 could not and did not move
+that row. A1 moved it from −0.7% to +3.6%, which can only be composition: whole estates now
+land on one heir instead of being scattered per-unit, and heirs with no home take possession of
+vacant dwellings, so the rental stock a cap acts on is a different stock.
+
+Both forms of the supply leg are now dated strict xfails. `hazard_scale` is **not** re-fitted
+and inheritance is **not** reverted: the −13.6% was produced by a floor built from two
+exogenous constants, and the inheritance rewrite is verified against state invariants on 3
+seeds × 60 ticks (`tests/test_state_invariants.py`, five checks, zero violations). Re-fitting
+either to recover a number that two defects were generating is the move this project's
+standard exists to forbid. Phase B re-derives the withdrawal margin from the arbitrage
+condition (spec §7.2) and owns this target.
+
+The rent leg also slipped, from −4.4% to −3.8%, just below the studies' −4…−6%. It is not
+separately xfailed: `test_rent_cap_lowers_contract_rents` asserts a real fall and still passes,
+and the band is phase B's to re-derive along with the rest.
+
+## Phase-A finding-4 correction: the ownership drift is not an inheritance leak (2026-09-12)
+
+The redesign spec registered finding 4 as *"Inheritance leaks ownership: heir keeps SEEKER
+status while owning a vacated dwelling; ownership drifts 77.2% → 69.5%"*. The heir defect is
+real and is fixed. **It is not what causes the drift.**
+
+Measured, 3 seeds, 60 ticks, before and after the fix:
+
+| | before | after |
+|---|---|---|
+| ownership, tick 1 | 0.7693 | 0.7690 |
+| ownership, tail 20 | 0.6907 | **0.6934** |
+| drift | −7.86 pp | **−7.56 pp** |
+| `landlord_household_share` | 0.2715 | **0.2606** |
+
+The fix is worth 0.3 pp of a 7.9 pp drift — about 4% of it. It also consolidates estates onto
+one heir instead of scattering them per-unit, which is why the landlord share falls 1.1 pp.
+
+**The actual cause**, same runs:
+
+| | tick 1 | tick 60 | change |
+|---|---|---|---|
+| households | 10,041 | 11,159 | **+11.13%** |
+| owners | 7,722 | 7,668 | **−0.69%** |
+
+The owner stock is flat — slightly shrinking — while the population grows 11%. Ownership
+falls because the denominator grows and the numerator does not. Nothing leaks: the accounting
+identity holds exactly at every tick (owner-occupied units == owner households, 7,678 == 7,678
+on seed 1 at tick 60).
+
+That is a much larger problem than the one registered, and it is the reason target 1 sits below
+the EFF band. New households form as SEEKERs and the model does not convert them into owners at
+anything like the rate needed to hold the ratio. Whether that is a credit constraint, a
+supply constraint or a missing first-time-buyer margin is not answered here — it is a mechanism
+question, and phase A is bug fixes. Recorded as a finding for the spec, to be scoped before
+phase B's calibration leans on the ownership level.
+
+## Config guards — not validation targets (moved 2026-09-12)
+
+Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
+(0.49 against a sourced 0.45–0.58) and the zone dwellings-per-household weight to its national
+anchor (1.13 against 1.12 ± 0.01). Neither runs an engine. Both construct `SimConfig.baseline()`
+and assert that config fields agree with the config anchors they were derived from.
+
+That is a real check and it is kept, unweakened, in `tests/test_config_guards.py`. It is not
+evidence that the model reproduces Spain, which is what this table is for, and counted among
+the passing targets it inflated the count with arithmetic the model cannot fail at runtime.
+Spec §2, finding 8: *"two target rows are config identities"*. Phase A, `model-bug-fixes`.
 
 ## Phase-0 targets (2026-09-11)
 

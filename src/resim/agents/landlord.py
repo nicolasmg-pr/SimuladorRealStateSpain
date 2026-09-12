@@ -23,22 +23,6 @@ from ..market.stock import Tenure
 from ..state import WorldState
 from .base import Intent, ListForRent, WithdrawRental
 
-# exit split when a capped landlord withdraws: sale / seasonal / vacant [guess — open
-# question investor-small §7.1; seasonal share reroutes to sale+vacant when capped]
-EXIT_SPLIT = {"sale": 0.5, "seasonal": 0.35, "vacant": 0.15}
-
-# per-listing hazard → annual contract-flow elasticity mapping (see decide()). Re-fitted
-# 2026-09-08 with the exogenous shadow anchor and the shadow-based growth wedge, which
-# together made every gap larger and never zero (the old wedge read `expected_rent_growth`,
-# an expectation formed on CAPPED asks, and clamped to 0 whenever capped asks fell — so the
-# term silently switched itself off exactly when a cap was biting). Measured on 3 seeds over
-# the 16 post-cap ticks: elasticity 0 → rents −4.9%, contracts −0.7% (Jofre-Monseny);
-# elasticity 1 → −4.4% / −4.8%; elasticity 2 → −4.4% / **−14.0%**, which reaches Pérez
-# García's −13% inside the 0–2 dial where the previous fit needed ≈2.7 and was documented as
-# out of range. Rents stay in the studies' −4…−6% across the whole dial
-# [docs/validation.md shadow-anchor revision; docs/experiments/rent-cap.md]
-HAZARD_SCALE = 0.7
-
 # how hard queue congestion pushes asking rents up: ask × (1 + gain × clip(applicants per
 # listing − 1, −0.5, 3)). THE parameter that decides whether rents can outrun incomes in a
 # boom, because it is the only channel through which scarcity, rather than income, reaches
@@ -54,9 +38,12 @@ HAZARD_SCALE = 0.7
 # [Barcelona ≈65 contacts per listing, rent-cap §3 — mechanism sourced, level a guess]
 CONGESTION_GAIN = 0.05
 
-# EXIT_SPLIT was written at this level of seasonal evasion; the seasonal branch scales
-# proportionally when the parameter is swept away from it [Incasòl — medium]
-EXIT_SPLIT_EVASION_BASE = 0.15
+
+# The cap-response constants that used to live here — EXIT_SPLIT, HAZARD_SCALE, the magnet
+# gain and EXIT_SPLIT_EVASION_BASE — are now `config.CapResponseConfig`, unchanged in value.
+# They moved in phase A (spec §2, finding 10) so phase E's screening can reach them: the
+# headline rent-cap result depends on all four, and a constant outside config.py cannot be
+# swept. Their provenance, ranges and the 2026-09-08 hazard re-fit are documented there.
 
 
 def required_rent(state: WorldState, zone: ZoneType, value: float) -> float:
@@ -103,6 +90,7 @@ class SmallLandlords:
 
     def decide(self, state: WorldState) -> list[Intent]:
         cfg = state.config
+        capcfg = cfg.cap_response
         intents: list[Intent] = []
         candidates = [
             u
@@ -144,40 +132,64 @@ class SmallLandlords:
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
                 if fundamental_ask > cap and complies:
-                    # withdrawal margin: the disputed elasticity parameter. The gap is
-                    # the PV shortfall of the capped stream: today's level gap plus the
-                    # growth wedge (capped rents grow at IRAV, market at expectations)
-                    # over a ~5-year holding horizon
-                    # the free stream grows at the SHADOW's rate, not at the asking index's:
+                    # withdrawal margin: the disputed elasticity parameter. The gap is the
+                    # PV shortfall of the capped stream over the landlord's holding horizon.
+                    #
+                    # The free stream grows at the SHADOW's rate, not at the asking index's:
                     # under a cap `expected_rent_growth` is an expectation formed on capped
-                    # asks, and feeding it back in double-counts the cap (model-spec §5b)
+                    # asks, and feeding it back in double-counts the cap (model-spec §5b).
+                    #
+                    # PHASE A (spec §2, finding 9). The wedge is built from two EXOGENOUS
+                    # constants — the shadow's growth anchor and the statutory update — so it
+                    # is a constant. It used to be ADDED to the level gap:
+                    #
+                    #     gap = log(ask / cap) + 5 * wedge
+                    #
+                    # which is discontinuous at the point the cap starts to bind. A cap
+                    # binding by one euro produced the same `5 * wedge` term as a cap binding
+                    # by a third of the rent, so the exit hazard jumped from zero to a fixed
+                    # positive floor the instant the cap touched the ask, and stayed there
+                    # however mild the cap was. The floor came from two constants nobody
+                    # chose as a hazard, and the headline cap result rode on it.
+                    #
+                    # The wedge is a real PV term and stays. What changes is that it SCALES
+                    # the level gap instead of being added to it: the shortfall of a capped
+                    # stream is proportional to how far the cap is below the free rent, and
+                    # the growth divergence compounds that shortfall over the holding
+                    # horizon. A cap that binds on nothing costs nothing, however long it is
+                    # held — which is the property the additive form did not have.
+                    level_gap = np.log(fundamental_ask / cap)
                     growth_wedge = max(
                         0.0,
-                        4.0 * zs.shadow_growth - cfg.policy.within_contract_update,
+                        capcfg.wedge_annualisation * zs.shadow_growth
+                        - cfg.policy.within_contract_update,
                     )
-                    gap = np.log(fundamental_ask / cap) + 5.0 * growth_wedge
+                    gap = level_gap * (1.0 + capcfg.holding_years * growth_wedge)
                     # HAZARD_SCALE maps the per-listing quarterly exit hazard onto the
                     # studies' annual contract-flow elasticity: calibrated so that
                     # elasticity=2 reproduces Monràs & García-Montalvo's Δln contracts
                     # / Δln rent ≈ 2 (−10% tenancies at −5% rents)
-                    p_exit = min(0.9, cfg.market.rental_supply_elasticity * HAZARD_SCALE * gap)
+                    p_exit = min(
+                        0.9, cfg.market.rental_supply_elasticity * capcfg.hazard_scale * gap
+                    )
                     if self.rng.random() < p_exit:
                         intents.append(self._exit(unit.id, state))
                         continue
                     ask, capped = min(ask, cap), True
                 elif ask < cap:
                     # magnet effect: below-reference asks drift up toward the cap
-                    ask = min(cap, ask * 1.05)
+                    ask = min(cap, ask * capcfg.magnet_gain)
             intents.append(ListForRent(agent_id=self.id, unit_id=unit.id, ask=ask, capped=capped))
         return intents
 
     def _exit(self, unit_id: int, state: WorldState) -> WithdrawRental:
         pol = state.config.policy
+        capcfg = state.config.cap_response
         u = self.rng.random()
         seasonal_open = not pol.seasonal_segment_capped
-        p_sale = EXIT_SPLIT["sale"]
-        p_seasonal = EXIT_SPLIT["seasonal"] * (
-            state.config.market.seasonal_evasion_share / EXIT_SPLIT_EVASION_BASE
+        p_sale = capcfg.exit_split_sale
+        p_seasonal = capcfg.exit_split_seasonal * (
+            state.config.market.seasonal_evasion_share / capcfg.exit_split_evasion_base
             if seasonal_open
             else 0.0
         )
