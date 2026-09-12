@@ -2,9 +2,10 @@
 
 Run: streamlit run src/resim/ui/app.py
 
-Four tabs: explore one policy in depth (with actor-reaction explanations), compare all
+Five tabs: explore one policy in depth (with actor-reaction explanations), compare all
 policies on one indicator, contrast the model's national figures against what Banco de
-España actually publishes, and a plain-language guide to the model.
+España actually publishes, show the phase-0 diagnostic targets (including the three the
+model currently fails), and a plain-language guide to the model.
 Sidebar: baseline knobs, one policy lever, and the *disputed* parameters exposed as
 sliders labeled with the competing estimates (bias-control rule: the model spans the
 disagreement, the user explores it).
@@ -19,7 +20,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from resim import benchmarks, metrics
+from resim import benchmarks, diagnostics, metrics
 from resim.config import SimConfig
 from resim.engine import Engine
 from resim.scenario import Scenario
@@ -422,6 +423,105 @@ def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) ->
     st.markdown(texts.BDE_FORECAST_PANEL)
 
 
+def diagnostics_tab(baseline_frame, scenario_frame, params: dict, lever: str) -> None:
+    """The phase-0 targets on screen — including the three the model currently fails.
+
+    Always evaluated on the BASELINE frame, never the scenario one. These targets ask
+    whether the model reproduces Spain, and a rent cap moving a number is not evidence
+    about that; `docs/validation.md` quotes them on the baseline for the same reason.
+    """
+    st.subheader("Diagnóstico del modelo — objetivos de la fase 0")
+    st.markdown(texts.DIAGNOSTICS_INTRO)
+
+    frame = baseline_frame
+    if scenario_frame is not None:
+        st.caption(
+            f"Medido siempre sobre la **base sin política**, no sobre «{lever}»: estos "
+            "objetivos preguntan si el modelo reproduce España, y una política moviendo "
+            "un número no es evidencia sobre eso."
+        )
+
+    table = diagnostics.evaluate(frame)
+    counts = diagnostics.summary(frame)
+
+    k = st.columns(4)
+    k[0].metric("Objetivos de fase 0", counts["targets"])
+    k[1].metric("✗ xfail estrictos", counts["xfail"])
+    # Labels distinct from the BdE tab's counters on purpose: Streamlit renders every tab
+    # body eagerly into one flat element list, so two tabs sharing a metric label are
+    # ambiguous both to a reader flipping between them and to anything reading the surface.
+    k[2].metric("✅ Criterios dentro de banda", counts["inside"])
+    k[3].metric("🔽🔼 Criterios fuera de banda", counts["outside"])
+
+    st.dataframe(
+        table[["Objetivo", "Indicador", "Este run", "Criterio", "Encaja", "Estado"]],
+        width="stretch",
+        hide_index=True,
+    )
+    st.caption(
+        "**Criterio** es la banda tal y como la enuncia el dosier; la evaluación usa la "
+        "banda de `tests/test_validation.py`, que la ensancha 0,5 pp por lado para ruido "
+        "de semilla. **Encaja** es dónde cae *esta* semilla; **Estado** es cómo está "
+        "registrado el objetivo en `docs/validation.md`. Responden a preguntas distintas y "
+        "pueden discrepar."
+    )
+
+    st.subheader("Qué significa cada fila")
+    for _key, row in table.iterrows():
+        with st.expander(
+            f"{row['Encaja']} {row['Estado']} · objetivo {row['Objetivo']} — {row['Indicador']}"
+        ):
+            st.markdown(
+                f"- **Este run:** {row['Este run']}  ·  **Criterio:** {row['Criterio']}\n"
+                f"- **Fuente:** {row['source']}\n"
+                f"- **Cómo se lee:** {row['reads']}" + (f"\n- {row['note']}" if row["note"] else "")
+            )
+
+    st.divider()
+    st.subheader("Yield bruto del alquiler por zona (salida del modelo, no un ajuste)")
+    chart_block(
+        "yields",
+        frame,
+        charts.zone_columns("gross_yield"),
+        y_title="Yield bruto anual",
+        colors=charts.ZONE_COLORS,
+        y_format=".2%",
+    )
+
+    st.subheader("Alquileres por zona — el orden T > S > R que el modelo rompe")
+    chart_block(
+        "alquileres_diag",
+        frame,
+        charts.zone_columns("rent"),
+        y_title="€/mes",
+        colors=charts.ZONE_COLORS,
+    )
+
+    st.subheader("Migración interna neta por zona (hogares/trimestre, escala del modelo)")
+    chart_block(
+        "migracion",
+        frame,
+        charts.zone_columns("net_migration"),
+        y_title="Hogares/trimestre",
+        colors=charts.ZONE_COLORS,
+        zero_line=True,
+    )
+
+    st.subheader("Proporción de inquilinos por zona")
+    chart_block(
+        "tenencia_zona",
+        frame,
+        charts.zone_columns("tenant_share"),
+        y_title="Proporción de hogares de la zona",
+        colors=charts.ZONE_COLORS,
+        y_format=".1%",
+    )
+
+    st.divider()
+    st.markdown(texts.DIAGNOSTICS_OUTRO)
+    _ = params
+
+
 def how_it_works_tab() -> None:
     st.markdown(texts.MODEL_EXPLANATION)
 
@@ -468,11 +568,12 @@ def main() -> None:
 
     baseline_frame, scenario_frame = run(seed, ticks, lever, params, momentum)
 
-    tab_explore, tab_compare, tab_bde, tab_help = st.tabs(
+    tab_explore, tab_compare, tab_bde, tab_diag, tab_help = st.tabs(
         [
             "📈 Explorar una política",
             "⚖️ Comparar políticas",
             "🏛️ Contraste oficial",
+            "🔬 Diagnóstico del modelo",
             "❓ Cómo funciona el modelo",
         ]
     )
@@ -482,6 +583,8 @@ def main() -> None:
         compare_tab(seed, ticks, momentum)
     with tab_bde:
         bde_tab(seed, ticks, momentum, lever, params)
+    with tab_diag:
+        diagnostics_tab(baseline_frame, scenario_frame, params, lever)
     with tab_help:
         how_it_works_tab()
 

@@ -1,0 +1,112 @@
+"""The phase-0 diagnostic panel: does it show the defects the gate says are there?
+
+`resim.diagnostics` is display-only — it gates nothing. What these tests protect is that
+it does not *drift away* from the gate: the bands it shows are the ones asserted in
+`tests/test_validation.py`, the three registered xfails actually come out red in the panel,
+and every column the app plots on this tab exists in a real frame.
+"""
+
+import math
+
+import pytest
+
+from resim import diagnostics, metrics
+from resim.cli import build_scenario
+from resim.diagnostics import CRITERIA, Registered
+from resim.engine import Engine
+from resim.ui import charts
+
+
+@pytest.fixture(scope="module")
+def frame():
+    return metrics.to_frame(Engine(build_scenario("baseline", 1, 60)).run())
+
+
+@pytest.fixture(scope="module")
+def table(frame):
+    return diagnostics.evaluate(frame)
+
+
+def test_every_criterion_produces_a_row(table):
+    assert list(table.index) == [c.key for c in CRITERIA]
+    for column in ("Objetivo", "Indicador", "Este run", "Criterio", "Encaja", "Estado"):
+        assert column in table.columns
+        assert table[column].notna().all()
+
+
+def test_bands_mirror_the_validation_assertions():
+    """The gate's bands, copied. If test_validation changes one, this fails and says so.
+
+    Kept as literals rather than imported because `test_validation` asserts them inline;
+    duplicating them here is the point — the duplicate is the tripwire.
+    """
+    bands = {c.key: c.band for c in CRITERIA}
+    assert bands["gross_yield_tensioned"] == (0.042, 0.061)
+    assert bands["gross_yield_secondary"] == (0.060, 0.080)
+    assert bands["gross_yield_rural"] == (0.065, 0.095)
+
+
+def test_the_three_registered_xfails_show_red_in_the_panel(table):
+    """The panel exists to make these visible. If any turns green, phase B landed."""
+    assert table.loc["gross_yield_rural", "Encaja"] == "🔼"
+    assert table.loc["gross_yield_rural", "value"] > 0.095
+    assert table.loc["rent_ordering", "Encaja"] == "🔽"
+    assert table.loc["rent_ordering", "value"] < 0  # rural rent above the metro index
+    assert table.loc["net_migration_tensioned", "Encaja"] == "🔽"
+    assert table.loc["net_migration_tensioned", "value"] < 0  # wrong sign
+
+
+def test_the_passing_legs_of_target_9_show_green(table):
+    """Only the rural leg breaks target 9 — the panel has to say which one."""
+    assert table.loc["gross_yield_tensioned", "Encaja"] == "✅"
+    assert table.loc["gross_yield_secondary", "Encaja"] == "✅"
+
+
+def test_tenant_ordering_holds(table):
+    """Target 1c is gated and passing: T > S > R, so the margin is positive."""
+    assert table.loc["tenant_ordering", "Encaja"] == "✅"
+    assert table.loc["tenant_ordering", "value"] > 0
+
+
+def test_reported_rows_are_not_verdicted(table):
+    """No band ⇒ no ✅/🔽/🔼. A reported column must not read as a pass."""
+    for key in ("landlord_household_share", "median_ticks_to_sale"):
+        assert table.loc[key, "Encaja"] == "—"
+        assert math.isfinite(table.loc[key, "value"])
+
+
+def test_unmeasurable_rows_say_so_instead_of_showing_a_number(table):
+    """Target 10 needs the boom hold-out; target 15 has no mechanism. Neither invents one."""
+    for key in ("boom_yield_compression", "foreclosure_flow"):
+        assert table.loc[key, "Este run"] == "no medible aquí"
+        assert table.loc[key, "Encaja"] == "—"
+        assert math.isnan(table.loc[key, "value"])
+
+
+def test_ordering_margin_is_the_smallest_gap(frame):
+    t = frame["rent_tensioned"].tail(diagnostics.WINDOW).mean()
+    s = frame["rent_secondary"].tail(diagnostics.WINDOW).mean()
+    r = frame["rent_rural"].tail(diagnostics.WINDOW).mean()
+    assert diagnostics._ordering_margin(frame, "rent") == pytest.approx(min(t - s, s - r))
+
+
+def test_migration_is_cumulative_not_a_tail_mean(frame, table):
+    """Target 12's basis is a flow summed over the run, as docs/validation.md states."""
+    assert table.loc["net_migration_tensioned", "value"] == pytest.approx(
+        frame["net_migration_tensioned"].sum()
+    )
+
+
+def test_every_column_the_tab_plots_exists(frame):
+    """Guards the chart prefixes: a typo here is a blank chart, not an error."""
+    for prefix in ("gross_yield", "rent", "net_migration", "tenant_share"):
+        for column in charts.zone_columns(prefix):
+            assert column in frame.columns, column
+
+
+def test_summary_counts_the_registered_xfails(frame):
+    counts = diagnostics.summary(frame)
+    assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
+    assert counts["xfail"] == 3  # targets 9, 11, 12
+    assert counts["targets"] == 8  # 1c, 9, 10, 11, 12, 13, 14, 15
+    assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)
