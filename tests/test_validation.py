@@ -49,6 +49,7 @@ def baseline_moments():
                 "gy_tensioned": tail["gross_yield_tensioned"].mean(),
                 "gy_secondary": tail["gross_yield_secondary"].mean(),
                 "gy_rural": tail["gross_yield_rural"].mean(),
+                "gy_contract_national": tail["gross_yield_contract_national"].mean(),
                 "price_ranking": (
                     tail["price_tensioned"].mean()
                     > tail["price_secondary"].mean()
@@ -138,6 +139,25 @@ def test_zone_price_ladder_holds(baseline_moments):
     """
     assert baseline_moments["price_ratio_tr"] > 2.6
     assert baseline_moments["price_ratio_ts"] > 1.3
+
+
+def test_national_entry_yield_matches_the_bank_of_spain(baseline_moments):
+    """Target 9, national leg, on the CONTRACT basis (model-spec §13.7).
+
+    Decided 2026-09-12: yields are judged on contracts, not on portal asks. Portal asks are
+    not transactions — negotiated down, edited, re-posted, withdrawn without trace.
+
+    The band is BdE's own estimate of the **entry** (new-contract) gross yield since 2015,
+    6.5–7.5% [DO 2432 §3.3]. It is deliberately NOT the RBA's 2.90%: the RBA is a *stock*
+    yield over contracts signed across many years under LAU terms and capped updates, and the
+    landlord decision this model contains is an entry decision on the marginal unit at
+    today's terms. Both are contract-basis; they are different objects.
+
+    Measured on `rent_transacted` (median new-contract rent), not `rent_index` (asking).
+    Asserted on the sourced band without widening: this leg passes on it as it stands, and a
+    tolerance added where none is needed would only hide a future drift.
+    """
+    assert 0.065 <= baseline_moments["gy_contract_national"] <= 0.075
 
 
 @pytest.mark.xfail(

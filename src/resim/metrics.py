@@ -212,6 +212,26 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         # an initial condition only; the ladder the model then produces is a prediction, and
         # the one observable that tells us whether the landlord's reservation rule is right.
         row[f"gross_yield_{z}"] = zs.rent_index * 12.0 / max(zs.price_index, 1.0)
+        # …and the same yield on the CONTRACT basis (model-spec §13.7, decided 2026-09-12).
+        # `rent_index` is an asking index; portal asks are not transactions — they are
+        # negotiated down, edited, re-posted, and withdrawn without trace. `rent_transacted`
+        # is the median rent of contracts actually signed this tick, so this is the ENTRY
+        # yield: a new contract on the marginal unit at today's terms, which is the object a
+        # landlord's entry decision is made on (§7.1 reservation rent, §7.3 buy-to-let).
+        #
+        # It is NOT the BdE RBA. The RBA is a *stock* yield — AEAT declared rents over the
+        # whole let stock ÷ Registradores prices — averaging contracts signed across many
+        # years under LAU terms and capped updates, and it reads 2.90% in 2026Q2 against
+        # BdE's own estimate of 6.5–7.5% for entry. Both are contract-basis; they are
+        # different objects, and this column is the entry one.
+        #
+        # Both bases are kept so the comparison can never be made on the wrong one by
+        # accident — the same discipline the model already applies to its two rent bases.
+        row[f"gross_yield_contract_{z}"] = (
+            zs.rent_transacted * 12.0 / max(zs.price_index, 1.0)
+            if zs.rent_transacted > 0.0
+            else float("nan")
+        )
         row[f"reference_rent_{z}"] = zs.reference_rent
         # the uncapped clearing rent landlords compare a cap against (= rent index when free)
         row[f"shadow_rent_{z}"] = zs.shadow_rent
@@ -287,6 +307,16 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     )
     row["rent_national"] = float(sum(state.zones[z].rent_index * zone_weights[z] for z in ZoneType))
     row["gross_yield_national"] = row["rent_national"] * 12.0 / max(row["price_national"], 1.0)
+    # the national ENTRY yield on the contract basis — the number target 9 is judged on
+    # against BdE's own 6.5–7.5% estimate for new contracts (model-spec §13.7)
+    row["rent_transacted_national"] = float(
+        sum(state.zones[z].rent_transacted * zone_weights[z] for z in ZoneType)
+    )
+    row["gross_yield_contract_national"] = (
+        row["rent_transacted_national"] * 12.0 / max(row["price_national"], 1.0)
+        if row["rent_transacted_national"] > 0.0
+        else float("nan")
+    )
     # household-weighted national growth, per tick. The zone series already exist; these are
     # the national aggregates the published Spanish figures (INE IPV, BdE) are quoted on.
     row["price_growth_national"] = sum(

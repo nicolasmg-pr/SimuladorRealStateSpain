@@ -722,6 +722,53 @@ Each phase closes with an explicit hostile-reader pass: every objection answered
 in writing**. `docs/validation.md` "Honest qualifications" is the register; it is procedure,
 not goodwill.
 
+### 13.7 Rental-yield basis (decided 2026-09-12, phase B)
+
+Every yield the model reports or is judged on is on a **contract basis**, not a portal asking
+basis. Portal asks are not transactions: prices are negotiated down, listings are edited and
+re-posted, and a withdrawn ad leaves no trace. What was signed is the more reliable object.
+
+That decision leaves a second axis, and it is not the same one. Contract-basis yields come in
+two flavours, and Banco de España publishes both:
+
+| | What it measures | Value | Series |
+|---|---|---|---|
+| **Stock** (RBA) | AEAT declared rents for the stock of let dwellings ÷ Registradores prices per m² | 4.65% (2014Q2) → 2.90% (2026Q2) | `D_TKR60REA_VIV_IPV` |
+| **Entry** | New contracts, BdE's own estimate since 2015 | **6.5–7.5%** | DO 2432 §3.3, a range not a series |
+
+The stock yield is an average over contracts signed across many years under LAU terms and
+capped within-contract updates. It is the right object for asking *what letting has returned*.
+It is the wrong object for a landlord's **entry** decision, which is made on the marginal unit
+at today's terms — and the entry decision is exactly what §7.1's reservation rent and §7.3's
+buy-to-let margin model.
+
+**Therefore:**
+
+1. The model's yield observable is an **entry** yield and is computed on `rent_transacted`
+   (median new-contract rent, SERPAVI-like), not on `rent_index` (asking). `gross_yield_*`
+   keeps the asking basis and is retained for comparability with the portals;
+   `gross_yield_contract_*` is the contract-basis entry yield and is the one the targets are
+   set against. Both are reported so the basis can never be silently confused again — the same
+   discipline §5b applies to the two rent bases.
+2. Target 9's band is BdE's entry range, **6.5–7.5% national**, not the RBA's 2.90%. The
+   per-zone ladder keeps its ordering claim; its levels are re-derived in phase B rather than
+   carried over from the portal cross-section.
+3. The §7.1 compression test is settled by this decision and stops being source-dependent.
+   On the contract stock basis the RBA compresses monotonically across the whole 2014–26 boom,
+   −175 bp from the 2014Q2 peak. The portal series disagree in sign before 2021 — Fotocasa's
+   asking yield *rises* 5.0% → 6.8% to 2020 — and that disagreement is now recorded as a
+   basis difference, not as an open question about the world.
+4. `π` is a **constant with a zone gradient**, declared, not a cyclical term. No free
+   historical prime-yield series exists (403 on CBRE and Savills), so π can be bounded at a
+   point — ≈ +25 bp Madrid / +45 bp Barcelona prime against the March 2026 bond — and not
+   tracked through a cycle. Claiming a cyclical π would be claiming a series nobody has.
+
+**Still blocking §7.1:** the operating-cost share `c` in
+`r_req = V·(i_bond + π − E[g]) / (12·(1−c))` has no sourced value. DO 2432 quantifies the
+*tax* wedge (0.5–1.25 pp by bracket) but the sentence carrying the *cost* wedge does not come
+out of the PDF text layer, and AEAT's rental P&L rows give net income without the gross-to-net
+ratio. §7.1 and §7.2 are not coded until it is retrieved.
+
 ## 14. Exogenous boundary
 
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
