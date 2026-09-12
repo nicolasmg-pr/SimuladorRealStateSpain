@@ -769,6 +769,51 @@ buy-to-let margin model.
 out of the PDF text layer, and AEAT's rental P&L rows give net income without the gross-to-net
 ratio. §7.1 and §7.2 are not coded until it is retrieved.
 
+### 13.8 Migration: interior and exterior, reported separately (decided 2026-09-12, phase B)
+
+Target 12 is restated on **total** migration — interior plus international — not on interior
+flows alone. The reason is that the two run in opposite directions in Spain and only their sum
+answers the question the model is asked: does the metro zone grow?
+
+| | Direction, 2017–2024 | Source |
+|---|---|---|
+| interior | metro **loses** every year (capitals −29,400 in 2019, −117,596 in 2020, −55,195 in 2024) | INE EVR microdata 2015–21; EMCR 69753 2021–24 |
+| international | metro gains — this is why Spanish cities grow | INE EVR/EMCR exterior leg |
+
+Stating the target on interior flows alone, as the spec did, registers the model's correct
+behaviour as a failure. Stating it on total flows makes the claim the one anybody arguing about
+Spanish housing actually makes.
+
+**Structural consequence, and the reason this is worth doing beyond fixing a target.** The
+model already contains international arrivals — it just does not say so.
+`PopulationConfig.formation_zone_weights` tilts new households toward the metro, and that tilt
+is doing the work of immigration while being labelled *household formation*. Two flows with
+different drivers, different sources and different policy exposure are fused into one
+parameter, and that parameter was calibrated by screening against the §9 gates (finding 8).
+
+Phase B therefore splits it:
+
+1. **Domestic household formation** — Spaniards forming new households. Driven by the INE
+   household projection already in `scenario.py`, allocated by existing population.
+2. **International arrivals** — allocated on the observed exterior-migration zone gradient,
+   with its own rate. **Exogenous, and already declared so**: §14 places "foreign
+   origin-country conditions" outside the model, and arrivals are driven by them. Making the
+   flow explicit does not widen the exogenous boundary; it stops an exogenous flow from
+   hiding inside a fitted weights vector.
+3. **Interior migration** — the §7.5 bidirectional rule, from a zone comparison (expected
+   income × amenity − housing cost) with a friction, identified against the 2020 reversal:
+   the metro outflow is 4.2× its 2019 value while *gross* interior flows fall 7.9%, so it is
+   pure redirection of a shrinking flow and identifies the elasticity without a volume
+   confound.
+
+Interior and total net migration are both reported per zone, the same discipline already
+applied to the two rent bases and the two yield bases (§13.7). Nobody gets to quote one as the
+other.
+
+**Levels are not set here.** The exterior component is being retrieved; until it is in
+`docs/sources.md` the split is specified but not coded, per the rule that every *to verify*
+figure is retrieved before the mechanism using it is written.
+
 ## 14. Exogenous boundary
 
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
