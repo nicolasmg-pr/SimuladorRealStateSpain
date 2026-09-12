@@ -77,8 +77,6 @@ each one was reached; where their numbers differ from this table, this table is 
 | 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −4.9% rents, +0.9% contracts; ε=2 → −4.2%, −13.6% | ✓ **all three inside the 0–2 dial** |
 | — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.0% | ✓ |
 | — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 6.8% | ✓ qualified |
-| — | National supply elasticity (zone-weighted) | 0.45–0.58 | 0.49 | ✓ |
-| — | Zone dwellings/household weight to the national anchor | 1.12 ± 0.01 | 1.13 | ✓ invariant |
 
 Targets 3, 4 and 5 are asserted on their **sourced** bands. **No target in this table is an xfail.** Two were
 until 2026-09-08: the zone price ladder (2c), fixed by the location premium, and the hold-out
@@ -86,6 +84,18 @@ rent leg (7r), fixed by the tightness recalibration without touching the rent me
 remains is not a failing target but two *qualified* ones — 7r reaches only ≈40% of the observed
 magnitude, and 1 sits below the EFF ownership band — both carried in "Honest qualifications"
 and `model-spec` §10.
+
+## Config guards — not validation targets (moved 2026-09-12)
+
+Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
+(0.49 against a sourced 0.45–0.58) and the zone dwellings-per-household weight to its national
+anchor (1.13 against 1.12 ± 0.01). Neither runs an engine. Both construct `SimConfig.baseline()`
+and assert that config fields agree with the config anchors they were derived from.
+
+That is a real check and it is kept, unweakened, in `tests/test_config_guards.py`. It is not
+evidence that the model reproduces Spain, which is what this table is for, and counted among
+the passing targets it inflated the count with arithmetic the model cannot fail at runtime.
+Spec §2, finding 8: *"two target rows are config identities"*. Phase A, `model-bug-fixes`.
 
 ## Phase-0 targets (2026-09-11)
 
