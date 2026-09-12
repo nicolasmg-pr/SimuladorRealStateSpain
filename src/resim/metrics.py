@@ -78,6 +78,29 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
 
     incomes = np.array([h.income for h in hhs])
     median_income = float(np.median(incomes)) if len(incomes) else 1.0
+    # All three central tendencies of the income distribution, reported together.
+    #
+    # The model draws income lognormally, so the three are far apart and the gap is the point:
+    # at the baseline's median €36,100 and σ=0.70 the mean is ≈€46,300 and the MODE ≈€22,100 —
+    # the modal household earns less than half what the mean household earns. Quoting one of
+    # these as "household income" without saying which is how a right-skewed distribution gets
+    # misread, and this project has been bitten by basis confusion twice already (asking vs
+    # contract rents, stock vs entry yields), so the three are carried side by side.
+    #
+    # `median_income` stays the one the gates use: published Spanish figures (INE ECV, EFF) are
+    # quoted as medians, and comparing the model against them on any other basis would be the
+    # same mistake in a new place. The mean and the mode are reported, not gated.
+    #
+    # The mode is estimated parametrically — exp(µ̂ − σ̂²) from the logs — rather than by
+    # binning. A histogram mode depends on the bin width, which would make it a property of
+    # the diagnostic rather than of the distribution.
+    row["income_median"] = median_income
+    row["income_mean"] = float(np.mean(incomes)) if len(incomes) else 0.0
+    if len(incomes) > 1 and np.all(incomes > 0.0):
+        logs = np.log(incomes)
+        row["income_mode"] = float(np.exp(logs.mean() - logs.var()))
+    else:
+        row["income_mode"] = float("nan")
 
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)
