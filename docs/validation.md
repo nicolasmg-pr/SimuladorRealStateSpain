@@ -74,7 +74,7 @@ each one was reached; where their numbers differ from this table, this table is 
 | 6b | Rate shock: volume falls, prices sticky | 2023: sales −11%, prices +4% | direction holds (magnitude qualified) | ✓ |
 | 7 | Hold-out 2021–25: prices, volumes | prices +8–13%/yr (asking), record volumes | +4.4%/yr (transaction basis), volumes ×1.42 | ✓ qualified |
 | 7r | Hold-out 2021–25: **rents** | +8–11%/yr asking | **+3.6%/yr ± 0.8 (10 seeds, all positive)** | ✓ **passes; ≈40% of the sourced magnitude — direction only** |
-| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −4.9% rents, +0.9% contracts; ε=2 → −4.2%, −13.6% | ✓ **all three inside the 0–2 dial** |
+| 8 | Rent-cap credibility (Phase-7 gate) | span Jofre-Monseny / Monràs / Pérez García | ε=0 → −4.9% rents, −0.7% contracts; ε=1 → −5.2%, −1.4%; ε=2 → −4.4%, **−7.3%** | ⚠️ **rent leg ✓, supply leg no longer spans** — see "Phase-A hazard-floor revision" |
 | — | Individuals' share of rental stock | 85–92% [investor-small §1] | 86.0% | ✓ |
 | — | Public rental share of rental stock | ≈8% (1.7% of total stock) | 6.8% | ✓ qualified |
 
@@ -84,6 +84,41 @@ rent leg (7r), fixed by the tightness recalibration without touching the rent me
 remains is not a failing target but two *qualified* ones — 7r reaches only ≈40% of the observed
 magnitude, and 1 sits below the EFF ownership band — both carried in "Honest qualifications"
 and `model-spec` §10.
+
+## Phase-A hazard-floor revision (2026-09-12)
+
+Phase A removed the additive hazard floor in `agents/landlord.decide` (spec §2, finding 9).
+The withdrawal margin used to read `gap = log(ask/cap) + 5 × growth_wedge`, and because the
+wedge is built from two exogenous constants, a cap binding by one euro produced the same
+`5 × wedge` term as a cap binding by a third of the rent. The exit hazard jumped from zero to
+a fixed positive floor the instant the cap touched the ask and stayed there however mild the
+cap was. The wedge now **scales** the level gap instead of being added to it, which makes the
+hazard continuous at the point the cap starts to bind: a cap that costs nothing produces no
+withdrawals, however long the unit is held.
+
+Measured effect on the Phase-7 dial (3 seeds, cap from tick 20 of 40, 16 post-cap ticks):
+
+| ε | rents, before | rents, after | contracts, before | contracts, after |
+|---|---|---|---|---|
+| 0 | −4.9% | −4.9% | −0.7% | −0.7% |
+| 1 | −4.4% | −5.2% | −4.8% | −1.4% |
+| 2 | −4.4% | −4.4% | −13.6% / −14.0% | **−7.3%** |
+
+ε=0 is identical, as it must be — `p_exit` is multiplied by the elasticity, so at zero the
+hazard change cannot reach the result. That the two ends move differently is the signature of
+a hazard change and not of seed noise.
+
+**What this costs, stated plainly.** The supply leg no longer spans the studies: at the top of
+the 0–2 dial the model gives −7.3% contracts against Monràs & García-Montalvo's −10% and Pérez
+García's −13%. Target 8's supply leg is therefore split in two — a weak form that still passes
+(`test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial`) and a strong form carried
+as a dated strict xfail (`test_rent_cap_supply_response_reaches_monras`).
+
+`hazard_scale` was **not** re-fitted to recover the old number. The −13.6% was produced by a
+floor built out of two exogenous constants; re-fitting a scale factor to reproduce a result a
+defect was generating is the move this project's standard exists to forbid. Phase B re-derives
+the withdrawal margin from the arbitrage condition (spec §7.2) and the dial is re-derived
+there, not re-tuned here.
 
 ## Config guards — not validation targets (moved 2026-09-12)
 

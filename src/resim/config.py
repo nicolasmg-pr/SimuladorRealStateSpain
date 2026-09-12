@@ -361,6 +361,73 @@ class PolicyConfig:
 
 
 @dataclass(frozen=True)
+class CapResponseConfig:
+    """How a small landlord reacts to a binding rent cap.
+
+    This is behaviour — how the world works — not a lever. The cap's *level*, coverage and
+    compliance are `PolicyConfig`; what a landlord does when one binds is here.
+
+    Every field below was a module-level literal in `agents/landlord.py` until phase A
+    (spec §2, finding 10: "the headline cap result rides on guessed constants"). None of them
+    changed value in the move. They are here so that they can be swept: a constant that is not
+    in `config.py` is unreachable by phase E's Morris/Sobol screening, and the variance rule of
+    spec §3.2 cannot be applied to something it cannot vary.
+
+    Read the `*_range` fields as the honest span of the evidence, not as error bars. Where the
+    evidence is a guess, the range says how wide the guess is, and the bias-control rule then
+    forbids reporting any magnitude the span dominates.
+    """
+
+    # Where a withdrawn unit goes: sale / seasonal let / held vacant. Shares, sum to 1.
+    # [guess — open question investor-small §7.1. No Spanish study decomposes withdrawals.]
+    exit_split_sale: float = 0.50
+    exit_split_seasonal: float = 0.35
+    exit_split_vacant: float = 0.15
+    # Span admitted for the sale leg; the other two absorb the remainder proportionally.
+    exit_split_sale_range: tuple[float, float] = (0.35, 0.65)
+
+    # The seasonal evasion level EXIT_SPLIT was written at; the seasonal branch scales
+    # proportionally when `MarketConfig.seasonal_evasion_share` is swept away from it.
+    # [Incasòl — medium]
+    exit_split_evasion_base: float = 0.15
+
+    # Maps the per-listing quarterly exit hazard onto the studies' annual contract-flow
+    # elasticity. FITTED, not observed [docs/experiments/rent-cap.md]. A fitted constant with
+    # no range would be a point estimate of something nobody measured.
+    #
+    # It was fitted on 2026-09-08 so that the three rent-cap studies spanned the 0–2 dial.
+    # **They no longer do.** Removing the additive hazard floor (phase A, finding 9) cut the
+    # supply response at the top of the dial roughly in half:
+    #
+    #     ε=0: rents −4.9%, contracts −0.7%   (unchanged — p_exit is multiplied by ε)
+    #     ε=1: rents −5.2%, contracts −1.4%
+    #     ε=2: rents −4.4%, contracts −7.3%   (was −13.6% / −14.0%)
+    #
+    # So ε=2 now reaches neither Monràs & García-Montalvo's −10% nor Pérez García's −13%.
+    # This value is deliberately NOT re-fitted to recover them: the old number was produced
+    # by a floor built from two exogenous constants, and re-fitting a scale factor to
+    # reproduce a result that a defect was generating is the one move this project's
+    # standard forbids. Phase B replaces this machinery with the arbitrage condition
+    # (spec §7.2), and the dial is re-derived there rather than re-tuned here.
+    hazard_scale: float = 0.7
+    hazard_scale_range: tuple[float, float] = (0.5, 1.0)
+
+    # Below-reference asks drift up toward the cap: ask × this, capped at the cap itself.
+    # [guess — the mechanism (a cap read as a target) is documented in the Catalan evaluations;
+    # the pace is not]
+    magnet_gain: float = 1.05
+    magnet_gain_range: tuple[float, float] = (1.00, 1.10)
+
+    # PV horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth
+    # rate into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
+    # horizon a landlord discounts the capped stream over, and IS a guess: Spanish holding
+    # periods are not in docs/sources.md. [guess]
+    wedge_annualisation: float = 4.0
+    holding_years: float = 5.0
+    holding_years_range: tuple[float, float] = (3.0, 10.0)
+
+
+@dataclass(frozen=True)
 class SimConfig:
     """Full input to one run."""
 
@@ -372,6 +439,7 @@ class SimConfig:
     credit: CreditConfig
     developer: DeveloperConfig
     policy: PolicyConfig
+    cap_response: CapResponseConfig = field(default_factory=CapResponseConfig)
     zones: tuple[ZoneConfig, ...] = field(default_factory=tuple)
 
     @classmethod
