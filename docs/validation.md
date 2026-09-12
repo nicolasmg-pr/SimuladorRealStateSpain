@@ -253,6 +253,66 @@ outflow is **4.2× its 2019 value** while *gross* interior flows **fell 7.9%** (
 1,519,606). It is pure redirection of a shrinking flow, not a volume surge, which is what makes
 it identifying.
 
+### The exterior leg, and why the mapping decides the answer (2026-09-12)
+
+Retrieved after the correction above: the exterior component the first pass excluded, computed
+from the same EVR microdata (the 12 cells with a blank size band; 36 interior + 12 exterior
+exhaust the file) and, for 2021–24, reconstructed from EMCR table 69767's `Saldo exterior` by
+joining padrón table 29005 and INE's own 50-capital list from table 69747.
+
+That reconstruction validates hard: it reproduces INE's **published** interior bands exactly
+for the 50,001–100,000, >100,000 non-capital and provincial-capital bands in all four years,
+and to within 0.03–0.3% for the three smallest. The capital band does not depend on the padrón
+join at all. The exterior band figures for 2021–24 are nonetheless **ours, not INE's** — INE
+does not publish the exterior leg at band level, since table 69753 is intermunicipal by
+construction and the exterior result groups break down by province, country and island only.
+
+Does the exterior inflow flip the metro positive? **Six years of eight, not two:**
+
+| year | interior | exterior | total | flips? |
+|---|---|---|---|---|
+| 2017 | −4,757 | +116,286 | **+111,529** | yes |
+| 2018 | −31,117 | +176,777 | +145,660 | yes |
+| 2019 | −29,400 | +217,352 | +187,952 | yes |
+| 2020 | −117,596 | +102,164 | **−15,432** | **no** — exterior covers 87% |
+| 2021 | −79,928 | +52,675 | **−27,253** | **no** — covers 66% |
+| 2022 | −40,409 | +303,290 | +262,881 | yes |
+| 2023 | −44,651 | +290,220 | +245,569 | yes |
+| 2024 | −55,195 | +266,948 | +211,753 | yes |
+
+The two failures have different causes. In 2020 the interior outflow quadrupled *while* capital
+arrivals from abroad halved (362,085 → 203,256) — the borders shut at the moment of the urban
+exit. In 2021 the interior outflow was still 2.7× its 2019 level and the exterior *outflow* hit
+210,387, the series maximum. That makes 2020–22 a **stronger** natural test on total migration
+than on interior alone: the only window in eleven years in which the big cities lost on every
+margin at once, with recovery driven entirely by the exterior leg and not by interior return.
+
+**The sign is not robust to the zone mapping, and that is the problem.** Padrón shares:
+capitals 31.7%, plus >100k non-capital 42.2%, plus 50–100k 53.4%. The model's tensioned zone
+holds **45% of households** — it sits in the gap, and nothing sums to it.
+
+| mapping | 2019 | 2020 | 2021 |
+|---|---|---|---|
+| A capitals only (31.7%) | +187,952 | −15,432 | −27,253 |
+| B capitals + >100k non-capital (42.2%) | +237,236 | −14,649 | −11,548 |
+| C B + 50–100k (53.4%) | +301,329 | **+7,070** | **+31,939** |
+
+In 2020 and 2021 the metro total is negative under A and B and **positive under C**, in both
+statistics. The 50,001–100,000 band alone — 11% of Spain — carries enough exterior inflow to
+reverse the aggregate sign, in exactly the years the target is most interesting.
+
+Two signs **are** robust and can be relied on: interior net turns negative for the metro
+aggregate in 2017 under all three mappings and both statistics (so the correction above is
+safe), and exterior net is positive in every year under every mapping without exception.
+
+**Caveat that must travel with the 2021 figure.** *Bajas por caducidad* — the expiry of
+registrations of non-EU foreigners who do not renew — have counted inside exterior emigration
+since 2006, and INE's own methodological note warns that foreigners' departures are otherwise
+largely uncaptured. There is no published split. Part of the capitals' 210,387 departures
+abroad in 2021 may therefore be an administrative purge rather than real emigration, and 2021
+is one of the two years the metro total is negative. The figure is not wrong, but it is not a
+measured outflow either.
+
 **Target 12 cannot stand as written.** Its direction is wrong, so the strict xfail on it is
 currently registering the model's correct behaviour as a failure. Pending a decision on the
 replacement, it stays xfailed and this section is the reason — the xfail is not evidence of a
