@@ -213,6 +213,51 @@ supply constraint or a missing first-time-buyer margin is not answered here — 
 question, and phase A is bug fixes. Recorded as a finding for the spec, to be scoped before
 phase B's calibration leans on the ownership level.
 
+## Phase-B finding-11 correction: internal migration already has the right sign (2026-09-12)
+
+The redesign spec registers finding 11 as *"Internal migration has the wrong sign
+(`engine.py:417`); Spain's net internal flow runs rural→metro"*, and target 12 asserts that
+cumulative net internal migration into the tensioned zone must be **positive**. It is carried
+as a strict xfail on that basis.
+
+**The retrieved data says the opposite.** INE EVR microdata 2015–2021 and EMCR table 69753
+2021–2024, interior migration only, aggregated to the model's three zones. Both defensible
+mappings of INE's size bands give the same sign in every year:
+
+| tensioned = | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 |
+|---|---|---|---|---|---|---|---|
+| capital + >100k non-capital | +14,911 | +2,635 | −3,911 | −32,561 | −33,393 | **−140,179** | −90,777 |
+| provincial capital only | +13,072 | +180 | −4,757 | −31,117 | −29,400 | **−117,596** | −79,928 |
+
+The metro zone is a net **loser** of internal migrants in every year from 2017 on, and EMCR
+continues it: capitals −75,809 (2021) → −40,409 (2022) → −44,651 (2023) → −55,195 (2024). By
+2024 the flow has decayed but has not returned to the 2015 pattern.
+
+**Why the spec believed otherwise.** Spanish cities do grow — through *international* arrivals,
+which the interior-only figures exclude by construction. Internal and total migration run in
+opposite directions, and the spec's claim conflates them. The model's downward-only rule
+therefore has the **correct sign** for 2017–2024, and target 12 asserts a direction the data
+does not support.
+
+**What is still wrong with the rule**, and what §7.5 is still for:
+
+1. It is downward-only **by construction**, so the sign is an artefact, not a result. It cannot
+   reproduce 2015–16, when the flow genuinely ran the other way, and it cannot respond to any
+   policy — a rule that can only produce one sign cannot be falsified on sign.
+2. It has no mechanism: a 10%/tick coin flip on rent burden, with no income, amenity or
+   friction term, and no identifying episode.
+3. Its magnitude has never been validated against anything.
+
+The 2020 reversal remains the identifying episode and is sharper than the spec hoped: the metro
+outflow is **4.2× its 2019 value** while *gross* interior flows **fell 7.9%** (1,649,351 →
+1,519,606). It is pure redirection of a shrinking flow, not a volume surge, which is what makes
+it identifying.
+
+**Target 12 cannot stand as written.** Its direction is wrong, so the strict xfail on it is
+currently registering the model's correct behaviour as a failure. Pending a decision on the
+replacement, it stays xfailed and this section is the reason — the xfail is not evidence of a
+defect, and must not be read as one.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
