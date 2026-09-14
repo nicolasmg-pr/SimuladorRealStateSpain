@@ -729,6 +729,82 @@ Post-2013 the two series do co-move (corr +0.71 to +0.86, elasticity 0.63–0.77
 defensible claim is **"own cycle, partially correlated"**, not "orthogonal". The model's
 exogenous stream is the right shape and should not be described as independent.
 
+## Phase B, consolidated (2026-09-14)
+
+`profitability-block` merged: **0 failures, 11 dated strict xfails**. What landed, what it cost,
+and what is parked.
+
+### Landed
+
+| § | Mechanism | The thing it changed |
+|---|---|---|
+| 7.1 | Total-return hurdle, `r_req = V(i_bond + π − E[g]) / (12(1−c))` | the rental yield stops being an input pinned to its own target and becomes an output |
+| 7.4 | Both cash buyers re-anchored — investor capitalises rents, foreign buyer prices off an exogenous path | neither bids against the index it helps set |
+| 7.5 | Bidirectional interior migration from a zone comparison | the sign of migration is an outcome, not a property of the code |
+| 13.7 | Yields judged on the **contract entry** basis | national entry yield 7.00%, mid-band of BdE's own 6.5–7.5% |
+| 13.8 | Migration stated on total flows, mapping B declared | the target stops registering correct behaviour as a failure |
+| — | Zone income ladder measured on the model's own zones (ADRH) | a guessed 1.15/1.00/0.80 replaced, and a 1.0275 identity defect fixed |
+| — | Zone tenure ladder from ECV; the rural cell was **inferred** | published where it was guessed |
+
+§7.4's falsification test was **run** and did not fire: 2007→2013 Spanish transactions −64.1%
+against non-resident purchases +20.4%, the share swinging 2.55% → 10.67%, so no constant `k`
+exists. The exogenous treatment stands.
+
+### Four spec findings that did not survive contact with data
+
+Recorded here because the pattern matters more than any one of them: **every empirical claim in
+the redesign spec that was written from model memory rather than retrieved turned out wrong.**
+
+| finding | what the spec said | what the data said |
+|---|---|---|
+| 4 | inheritance leaks ownership, 77.2% → 69.5% | the leak is real but worth 0.3 pp of 7.9; owners are flat while households grow 11% |
+| 6 | `own_vs_rent` is inert | active in 5.78% of decisions, and it engages *less* in the rate shock it was said to carry |
+| 11 | Spain's internal flow runs rural→metro | it runs metro→rural every year from 2017; cities grow through *international* arrivals |
+| §7.4 | the series is Registradores' | Registradores cannot publish it — residence is not in the deed |
+
+This is the project's ≥2-sources rule earning its place four times in one phase.
+
+### The cost, unpaid
+
+Eleven dated strict xfails, all naming a mechanism and a phase. The single largest cause is
+one sentence: **the model's rents are set by the landlord's reservation, not by demand**, because
+`CONGESTION_GAIN = 0.05` is too weak for scarcity to push back. That is spec finding 2 — *no
+scarcity→price channel* — on the rent side, where the spec scoped it only for sales. Phase D has
+to do both. Five of the eleven trace to it: boom rent growth, the insider/outsider wedge, and
+three rent-cap tests where the cap now acts as a floor rather than a ceiling.
+
+Nothing was re-fitted to close any of them. `hazard_scale` was not re-tuned when the hazard floor
+came out; `small_landlord_premium` is identified on target 10's compression, not on a level fit;
+`foreign_arrivals_per_tick` was not raised to restore a share it is supposed to predict.
+
+### Parked, on `buy-to-let-remeasure`
+
+§7.3 buy-to-let entry. It **closes target 11** — one of the three original phase-0 xfails — plus
+the insider/outsider wedge and the small-landlord share, and takes the rural gross yield from 22%
+to 8.10%. It also found three implementation defects, one of them a **latent pre-existing state
+bug** (`clearing.settle` left a unit owner-occupied by nobody), caught by the invariant tests
+added in phase A.
+
+One thing keeps it out: yield-chasing entry **arbitrages the zone price ladder away** — T/R falls
+to 1.65 against a floor of 2.6. The 1.5 pp zone premium cannot hold against a rural yield
+starting at 22%. The concrete, sourced hypothesis for the missing force is the **vacancy
+gradient** the operating-cost retrieval measured and `c` deliberately excludes: *días de alquiler*
+338/365 in Extremadura against 352/365 in Barcelona, on top of the model's own 18% rural vacancy.
+Excluding it from `c` was right — the market already generates vacancy — but the investor should
+still **see** it when choosing a zone, which is a different thing from charging it as a cost.
+
+### What phase B did not reach
+
+- §7.3, above.
+- International arrivals as a mechanism: `formation_zone_weights` still fuses domestic household
+  formation and immigration into one fitted vector (model-spec §13.8).
+- Two foreign agents. Resident foreigners track domestic volume at β = 1.097 (R² 0.940);
+  non-residents at β = 0.093 (R² 0.013) through the bust. One agent averages two opposite
+  mechanisms.
+- A coastal zone. Non-resident purchases concentrate in Alicante, Málaga and Balears, and the
+  model's three zones have no coastal type, which is why the overlay's emergent share is 2.2%
+  against 6.5–8%.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
