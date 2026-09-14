@@ -213,6 +213,598 @@ supply constraint or a missing first-time-buyer margin is not answered here — 
 question, and phase A is bug fixes. Recorded as a finding for the spec, to be scoped before
 phase B's calibration leans on the ownership level.
 
+## Phase-B finding-11 correction: internal migration already has the right sign (2026-09-12)
+
+The redesign spec registers finding 11 as *"Internal migration has the wrong sign
+(`engine.py:417`); Spain's net internal flow runs rural→metro"*, and target 12 asserts that
+cumulative net internal migration into the tensioned zone must be **positive**. It is carried
+as a strict xfail on that basis.
+
+**The retrieved data says the opposite.** INE EVR microdata 2015–2021 and EMCR table 69753
+2021–2024, interior migration only, aggregated to the model's three zones. Both defensible
+mappings of INE's size bands give the same sign in every year:
+
+| tensioned = | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 |
+|---|---|---|---|---|---|---|---|
+| capital + >100k non-capital | +14,911 | +2,635 | −3,911 | −32,561 | −33,393 | **−140,179** | −90,777 |
+| provincial capital only | +13,072 | +180 | −4,757 | −31,117 | −29,400 | **−117,596** | −79,928 |
+
+The metro zone is a net **loser** of internal migrants in every year from 2017 on, and EMCR
+continues it: capitals −75,809 (2021) → −40,409 (2022) → −44,651 (2023) → −55,195 (2024). By
+2024 the flow has decayed but has not returned to the 2015 pattern.
+
+**Why the spec believed otherwise.** Spanish cities do grow — through *international* arrivals,
+which the interior-only figures exclude by construction. Internal and total migration run in
+opposite directions, and the spec's claim conflates them. The model's downward-only rule
+therefore has the **correct sign** for 2017–2024, and target 12 asserts a direction the data
+does not support.
+
+**What is still wrong with the rule**, and what §7.5 is still for:
+
+1. It is downward-only **by construction**, so the sign is an artefact, not a result. It cannot
+   reproduce 2015–16, when the flow genuinely ran the other way, and it cannot respond to any
+   policy — a rule that can only produce one sign cannot be falsified on sign.
+2. It has no mechanism: a 10%/tick coin flip on rent burden, with no income, amenity or
+   friction term, and no identifying episode.
+3. Its magnitude has never been validated against anything.
+
+The 2020 reversal remains the identifying episode and is sharper than the spec hoped: the metro
+outflow is **4.2× its 2019 value** while *gross* interior flows **fell 7.9%** (1,649,351 →
+1,519,606). It is pure redirection of a shrinking flow, not a volume surge, which is what makes
+it identifying.
+
+### The exterior leg, and why the mapping decides the answer (2026-09-12)
+
+Retrieved after the correction above: the exterior component the first pass excluded, computed
+from the same EVR microdata (the 12 cells with a blank size band; 36 interior + 12 exterior
+exhaust the file) and, for 2021–24, reconstructed from EMCR table 69767's `Saldo exterior` by
+joining padrón table 29005 and INE's own 50-capital list from table 69747.
+
+That reconstruction validates hard: it reproduces INE's **published** interior bands exactly
+for the 50,001–100,000, >100,000 non-capital and provincial-capital bands in all four years,
+and to within 0.03–0.3% for the three smallest. The capital band does not depend on the padrón
+join at all. The exterior band figures for 2021–24 are nonetheless **ours, not INE's** — INE
+does not publish the exterior leg at band level, since table 69753 is intermunicipal by
+construction and the exterior result groups break down by province, country and island only.
+
+Does the exterior inflow flip the metro positive? **Six years of eight, not two:**
+
+| year | interior | exterior | total | flips? |
+|---|---|---|---|---|
+| 2017 | −4,757 | +116,286 | **+111,529** | yes |
+| 2018 | −31,117 | +176,777 | +145,660 | yes |
+| 2019 | −29,400 | +217,352 | +187,952 | yes |
+| 2020 | −117,596 | +102,164 | **−15,432** | **no** — exterior covers 87% |
+| 2021 | −79,928 | +52,675 | **−27,253** | **no** — covers 66% |
+| 2022 | −40,409 | +303,290 | +262,881 | yes |
+| 2023 | −44,651 | +290,220 | +245,569 | yes |
+| 2024 | −55,195 | +266,948 | +211,753 | yes |
+
+The two failures have different causes. In 2020 the interior outflow quadrupled *while* capital
+arrivals from abroad halved (362,085 → 203,256) — the borders shut at the moment of the urban
+exit. In 2021 the interior outflow was still 2.7× its 2019 level and the exterior *outflow* hit
+210,387, the series maximum. That makes 2020–22 a **stronger** natural test on total migration
+than on interior alone: the only window in eleven years in which the big cities lost on every
+margin at once, with recovery driven entirely by the exterior leg and not by interior return.
+
+**The sign is not robust to the zone mapping, and that is the problem.** Padrón shares:
+capitals 31.7%, plus >100k non-capital 42.2%, plus 50–100k 53.4%. The model's tensioned zone
+holds **45% of households** — it sits in the gap, and nothing sums to it.
+
+| mapping | 2019 | 2020 | 2021 |
+|---|---|---|---|
+| A capitals only (31.7%) | +187,952 | −15,432 | −27,253 |
+| B capitals + >100k non-capital (42.2%) | +237,236 | −14,649 | −11,548 |
+| C B + 50–100k (53.4%) | +301,329 | **+7,070** | **+31,939** |
+
+In 2020 and 2021 the metro total is negative under A and B and **positive under C**, in both
+statistics. The 50,001–100,000 band alone — 11% of Spain — carries enough exterior inflow to
+reverse the aggregate sign, in exactly the years the target is most interesting.
+
+Two signs **are** robust and can be relied on: interior net turns negative for the metro
+aggregate in 2017 under all three mappings and both statistics (so the correction above is
+safe), and exterior net is positive in every year under every mapping without exception.
+
+**Caveat that must travel with the 2021 figure.** *Bajas por caducidad* — the expiry of
+registrations of non-EU foreigners who do not renew — have counted inside exterior emigration
+since 2006, and INE's own methodological note warns that foreigners' departures are otherwise
+largely uncaptured. There is no published split. Part of the capitals' 210,387 departures
+abroad in 2021 may therefore be an administrative purge rather than real emigration, and 2021
+is one of the two years the metro total is negative. The figure is not wrong, but it is not a
+measured outflow either.
+
+**Target 12 cannot stand as written.** Its direction is wrong, so the strict xfail on it is
+currently registering the model's correct behaviour as a failure. Pending a decision on the
+replacement, it stays xfailed and this section is the reason — the xfail is not evidence of a
+defect, and must not be read as one.
+
+## Phase-B sourced-parameter revision (2026-09-14)
+
+Two guessed zone parameters replaced with published ones. Both were free numbers; neither is
+any more.
+
+| | was (guess) | now (INE ECV) | table |
+|---|---|---|---|
+| `income_multiplier` | 1.15 / 1.00 / 0.80 | **1.085 / 0.950 / 0.896** | 59952, *renta neta media por hogar* by grado de urbanización |
+| `tenant_share` | 0.28 / 0.20 / **0.145 (inferred)** | **0.237 / 0.186 / 0.108** | 60181, *régimen de tenencia* by grado de urbanización |
+
+Two defects fixed on the way. The income multipliers are labelled "× national household
+income" and weighted by household share came to **1.0275** — the model's households were 2.75%
+richer than their own national anchor, by construction, and no guard checked it (the supply
+elasticities and stock ratios both had one). And the model asserted a metro/rural income ratio
+of **1.437** where ECV publishes **1.211**, a ratio that has been *narrowing* (1.29 in 2019 →
+1.21 in 2025), not widening.
+
+### What it cost, attributed
+
+Each change was run alone on 3 seeds, so the breakage is attributed rather than guessed:
+
+| variant | cap rent | cap leases | price-to-income | small-landlord share | ownership |
+|---|---|---|---|---|---|
+| both guesses | −3.70% | −1.04% | 7.11 | 0.858 | 0.693 |
+| ECV income only | −4.08% | +0.26% | 7.21 | 0.856 | 0.691 |
+| ECV tenure only | −2.41% | −6.70% | **6.73** | **0.842** | 0.713 |
+| both sourced | **+0.88%** | −1.66% | 6.68 | 0.838 | **0.716** |
+
+**The income gradient alone breaks nothing.** Every gate it touches still passes, and the cap's
+rent leg gets *stronger*. The tenure change carries price-to-income (6.73) and the small-landlord
+share (0.842) below their gates on its own.
+
+**The cap sign flip is an interaction.** Neither change flips it alone; together the cap raises
+tensioned contract rents by 0.88%. It is **not** the pooled-median composition artefact the
+model already documents: `cap_coverage` is 1.0 in the baseline, so the declared and pooled
+columns are identical and both read +0.88%. The mechanism is that the cap **stops binding** —
+market rents fall below the reference index, and the magnet (`ask × magnet_gain` toward the cap)
+then pulls asks *up*. The cap acts as a floor rather than a ceiling, while `shadow_rent` rises
+6.58% as withdrawals tighten supply. That is a real model result on a real reference-index
+mechanism, and reference indices acting as focal points is not a fictional phenomenon.
+
+Five targets are now dated strict xfails: price-to-income, small-landlord share, the 2021–25
+run-up, and the cap's rent leg in both its validation and engine tests. **Nothing was re-fitted.**
+These are published values replacing guesses; re-tuning a sourced parameter to restore a target
+is precisely the move this project's standard exists to forbid.
+
+**One target improved.** Ownership rose 0.693 → 0.716, well inside its 0.69–0.75 gate and closer
+to the EFF band it has been sitting below. Sourcing the rural tenure cell did that.
+
+### The caveat that matters more than the breakage
+
+**ECV's `densamente poblada` is not the model's `TENSIONED`.** ECV classifies by population
+density (Eurostat DEGURBA); the model's tensioned zone is defined by *housing-market tension*.
+Madrid and Barcelona have market-rent tenant shares well above the 19.5% ECV reports for all
+densely-populated Spain, so taking the dense cell for the tensioned zone probably understates
+renting there — and understating the tensioned rental market is the most likely explanation for
+why the cap stopped binding.
+
+**RELEASED 2026-09-14 — the caveat was right in direction and wrong in magnitude.** The
+declared tensioned-municipality list was retrieved (MIVAU national compilation, 317
+municipalities in 5 CCAA, every name joined to its INE code against padrón 29005, 317/317
+matched) and the aggregate the model's zone actually is — **the 89 largest municipalities**,
+all above 50,000 so Censo 2021 covers them directly — was measured:
+
+| | model (ECV dense) | top-89, measured | gap |
+|---|---|---|---|
+| `tenant_share` | 0.237 | **0.248** | +1.1 pp |
+| `income_multiplier` raw ratio | 1.0683 | **1.0766** | +0.8% |
+
+Barcelona (31.1% renting) and Madrid (24.0%) really are above the dense cell, but the 45%
+aggregate they sit inside is diluted by Sevilla 13.9%, Málaga 13.5%, Bilbao 14.4%, Murcia
+16.0%. **A 1.1 pp understatement cannot explain a rent cap that stopped binding**, so that
+hypothesis is withdrawn. The sign flip is re-attributed below, and the re-attribution is
+confirmed by the fix: the phase-B migration rewrite restored the cap without either parameter
+being touched.
+
+Two further findings from the same pass, both worth keeping:
+
+- **The declared list is a political aggregate, not a tension aggregate.** It is 19.98% of
+  Spanish households, not 45%, and 15 of 19 CCAA have declared nothing. **Madrid is not
+  declared**, at 24.0% renting, out-renting 26 of the 33 measured declared municipalities; 12
+  of the 20 highest rental shares among the 151 published municipalities are undeclared, and
+  the Balearic, Canarian and Levantine markets are absent entirely, while Barakaldo (11.0%) is
+  in. Validating a 45% zone against it would be validating against politics.
+- **`household_share = 0.45` is now the binding guess.** Every figure above is conditional on
+  it, because it decides which municipalities enter the aggregate.
+
+This is the same mapping problem the migration data raised, and it was declared the same way
+rather than absorbed — which is what made it checkable, and what let it be checked. A real datum on the wrong aggregate is not automatically better than an
+inference on the right one; what makes it better here is that it is checkable, and this
+paragraph is what makes it checkable. Resolving it needs a tension-based rather than
+density-based aggregate — the MIVAU declared tensioned-zone municipality list crossed with ECV
+or ADRH — which is not retrieved.
+
+## Phase-B §7.5: bidirectional migration, and what it restored (2026-09-14)
+
+The downward-only migration rule is replaced by a comparison (`engine._demography`):
+
+    gain(d) = income × (mult(d)/mult(o) − 1) − 12 × (rent(d) − rent(o)) − friction
+
+Both directions are reachable, so the sign is an outcome rather than a property of the code.
+Measured, 3 seeds × 60 ticks, cumulative net interior flows in model households:
+
+| zone | model | observed sign, mapping B |
+|---|---|---|
+| TENSIONED | **−103.3** | negative every year from 2017 |
+| SECONDARY | +45.7 | positive |
+| RURAL | +57.7 | positive |
+| sum | 0.0 | 0 by construction |
+
+### What it restored, without touching a parameter
+
+The sourced-parameter revision above broke five targets. **The migration rewrite closed six**,
+and no guess was reinstated to do it:
+
+| target | after sourcing | after §7.5 |
+|---|---|---|
+| price-to-income | 6.68 ✗ | passes |
+| 2021–25 run-up | 0.0371 ✗ | passes |
+| cap rent leg (direction) | +0.88% ✗ | passes |
+| cap coverage scaling | ✗ | passes |
+| cap supply leg, weak form | ✗ (phase A) | passes |
+| cap supply leg, **reaches Monràs** | ✗ (phase A) | **passes** |
+
+The rent-cap dial, measured the same way each time:
+
+| ε | phase A | after sourcing | after §7.5 |
+|---|---|---|---|
+| 0 | −4.9% / −0.7% | — | −13.3% / +3.0% |
+| 2 | −4.4% / −7.3% | +0.9% / — | **−13.3% / −10.1%** |
+
+**That is the real attribution of everything phase A and the sourced parameters appeared to
+break.** The guessed income and tenure ladders were compensating for a migration rule that
+funnelled every priced-out household into the rural zone. Fix the rule and the sourced values
+work. The 1.1 pp tenure understatement was never the explanation.
+
+### What it costs, and what it does not fix
+
+**The rent leg is now three times too strong**: −13.3% against the studies' −4…−6%. The
+supply leg reaches Monràs and the rent leg overshoots; target 8 is not closed, it has moved.
+No test gates the rent *magnitude* today — only its direction — so this is recorded here and
+belongs to §7.1, which re-derives the withdrawal margin from the arbitrage condition.
+
+Two targets broke and are dated strict xfails: the boom yield compression (target 10 — the
+boom now *raises* the yield, because the new rule sends households out of the metro faster as
+the boom widens the rent gap; the old rule could not respond to a boom at all, so its
+compression was insensitivity rather than mechanism) and the secondary vacancy ladder (13.36%
+against a 13.1% band top, a 0.26 pp overshoot, not re-fitted).
+
+**And the rule's gross flows are wrong, which is registered, not hidden.** At baseline there is
+**no interior inflow to the tensioned zone at all** — 3 seeds × 40 ticks give tensioned→rural
+224, secondary→rural 37, and nothing the other way. Spain's interior net (≈100k/yr) is a small
+difference between two large gross flows (≈1.6M moves/yr) and this rule has one of them at
+zero. The mechanism is not one-directional — a 35% metro income shock produces 329 and 124
+inbound immediately, which `test_interior_migration_is_bidirectional` asserts — but the only
+pull toward the metro here is the 1.21 income ratio, and it clears the rent gap for nobody.
+What is missing is where the job is, rather than what the average wage ratio is. **Not closed
+by adding an unsourced amenity term tuned until the gross flows look right**, which is the move
+phase B exists to remove; it needs §7.5's amenity term with its own identification — the same
+term that would make `location_premium` derivable rather than free.
+
+## Zone ladders measured on the model's own zones (2026-09-14)
+
+The ECV `grado de urbanización` gradient adopted two days earlier is superseded by one measured
+on the model's *own* zone definition: all 8,131 Spanish municipalities ranked by Censo-2021
+households and cut at 45/35/20.
+
+| zone | municipalities | households | share | `income_multiplier` | `tenant_share` measured |
+|---|---|---|---|---|---|
+| TENSIONED | 89 | 8,359,782 | 45.09% | **1.0766** | **0.2478** (100% measured) |
+| SECONDARY | 708 | 6,473,671 | 34.92% | **0.9621** | **0.1784** (23.2% measured) |
+| RURAL | 7,334 | 3,705,770 | 19.99% | **0.8934** | **0.1461** (0% measured) |
+
+**Both identities close without being forced.** The income ladder weights to 0.99989 — the
+renormalisation the previous gradient needed (×1.0157) becomes ×1.0001. The tenure ladder
+weights to 0.2032 against ECV's national 0.202, a +0.12 pp residual against the 0.87 pp the
+model was declaring.
+
+### Why the old residuals existed
+
+**ECV's DEGURBA classes are 54/31/15 of households, not 45/35/20.** Recovered by solving ECV
+table 60181's four over-determined tenure rows with sum-to-one imposed: 0.5416 / 0.3104 /
+0.1479, fitting all four rows to ≤0.03 pp and independently reproducing ECV's national *income*
+anchor — held out of the fit — to €20, or 0.05%.
+
+So the model was mixing DEGURBA cells with size-rank-shaped weights, and both declared
+residuals were that mismatch rather than measurement error in the cells. Only the income ladder
+is switched here; the tenure ladder has an open cell, below.
+
+### The RURAL tenure cell is not a measurement, and is not adopted
+
+Zero rural municipalities have published tenure. The 0.1461 is imputed from ECEPOV's single
+≤50k band, which holds **47.4% of Spain — 2.4× the zone it fills** — and that band publishes no
+internal size gradient, so only CCAA composition separates rural from the secondary zone's small
+towns. Re-splitting the band, pooled total held fixed:
+
+| RURAL assumption | RURAL | SECONDARY | national identity |
+|---|---|---|---|
+| as imputed | 0.1461 | 0.1784 | 0.2032 |
+| ECV *poco poblada*, all renting | 0.1368 | 0.1837 | 0.2032 |
+| ECV *poco poblada*, market rent only | 0.1089 | 0.1996 | 0.2032 |
+| flat across the band | 0.1561 | 0.1726 | 0.2031 |
+
+**The identity is invariant across all four**, so the national check cannot discriminate between
+them. Defensible range 0.109–0.156. The model's current 0.108 sits at the very bottom of it.
+
+The tenure ladder is therefore **not changed in this commit**. Picking a rural cell is a
+basis decision — size-rank Censo for two zones and DEGURBA ECV for the third is mixed-basis and
+has to be declared as such — and it is left open rather than made silently.
+
+### Effect
+
+One target moved: the cap's supply leg at elasticity 2 went from −10.1% to −7.85% contracts,
+failing the −9% assertion again. A ≈1 pp change in two zone income multipliers moved it 2.25 pp.
+That target has now moved five times in one phase (−13.6 → −7.3 → −1.6 → −10.1 → −7.85) and is
+not robustly passing in either direction; it is re-xfailed with that history on it rather than
+treated as a near miss.
+
+### A coherence defect in the size-rank cut, recorded
+
+The rank is by households, so metro commuter municipalities land in SECONDARY — Castelldefels,
+a *declared tensioned zone* renting at 27.1%, plus Tres Cantos, Sitges and Pozuelo — while Arona
+enters TENSIONED on size alone. A functional-urban-area cut would fix it. The MIVAU *Áreas
+Urbanas* list and a municipal DEGURBA classification are the two highest-value gaps remaining.
+
+## Phase-B §7.1: the total-return hurdle (2026-09-14)
+
+`agents/landlord.required_rent` becomes
+
+    r_req = V · (i_bond + π − E[g]) / (12 · (1 − c))
+
+The old form was `required yield = bond + spread` with the spread fitted to reproduce the
+observed zone ladder — the yield pinned to its own target (spec §2, finding 3). With E[g] in
+the expression it is an **output**.
+
+**π is split, because only half of it is measured.** `prime_risk_spread = 0.0035` is CBRE's
+Q1-2026 prime residential yield against BdE's 10-year bond (Madrid +25 bp, Barcelona +45 bp);
+`small_landlord_premium = 0.033` is **the one free parameter of §7.1, declared rather than
+buried**. The old 2 pp spread could not be reused: it *was* the observed yield minus the bond,
+i.e. the quantity the hurdle is meant to predict.
+
+**`c = 0.22`** of a sourced 0.20–0.24 [AEAT *cuenta de resultados del arrendamiento*,
+FY2019–FY2024, `Vivienda habitual = Sí`], pre-tax, **vacancy excluded** — AEAT's unit is the
+*vivienda equivalente* (ownership share × days in that use), and the model already generates
+vacancy, so the vacancy-inclusive 0.24–0.30 would charge it twice. No zone gradient, and that
+is counter-intuitive: `c` falls with rent level, not urbanity (Madrid 26.3%, Balears 18.8%).
+
+### What it fixed
+
+| target | before §7.1 | after |
+|---|---|---|
+| 10 — boom compresses the gross yield | ✗ xfail | **passes** |
+| vacancy ladder | ✗ xfail | **passes** |
+| interior migration has gross flows both ways | ✗ xfail | **passes** |
+| national entry yield (contract basis) | 7.09% | **7.00%**, mid-band of BdE's 6.5–7.5% |
+
+Target 10 is the identifying test — the compression is the signature of the hurdle, and it is
+what the free premium is identified on rather than a level fit.
+
+### What it broke, and the single reason
+
+**The model's rents are set by the landlord's reservation, not by demand.** Lower the floor —
+which is what expected appreciation does — and the whole rent path follows it down, because
+`CONGESTION_GAIN = 0.05` is too weak for scarcity to push back. Five targets are dated strict
+xfails on that one cause: boom rent growth (now −5.4% against a +2.5% floor), the
+insider/outsider wedge (now −6.3%, sitting tenants paying more than entrants), and three
+rent-cap tests where the cap now acts as a **floor** — market rents sit below the reference
+index and the magnet pulls asks up to it.
+
+This is spec finding 2 — *"no scarcity→price channel"* — **on the rent side rather than the
+sale side**. Phase D is already scoped to add it for sales; it has to do both.
+
+### The false positive that was not allowed to stand
+
+`test_rent_cap_supply_response_reaches_monras` **passes numerically and is held xfailed
+anyway.** The dial reads −9.8% contracts at ε=0 and −21.8% at ε=2, clearing the −9% assertion
+easily. But Monràs & García-Montalvo measure −10% tenancies **at −5% rents** — a co-movement —
+and the model gives −21.8% tenancies at **+6.8% rents**: same sign on quantity, opposite sign
+on price. Letting it go green would put a number in this table that reads as evidence for a
+mechanism the model does not have.
+
+## Phase-B §7.4: cash-buyer anchors (2026-09-14)
+
+Finding 5 — *"two cash buyers bid against the index they help set: positive feedback with no
+nominal anchor"*. Both are re-anchored.
+
+**Large investor.** `budget = price_index × U(0.95, 1.05)` becomes a capitalised bid,
+`max_bid = 12·r·(1 − c) / y_req`. Anchoring to RENT breaks the loop: rents are set in a
+different market by different agents, so the investor now has an opinion about value its own
+purchases do not manufacture, and it stops buying when prices outrun rents — which is what a
+yield hurdle is supposed to mean and what the old form could not express. `(1 − c)` nets the
+rent down, the same cost share `required_rent` grosses up by in §7.1, because both agents are
+pricing the same cash flow.
+
+**Foreign overlay.** The arrival rate was `foreign_purchase_share × recent Spanish sales` — a
+declared-exogenous demand source made a function of the market it buys into, so a domestic
+slump cut foreign arrivals mechanically and the 8% share could never be falsified because it
+was an input. It is now a constant, and the budget prices off an exogenous path (the zone's
+initial level compounded at the nominal anchor × the observed non-resident €/m² premium)
+rather than off `ZoneState.price_index`.
+
+### Effect
+
+| | before §7.4 | after |
+|---|---|---|
+| price-to-income | 9.89 (post-§7.3) / — | **7.48**, inside 7.0–8.2 |
+| national entry yield | — | **7.00%**, mid-band of BdE's 6.5–7.5% |
+| non-resident share of purchases | 8% **by construction** | **2.28%**, a prediction and wrong |
+
+**The share becoming wrong is the point.** It was an input and could not be wrong; it is now
+produced by a constant stream and can be.
+
+**The cause, corrected 2026-09-14 after measuring it.** The first diagnosis — the retrieval's
+and mine — was that the budget anchor compounded at the model's 2%/yr rate, which is Spanish CPI
+to within 0.1 pp, while the observed non-resident buyer ran +3.69%/yr real. That was right about
+the anchor and **wrong about the binding constraint**. The growth rate is now sourced at
++5.86%/yr nominal [CIEN Tabla 1C, calibration window only — the full-window +2.16%/yr contains
+the sealed bust and adopting it would import hold-out information], and the share moved 2.28% →
+2.23%, which is to say not at all.
+
+Measured instead: **310 foreign offers over a 40-tick run against 3,471 transactions.** Every
+offer winning would give 8.9%; they win 31%. The constraint is **listing supply in the one zone
+the overlay operates in**, not budget.
+
+Behind that sits a zone-abstraction problem the spec did not anticipate. Spanish non-resident
+purchases concentrate in **coastal and island markets** — Alicante, Málaga, Balears — and this
+model's three zones have no coastal type, so the overlay is confined to a tensioned metro zone
+that is not where non-residents actually buy. Raising `foreign_arrivals_per_tick` would not fix
+it; it would make more offers lose. Closing it needs a coastal zone or an overlay reaching more
+than one zone, and that is a **specification decision, not a calibration**.
+
+The sourced growth rate is kept regardless: a budget flat in real terms by construction was
+wrong whether or not it was what bound.
+
+It is **not** closed by raising `foreign_arrivals_per_tick` until the share returns: that
+restores the number by fitting the flow to the target it is supposed to predict, which is the
+defect §7.4 exists to remove. Registered as a dated strict xfail
+(`test_emergent_non_resident_share_matches_registradores`), along with the non-resident
+surcharge test, whose 25% threshold is measured against a base that has itself moved.
+
+### One target closed and re-opened, which is itself the finding
+
+`test_interior_migration_has_gross_flows_both_ways` closed under §7.1 — the hurdle lowered metro
+rents enough for inbound moves to clear the friction — and re-opened under §7.4 when the
+investor and foreign anchors moved metro prices back. **That it can be closed and re-opened by
+unrelated price-side changes is the evidence that it was being held shut by a coincidence rather
+than by a mechanism.** The underlying deficiency is unchanged: the only pull toward the metro is
+the income ratio, and what is missing is where the job is.
+
+## §7.4's falsification test, run (2026-09-14)
+
+The spec states it explicitly: *"if Registradores' non-resident purchase series tracks Spanish
+transaction volume one-for-one (2007–2025), the exogenous treatment is wrong."*
+
+**It does not track it. The exogenous treatment stands.**
+
+Series: **MIVAU Boletín Online Tabla 1.6**, quarterly 2007Q1–2026Q1, 77 points, operations, all
+housing, split TOTAL / residentes (españoles, extranjeros) / no residentes (españoles,
+extranjeros). Independently confirmed by the Notariado CIEN annex (semi-annual, *vivienda libre*
+only): non-resident foreign purchases 2007 = 24,489 (MIVAU) vs 24,570 (CIEN), 0.3% apart; 2025 =
+51,367 vs 52,781, 2.8% apart.
+
+**2007→2013: total Spanish transactions −64.1% while non-resident foreign purchases +20.4%.**
+Arc elasticity **−0.18**.
+
+| window | corr | elasticity | 95% CI | R² |
+|---|---|---|---|---|
+| 2007Q1–2025Q4 (the spec's window) | +0.499 | +0.753 | [0.455, 1.050] | 0.249 |
+| 2007Q1–2013Q4 (**sealed hold-out**) | +0.116 | +0.093 | [−0.215, 0.401] | 0.013 |
+| 2014Q1–2026Q1 | +0.713 | +0.769 | [0.553, 0.985] | 0.508 |
+
+The decisive fact is the ratio rather than the elasticity: the non-resident share ran **2.55% →
+10.67%**, a 4.18× swing, so no constant `k` exists. Freezing `k` at its 2007 value predicts
+8,795 non-resident purchases for 2013 against 29,496 actual — wrong by **3.35×**; RMSE of the
+log ratio is 0.891 across all 77 quarters.
+
+**Reported against the conclusion**, because it belongs in the record: on year-on-year *growth
+rates* the full-window elasticity is 0.905 with a confidence interval covering 1, so growth
+co-movement alone cannot reject one-for-one. It is 1.45 post-2013 and 0.66 excluding COVID —
+unstable, and consistent with common shocks rather than with proportionality. The level and
+ratio evidence is what carries the conclusion.
+
+Hold-out discipline: the 2007–2013 numbers are evidence about the *specification* and are
+flagged unusable for calibration. The calibration window stays 2014–2025.
+
+### Four corrections this pass forced
+
+1. **The spec names the wrong institution.** Registradores does not publish a non-resident
+   series and says it cannot — ERI methodology annex folio 117 (PDF page 117 of 122; an earlier note said 116, which was PyMuPDF's 0-based index): *"no se adentran en el concepto de
+   residencia, ya que no es un dato que quede recogido en la escritura de compraventa."* §7.4's
+   falsification test should name **MIVAU / Notariado**.
+2. **The earlier "CID-encoded PDF" diagnosis was wrong.** PyMuPDF reads all 122 ERI pages as
+   text with no CMap work; the blocker was simply that no renderer was installed. What does
+   block a series there is that ERI's history is drawn as **vector charts**.
+3. **INE ETDP has no nationality or residence breakdown** — all 17 tables enumerated. Confirmed
+   negative, recorded so it is not re-checked.
+4. **The €/m² premium is not a constant.** §7.4's "3,063 vs 1,713" is exactly CIEN 2S2024 — one
+   point on a series running **1.02× (1S07) → 1.79× (2S24)**, a ~75% drift. It must enter as a
+   range or a path, not a point, and this is the identified cause of the model's 2.28%
+   emergent share.
+
+### The finding that outranks the test result
+
+**Resident foreigners track domestic volume at β = 1.01; non-residents do not.** The model has
+ONE foreign agent, so it is averaging two opposite mechanisms. That is a specification defect
+§7.4 did not anticipate and neither did the critique it answers.
+
+Post-2013 the two series do co-move (corr +0.71 to +0.86, elasticity 0.63–0.77), so the
+defensible claim is **"own cycle, partially correlated"**, not "orthogonal". The model's
+exogenous stream is the right shape and should not be described as independent.
+
+## Phase B, consolidated (2026-09-14)
+
+`profitability-block` merged: **0 failures, 11 dated strict xfails**. What landed, what it cost,
+and what is parked.
+
+### Landed
+
+| § | Mechanism | The thing it changed |
+|---|---|---|
+| 7.1 | Total-return hurdle, `r_req = V(i_bond + π − E[g]) / (12(1−c))` | the rental yield stops being an input pinned to its own target and becomes an output |
+| 7.4 | Both cash buyers re-anchored — investor capitalises rents, foreign buyer prices off an exogenous path | neither bids against the index it helps set |
+| 7.5 | Bidirectional interior migration from a zone comparison | the sign of migration is an outcome, not a property of the code |
+| 13.7 | Yields judged on the **contract entry** basis | national entry yield 7.00%, mid-band of BdE's own 6.5–7.5% |
+| 13.8 | Migration stated on total flows, mapping B declared | the target stops registering correct behaviour as a failure |
+| — | Zone income ladder measured on the model's own zones (ADRH) | a guessed 1.15/1.00/0.80 replaced, and a 1.0275 identity defect fixed |
+| — | Zone tenure ladder from ECV; the rural cell was **inferred** | published where it was guessed |
+
+§7.4's falsification test was **run** and did not fire: 2007→2013 Spanish transactions −64.1%
+against non-resident purchases +20.4%, the share swinging 2.55% → 10.67%, so no constant `k`
+exists. The exogenous treatment stands.
+
+### Four spec findings that did not survive contact with data
+
+Recorded here because the pattern matters more than any one of them: **every empirical claim in
+the redesign spec that was written from model memory rather than retrieved turned out wrong.**
+
+| finding | what the spec said | what the data said |
+|---|---|---|
+| 4 | inheritance leaks ownership, 77.2% → 69.5% | the leak is real but worth 0.3 pp of 7.9; owners are flat while households grow 11% |
+| 6 | `own_vs_rent` is inert | active in 5.78% of decisions, and it engages *less* in the rate shock it was said to carry |
+| 11 | Spain's internal flow runs rural→metro | it runs metro→rural every year from 2017; cities grow through *international* arrivals |
+| §7.4 | the series is Registradores' | Registradores cannot publish it — residence is not in the deed |
+
+This is the project's ≥2-sources rule earning its place four times in one phase.
+
+### The cost, unpaid
+
+Eleven dated strict xfails, all naming a mechanism and a phase. The single largest cause is
+one sentence: **the model's rents are set by the landlord's reservation, not by demand**, because
+`CONGESTION_GAIN = 0.05` is too weak for scarcity to push back. That is spec finding 2 — *no
+scarcity→price channel* — on the rent side, where the spec scoped it only for sales. Phase D has
+to do both. Five of the eleven trace to it: boom rent growth, the insider/outsider wedge, and
+three rent-cap tests where the cap now acts as a floor rather than a ceiling.
+
+Nothing was re-fitted to close any of them. `hazard_scale` was not re-tuned when the hazard floor
+came out; `small_landlord_premium` is identified on target 10's compression, not on a level fit;
+`foreign_arrivals_per_tick` was not raised to restore a share it is supposed to predict.
+
+### Parked, on `buy-to-let-remeasure`
+
+§7.3 buy-to-let entry. It **closes target 11** — one of the three original phase-0 xfails — plus
+the insider/outsider wedge and the small-landlord share, and takes the rural gross yield from 22%
+to 8.10%. It also found three implementation defects, one of them a **latent pre-existing state
+bug** (`clearing.settle` left a unit owner-occupied by nobody), caught by the invariant tests
+added in phase A.
+
+One thing keeps it out: yield-chasing entry **arbitrages the zone price ladder away** — T/R falls
+to 1.65 against a floor of 2.6. The 1.5 pp zone premium cannot hold against a rural yield
+starting at 22%. The concrete, sourced hypothesis for the missing force is the **vacancy
+gradient** the operating-cost retrieval measured and `c` deliberately excludes: *días de alquiler*
+338/365 in Extremadura against 352/365 in Barcelona, on top of the model's own 18% rural vacancy.
+Excluding it from `c` was right — the market already generates vacancy — but the investor should
+still **see** it when choosing a zone, which is a different thing from charging it as a cost.
+
+### What phase B did not reach
+
+- §7.3, above.
+- International arrivals as a mechanism: `formation_zone_weights` still fuses domestic household
+  formation and immigration into one fitted vector (model-spec §13.8).
+- Two foreign agents. Resident foreigners track domestic volume at β = 1.097 (R² 0.940);
+  non-residents at β = 0.093 (R² 0.013) through the bust. One agent averages two opposite
+  mechanisms.
+- A coastal zone. Non-resident purchases concentrate in Alicante, Málaga and Balears, and the
+  model's three zones have no coastal type, which is why the overlay's emergent share is 2.2%
+  against 6.5–8%.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity

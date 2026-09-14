@@ -256,8 +256,25 @@ elasticity by construction.
 - **Foreign overlay**: budget anchored to an **exogenous** path (origin-country income/wealth
   index × the observed €/m² premium, 3,063 vs 1,713), and an exogenous arrival stream with its
   own cycle instead of one proportional to recent Spanish sales.
-  **Falsification**: if Registradores' non-resident purchase series tracks Spanish transaction
-  volume one-for-one (2007–2025), the exogenous treatment is wrong.
+  **Falsification**: if the non-resident purchase series tracks Spanish transaction volume
+  one-for-one (2007–2025), the exogenous treatment is wrong.
+
+  > **RUN 2026-09-14, and it does not fire — the exogenous treatment stands.** 2007→2013 total
+  > transactions −64.1% against non-resident purchases +20.4%; the non-resident share swings
+  > 2.55% → 10.67%, so no constant `k` exists. Full record in `docs/validation.md`.
+  >
+  > **Institution corrected.** This said *Registradores*, which does not publish a non-resident
+  > series and says it cannot — residence is not in the deed (ERI methodology annex folio 117 (PDF page 117 of 122; an earlier note said 116, which was PyMuPDF's 0-based index)).
+  > The series is **MIVAU Boletín Online Tabla 1.6** (quarterly 2007Q1–2026Q1), corroborated by
+  > the **Notariado CIEN** annex.
+  >
+  > **Premium corrected.** "3,063 vs 1,713" is one point (CIEN 2S2024) on a series running
+  > 1.02× (1S07) → 1.79× (2S24). It enters as a path or a range, not a constant.
+  >
+  > **Specification gap this exposed.** Resident foreigners track domestic volume at β = 1.01
+  > while non-residents do not, so one "foreign" agent averages two opposite mechanisms. And
+  > post-2013 the two series co-move (corr +0.71–0.86), so the defensible claim is "own cycle,
+  > partially correlated", never "orthogonal".
 
 ### 7.5 Bidirectional migration, and the fate of the location premium
 

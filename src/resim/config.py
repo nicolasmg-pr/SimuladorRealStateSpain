@@ -31,11 +31,54 @@ class ZoneConfig:
 
     zone: ZoneType
     household_share: float  # share of all households at init [Censo approx — guess]
-    # share of zone households renting. National anchor: ECV 2025 20.2% renting + 6.5% ceded
-    # (2024: 20.4 + 6.1), owners 73.3%; the zone ladder is ECV 2024 regional with the rural
-    # cell inferred [INE ECV 2025 (5 Feb 2026), household-tenant §6 — medium]
+    # Share of zone households renting. SOURCED 2026-09-14 from INE ECV table 60181, *hogares
+    # por régimen de tenencia y grado de urbanización* — the rural cell was **inferred** until
+    # then; ECV publishes it. ECV-2025, % of households, market rent + below-market rent:
+    #
+    #   densamente poblada  19.5 + 4.2 = 23.7      (→ TENSIONED)
+    #   nivel intermedio    15.7 + 2.9 = 18.6      (→ SECONDARY)
+    #   poco poblada         8.6 + 2.2 = 10.8      (→ RURAL)
+    #   national            16.7 + 3.5 = 20.2
+    #
+    # BASIS, declared because the two halves are not interchangeable. `HouseholdStatus.TENANT`
+    # covers every renter, so the comparable ECV object is the SUM of the two rent rows, not
+    # the market row alone. Quoting the market row (19.5 / 15.7 / 8.6) against this parameter
+    # would understate renting by 2–4 pp per zone. Ceded/free-use households (5.0 / 7.2 / 10.4)
+    # are NOT renters and are excluded — the model carries them inside `SEEKER` sharing.
+    #
+    # DECLARED RESIDUAL, not rescaled away: these published cells weighted by this model's
+    # household shares (0.45 / 0.35 / 0.20) give a national 19.3%, against ECV's own 20.2%.
+    # The 0.9 pp gap is not a measurement problem — it is `household_share`, still a guess
+    # ("Censo approx"), not matching ECV's urbanisation shares. Renormalising the cells to
+    # close it would hide a guess inside three sourced numbers, so the published values stand
+    # and the residual is stated. It is `household_share` that should move when it is sourced.
+    # [INE ECV table 60181 (ECV-2025); household-tenant §6 — high]
     tenant_share: float
-    income_multiplier: float  # × national income distribution [guess]
+    # × national household income. MEASURED ON THE MODEL'S OWN ZONES, 2026-09-14: all 8,131
+    # Spanish municipalities ranked by Censo-2021 households and cut at this model's 45/35/20
+    # shares (89 / 708 / 7,334 municipalities), then household-weighted mean income from the
+    # 54 INE ADRH municipal tables (income year 2023, ADRH reaches 99.93–100% of each zone).
+    # Raw ratios to the national figure: 1.0766 / 0.9621 / 0.8934.
+    #
+    # Those weight to **0.99989** — the identity holds without being forced, because the zones
+    # are defined to hit 45/35/20 and ratios computed inside that partition reconcile. The
+    # values below carry the residual ×1.000115 so the config guard is exact.
+    #
+    # Supersedes the ECV *grado de urbanización* gradient used from 2026-09-12 to 2026-09-14
+    # (1.0683 / 0.9352 / 0.8824). ECV measures DEGURBA density classes, and those classes are
+    # **54/31/15 of households, not 45/35/20** — recovered by solving ECV table 60181's four
+    # over-determined tenure rows, which fits them to ≤0.03 pp and independently reproduces
+    # ECV's national income anchor, held out of the fit, to €20 (0.05%). Mixing ECV cells with
+    # size-rank-shaped weights was the source of the residuals this model was declaring; that
+    # diagnosis is what these figures replace, not a measurement error in ECV.
+    #
+    # Basis: ADRH *renta neta media por hogar* — disposable household income after transfers
+    # and tax, a MEAN. Not a wage. The gradient is taken from it, not the level; the level
+    # anchor stays `PopulationConfig.income_median`. Year misalignment is declared, not
+    # corrected: tenure 2021, income 2023, population 2025.
+    #
+    # Was a free guess of 1.15 / 1.00 / 0.80 until 2026-09-12.
+    income_multiplier: float
     price_multiplier: float  # × national median dwelling value [guess from €/m² press]
     gross_yield: float  # /yr, rent/price at init [idealista+BdE RBA, investor-small §6 — high]
     itp_rate: float  # fraction of price, buyer transaction tax [OCU/CCAA, government §6 — medium]
@@ -136,6 +179,53 @@ class PopulationConfig:
     # overlay is non-resident only [Registradores ERI 2026Q2; Notariado CIEN — high as range;
     # emergent share reported as `foreign_purchase_share` in metrics.py]
     foreign_purchase_share: float = 0.08
+    # EXOGENOUS non-resident arrivals per tick, model scale (model-spec §7.4, phase B).
+    #
+    # The stream used to be `foreign_purchase_share × recent Spanish sales`, which made an
+    # exogenous demand source a FUNCTION OF THE MARKET IT BUYS INTO: a domestic slump cut
+    # foreign arrivals mechanically, and the 8% share could never be wrong because it was an
+    # input. Spec §2, finding 5.
+    #
+    # A constant stream makes the share an OUTPUT — it now rises when domestic volume falls,
+    # which is what actually happened in Spain (2026Q2: foreigners +11% y/y *while* nationals
+    # fell, Registradores ERI). `foreign_purchase_share` above is retained as the TARGET that
+    # emergent share is judged against, not as the thing that produces it.
+    #
+    # Exogeneity is already declared: model-spec §14 places foreign origin-country conditions
+    # outside the model, and arrivals are driven by them. This makes an existing exogenous flow
+    # explicit rather than widening the boundary.
+    #
+    # Level set so the baseline emergent share reproduces the observed ≈8% of purchases at
+    # baseline volume. [Registradores ERI / Notariado CIEN — high as a share; the constancy is
+    # an assumption, and the falsification test is whether the real series co-moves one-for-one
+    # with Spanish transaction volume]
+    foreign_arrivals_per_tick: float = 7.7
+    # Nominal growth of the non-resident buyer's budget, per TICK. SOURCED 2026-09-14: the
+    # €/m² a non-resident actually paid grew **+5.86%/yr over 2014H1–2025H2** [Consejo General
+    # del Notariado, CIEN anexo Tabla 1C, row Extranjero→No residente, 38 semi-annual points].
+    # 0.0143/tick compounds to that.
+    #
+    # WHY IT IS NOT THE MODEL'S 2%/yr NOMINAL ANCHOR, which is what it was until today. That
+    # anchor is Spanish CPI to within 0.1 pp (+2.09%/yr on the same window), so a budget
+    # growing at it is **flat in real terms by construction**, while the observed non-resident
+    # buyer ran +3.69%/yr REAL. Over the 11.5-year window that is a factor of 1.53 — the order
+    # of the gap between the model's 2.28% emergent non-resident share and the observed ≈8%.
+    # The failure was in the growth rate of the budget, not in the arrival rate and not in the
+    # premium level.
+    #
+    # CALIBRATION WINDOW ONLY. The full-window CAGR is +2.16%/yr, close enough to 2% that it is
+    # presumably where the old anchor came from — but it differs from this figure by 2.7×
+    # *because it contains the bust*, so adopting it would import sealed 2007–2013 hold-out
+    # information into a calibrated parameter. The series is also not monotone (−32.3% drawdown
+    # 08H1→13H1), so no constant-growth anchor is right in both directions and this one is
+    # explicitly a calibration-window object.
+    #
+    # CAVEAT, and it is why the §7.4 xfail is narrowed rather than closed: this is what
+    # non-residents paid **in Spain**, so it embeds Spanish market conditions. It is a large
+    # improvement on anchoring to `ZoneState.price_index` — it is a price they pay, not an
+    # index their purchases set — but it is a HYBRID, not the origin-country income/wealth
+    # index §7.4 specifies. That index is not retrieved.
+    foreign_budget_growth: float = 0.0143
     # × zone median value; non-res pay +76–79% €/m² [Notariado CIEN — high]
     foreign_budget_multiplier: float = 1.6
     tenant_move_prob: float = 0.06  # /tick; range 0.04–0.08 [derived, household-tenant §6 — low]
@@ -164,6 +254,67 @@ class PopulationConfig:
     # tightness revision: screened 0.45/0.50/0.55/0.60/0.65 on 3 seeds). S/R keep their
     # relative shares.
     formation_zone_weights: tuple[float, float, float] | None = (0.55, 0.286, 0.164)
+
+
+@dataclass(frozen=True)
+class MigrationConfig:
+    """Interior migration between zones (model-spec §7.5).
+
+    Replaces a downward-only coin flip. The old rule moved a priced-out SEEKER one step down
+    the ladder at 10%/tick and could produce metro→rural and nothing else, so its sign was an
+    artefact of its construction rather than a result, and no policy could move it.
+
+    The new rule is a comparison, so both directions are reachable and the sign is an OUTCOME:
+    a household weighs what it would earn in another zone against what housing costs there,
+    net of a move friction. Metro→rural falls out when the rent gap dominates the income gap,
+    which is what Spain's interior flows do — and rural→metro falls out for households whose
+    income gain clears it, which is what they did before 2017 and what a policy that cut metro
+    housing costs would restore.
+
+    IDENTIFICATION. Interior net flows by municipality-size band, INE EVR microdata 2015–2021
+    and EMCR table 69753 2021–2024, aggregated on the declared mapping B (model-spec §13.8:
+    tensioned = provincial capitals + non-capital municipalities above 100,000). Persons:
+
+        zone         2015      2017      2019      2020      2021
+        TENSIONED  +14,911    -3,911   -33,393  -140,179   -90,777
+        SECONDARY  +11,256    +8,181   +10,456   +12,043   +20,484
+        RURAL      -26,167    -4,270   +22,937  +128,136   +70,293
+
+    The 2020 reversal identifies the responsiveness without a volume confound: the metro
+    outflow is 4.2× its 2019 value while GROSS interior flows FELL 7.9% (1,649,351 → 1,519,606),
+    so it is redirection of a shrinking flow, not a surge.
+
+    NOT SOURCED, and declared: migration statistics count PERSONS and this model moves
+    HOUSEHOLDS. No published Spanish series gives interior migration on a household basis, so
+    the levels below are fitted to reproduce the observed net DIRECTION and relative magnitude
+    by zone, not a persons-per-household conversion. Any claim about migration *volumes* is
+    therefore out of scope; direction and response are what this rule supports.
+    """
+
+    # Per-tick probability a household even considers moving zone. A move is then made only
+    # if the comparison clears the friction, so this is an attention rate, not a move rate.
+    # [guess — the observed flows identify the net response, not the consideration rate]
+    consideration_rate: float = 0.08
+    consideration_rate_range: tuple[float, float] = (0.04, 0.15)
+
+    # Move friction as a share of annual household income: search, deposit, removal, and the
+    # social cost of leaving. Sets how large a gain must be before anyone moves, so it is what
+    # keeps gross flows finite. [guess]
+    move_cost_share: float = 0.35
+    move_cost_share_range: tuple[float, float] = (0.15, 0.60)
+
+    # Scales how sharply the move probability responds once a gain clears the friction. THE
+    # parameter the 2020 episode identifies: a shock that widens the metro rent gap has to
+    # amplify the outflow ≈4× without gross flows rising. [fitted to the 2020 reversal]
+    responsiveness: float = 1.8
+    responsiveness_range: tuple[float, float] = (0.8, 3.0)
+
+    # An OWNER faces transaction costs a renter does not (ITP/notary on the way in, agency and
+    # timing on the way out), so owners move an order of magnitude less. The model already
+    # carries this for within-zone moves as `owner_move_prob` 0.011 against
+    # `tenant_move_prob` 0.06 [CED/BdE — medium]; this is the same ratio applied to the zone
+    # decision, not a second estimate of it.
+    owner_friction_multiplier: float = 5.5
 
 
 @dataclass(frozen=True)
@@ -218,9 +369,68 @@ class MarketConfig:
     # notary/registry etc., fraction of price, on top of ITP [Fotocasa triangulated — high]
     buyer_fees: float = 0.02
     # required gross yield over bond in the tensioned zone — observed spread there is
-    # ~2pp (yield 4.7–5.6 vs bond ~3); appreciation expectations substitute for yield
-    # [idealista/BdE RBA structure, investor-small §6 — medium]
-    landlord_required_spread: float = 0.02
+    # --- §7.1 total-return hurdle (phase B, 2026-09-14) -----------------------------------
+    # The landlord's required RENT yield is what is left of a required TOTAL return once
+    # expected appreciation is taken out, grossed up for the costs that never reach the
+    # landlord's pocket:
+    #
+    #     r_req = V · (i_bond + π − E[g]) / (12 · (1 − c))
+    #
+    # This is what makes the rental yield an OUTPUT. The old form pinned it: required yield =
+    # bond + a spread fitted to the observed ladder, so the model could only ever reproduce
+    # the yield it was given (spec §2, finding 3). Its own comment conceded the mechanism —
+    # "appreciation expectations substitute for yield" — without implementing it.
+    #
+    # π is split because only one half of it is measured, and fusing them would hide that.
+    #
+    # MEASURED. Prime residential yield against the sovereign: CBRE Q1-2026 Madrid 3.8% /
+    # Barcelona 4.0% against BdE's 10-year bond at 3.546% (Mar 2026, series `D_G0B1F0ZP`)
+    # ⇒ ≈ +25bp / +45bp. A point, not a series — no free historical prime-yield series exists
+    # (HTTP 403 on cbre.es and en.savills.es), so π is a constant with a zone gradient and
+    # NOT a cyclical term. Claiming a cyclical π would be claiming a series nobody publishes.
+    prime_risk_spread: float = 0.0035
+    # FITTED, and the one free parameter of §7.1 — declared rather than buried. What a small
+    # Spanish landlord demands over an institution holding prime multifamily: illiquidity, no
+    # diversification across tenants, and the eviction timeline. There is no independent
+    # estimate of it; the old `landlord_required_spread = 0.02` was the observed yield minus
+    # the bond, which is the quantity the hurdle is supposed to PREDICT, so reusing it would
+    # re-pin the yield under a new name. Identified instead by target 10: with E[g] in the
+    # formula the boom must compress the yield, and the size of that compression constrains
+    # this in a way a level fit cannot.
+    small_landlord_premium: float = 0.033
+    small_landlord_premium_range: tuple[float, float] = (0.025, 0.055)
+    # Operating costs as a share of gross rent, PRE-TAX, VACANCY EXCLUDED. Central 0.22 of a
+    # sourced 0.20–0.24 [AEAT cuenta de resultados del arrendamiento, FY2019–FY2024, selector
+    # `Vivienda habitual = Sí`]. Inside: comunidad, IBI, insurance, maintenance, management.
+    #
+    # NOT `1 − net/gross`, which is 41–45%: 15–18pp of that is the statutory 3%/yr building
+    # depreciation (art. 23.1.b LIRPF) and 1.4–4.2pp is mortgage interest. Both must stay out
+    # — depreciation double-counts E[g], interest double-counts the financing leg of
+    # `i_bond + π`.
+    #
+    # VACANCY IS EXCLUDED ON PURPOSE. AEAT's unit is the *vivienda equivalente* = ownership
+    # share × days in that use, so both sides are per euro actually received. The model
+    # already generates vacancy in `market/clearing.py`; folding the sourced 0.24–0.30
+    # vacancy-inclusive figure in here would charge it twice. The same source measures the
+    # missing piece if it is ever wanted explicitly: *días de alquiler medios* 347/365 (2024),
+    # Barcelona 352 / Madrid 351 / Teruel 339 / Extremadura 338.
+    #
+    # NO ZONE GRADIENT, deliberately, and this is counter-intuitive: `c` falls with rent
+    # level, not with urbanity. Madrid sits near the TOP of the CCAA spread (26.3%, on a
+    # 10.95% comunidad charge) and Balears at the bottom (18.8%). The legitimate zone
+    # difference is in vacancy, not in cost.
+    #
+    # QUALIFICATION, carried in docs/validation.md: every quantified figure for this traces
+    # back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so it rests on
+    # ONE institutional source against this project's ≥2 rule. DO 2432 also states 2pp off a
+    # ~5.5% RBA ⇒ ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same
+    # object while citing it; recorded unresolved, and neither figure IS `c`.
+    landlord_cost_share: float = 0.22
+    landlord_cost_share_range: tuple[float, float] = (0.20, 0.24)
+    # Floor on the required rent YIELD once appreciation is netted off. Without it a boom in
+    # which E[g] exceeds i_bond + π drives the required rent to zero and then negative: real
+    # in the sense that people do buy for capital gain alone, nonsense as a rent. [guess]
+    min_required_yield: float = 0.005
     # extra spread outside tensioned metros, range .01–.02: reproduces the observed
     # 5.2 / 7.0 / 8.0 zone yield ladder [BdE RBA gradient — medium]
     landlord_zone_risk_premium: float = 0.015
@@ -439,6 +649,7 @@ class SimConfig:
     credit: CreditConfig
     developer: DeveloperConfig
     policy: PolicyConfig
+    migration: MigrationConfig = field(default_factory=MigrationConfig)
     cap_response: CapResponseConfig = field(default_factory=CapResponseConfig)
     zones: tuple[ZoneConfig, ...] = field(default_factory=tuple)
 
@@ -449,8 +660,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.TENSIONED,
                 household_share=0.45,
-                tenant_share=0.28,  # ECV: 27–30
-                income_multiplier=1.15,
+                tenant_share=0.237,  # ECV densa: 19.5 market + 4.2 below-market
+                income_multiplier=1.0767,  # ADRH, top-89 municipalities
                 price_multiplier=1.6,
                 gross_yield=0.052,  # 4.7–5.6
                 itp_rate=0.10,
@@ -467,8 +678,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.SECONDARY,
                 household_share=0.35,
-                tenant_share=0.20,
-                income_multiplier=1.0,
+                tenant_share=0.186,  # ECV intermedia: 15.7 + 2.9
+                income_multiplier=0.9622,  # ADRH, next 708
                 price_multiplier=0.9,
                 gross_yield=0.070,  # 6.5–7.5
                 itp_rate=0.08,
@@ -485,8 +696,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.RURAL,
                 household_share=0.20,
-                tenant_share=0.145,  # 12–17
-                income_multiplier=0.80,
+                tenant_share=0.108,  # ECV poco poblada: 8.6 + 2.2 — was inferred
+                income_multiplier=0.8935,  # ADRH, remaining 7,334
                 price_multiplier=0.5,
                 gross_yield=0.080,  # 7–9
                 itp_rate=0.06,

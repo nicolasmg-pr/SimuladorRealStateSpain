@@ -71,9 +71,30 @@ class LargeInvestor:
                         )
                     )
             elif gross_yield > hurdle * 1.15:
-                # accumulation: enter with market-rate offers, net of any transaction-tax
-                # change aimed at legal persons (Catalan 20% TPO precedent) — a cash buyer's
-                # budget moves by the tax wedge, not by a credit screen
+                # CAPITALISED BID (model-spec §7.4, phase B). The investor pays at most what
+                # the rent is worth at its own hurdle:
+                #
+                #     max_bid = 12 · r · (1 − c) / y_req
+                #
+                # It used to bid `price_index × U(0.95, 1.05)` — at the index it is itself
+                # helping to set. That is positive feedback with no nominal anchor (spec §2,
+                # finding 5): a cash buyer large enough to move the index bidding a multiple of
+                # the index it moves. Nothing in it could ever say a price was too high.
+                #
+                # Anchoring to RENT breaks the loop. Rents are set in a different market by
+                # different agents, so the investor now has an opinion about value that its own
+                # purchases do not manufacture, and it stops buying when prices outrun rents —
+                # which is what a yield hurdle is supposed to mean and what the old form could
+                # not express.
+                #
+                # `(1 − c)` nets the rent down: the same operating-cost share the small
+                # landlord grosses up by in `required_rent` (§7.1), applied in the opposite
+                # direction, because both agents are pricing the same cash flow.
+                max_bid = (
+                    zs.rent_index * 12.0 * (1.0 - state.config.market.landlord_cost_share) / hurdle
+                )
+                # transaction-tax change aimed at legal persons (Catalan 20% TPO precedent) —
+                # a cash buyer's budget moves by the tax wedge, not by a credit screen
                 wedge = itp_wedge(
                     state.config.zone(zone).itp_rate,
                     state.macro.itp[zone] + state.config.policy.itp_investor_delta,
@@ -83,7 +104,7 @@ class LargeInvestor:
                         MakeOffer(
                             agent_id=self.id,
                             zone=zone,
-                            budget=zs.price_index * float(self.rng.uniform(0.95, 1.05)) * wedge,
+                            budget=max_bid * float(self.rng.uniform(0.95, 1.05)) * wedge,
                             cash=True,
                         )
                     )

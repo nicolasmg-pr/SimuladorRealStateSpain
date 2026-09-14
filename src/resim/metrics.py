@@ -78,6 +78,29 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
 
     incomes = np.array([h.income for h in hhs])
     median_income = float(np.median(incomes)) if len(incomes) else 1.0
+    # All three central tendencies of the income distribution, reported together.
+    #
+    # The model draws income lognormally, so the three are far apart and the gap is the point:
+    # at the baseline's median €36,100 and σ=0.70 the mean is ≈€46,300 and the MODE ≈€22,100 —
+    # the modal household earns less than half what the mean household earns. Quoting one of
+    # these as "household income" without saying which is how a right-skewed distribution gets
+    # misread, and this project has been bitten by basis confusion twice already (asking vs
+    # contract rents, stock vs entry yields), so the three are carried side by side.
+    #
+    # `median_income` stays the one the gates use: published Spanish figures (INE ECV, EFF) are
+    # quoted as medians, and comparing the model against them on any other basis would be the
+    # same mistake in a new place. The mean and the mode are reported, not gated.
+    #
+    # The mode is estimated parametrically — exp(µ̂ − σ̂²) from the logs — rather than by
+    # binning. A histogram mode depends on the bin width, which would make it a property of
+    # the diagnostic rather than of the distribution.
+    row["income_median"] = median_income
+    row["income_mean"] = float(np.mean(incomes)) if len(incomes) else 0.0
+    if len(incomes) > 1 and np.all(incomes > 0.0):
+        logs = np.log(incomes)
+        row["income_mode"] = float(np.exp(logs.mean() - logs.var()))
+    else:
+        row["income_mode"] = float("nan")
 
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)
@@ -212,6 +235,26 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         # an initial condition only; the ladder the model then produces is a prediction, and
         # the one observable that tells us whether the landlord's reservation rule is right.
         row[f"gross_yield_{z}"] = zs.rent_index * 12.0 / max(zs.price_index, 1.0)
+        # …and the same yield on the CONTRACT basis (model-spec §13.7, decided 2026-09-12).
+        # `rent_index` is an asking index; portal asks are not transactions — they are
+        # negotiated down, edited, re-posted, and withdrawn without trace. `rent_transacted`
+        # is the median rent of contracts actually signed this tick, so this is the ENTRY
+        # yield: a new contract on the marginal unit at today's terms, which is the object a
+        # landlord's entry decision is made on (§7.1 reservation rent, §7.3 buy-to-let).
+        #
+        # It is NOT the BdE RBA. The RBA is a *stock* yield — AEAT declared rents over the
+        # whole let stock ÷ Registradores prices — averaging contracts signed across many
+        # years under LAU terms and capped updates, and it reads 2.90% in 2026Q2 against
+        # BdE's own estimate of 6.5–7.5% for entry. Both are contract-basis; they are
+        # different objects, and this column is the entry one.
+        #
+        # Both bases are kept so the comparison can never be made on the wrong one by
+        # accident — the same discipline the model already applies to its two rent bases.
+        row[f"gross_yield_contract_{z}"] = (
+            zs.rent_transacted * 12.0 / max(zs.price_index, 1.0)
+            if zs.rent_transacted > 0.0
+            else float("nan")
+        )
         row[f"reference_rent_{z}"] = zs.reference_rent
         # the uncapped clearing rent landlords compare a cap against (= rent index when free)
         row[f"shadow_rent_{z}"] = zs.shadow_rent
@@ -234,6 +277,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         # net internal migration, model-scale households/tick (model-spec §9 target 12).
         # Spain's net internal flow runs rural→metro; the current rule can only produce the
         # opposite sign, which is why this is measured before it is fixed.
+        # Gross flows in and out, not just the net. The net is a small difference between two
+        # large gross flows in Spain (≈100k net against ≈1.6M gross interior moves a year), so
+        # a model can get the net right with gross flows that are nothing like the real ones —
+        # which is exactly what this one does. Reporting only the net would hide that.
+        row[f"migration_in_{z}"] = sum(n for (_, dest), n in migration.items() if dest is zone)
+        row[f"migration_out_{z}"] = sum(n for (origin, _), n in migration.items() if origin is zone)
         row[f"net_migration_{z}"] = sum(
             n for (_, dest), n in migration.items() if dest is zone
         ) - sum(n for (origin, _), n in migration.items() if origin is zone)
@@ -287,6 +336,16 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     )
     row["rent_national"] = float(sum(state.zones[z].rent_index * zone_weights[z] for z in ZoneType))
     row["gross_yield_national"] = row["rent_national"] * 12.0 / max(row["price_national"], 1.0)
+    # the national ENTRY yield on the contract basis — the number target 9 is judged on
+    # against BdE's own 6.5–7.5% estimate for new contracts (model-spec §13.7)
+    row["rent_transacted_national"] = float(
+        sum(state.zones[z].rent_transacted * zone_weights[z] for z in ZoneType)
+    )
+    row["gross_yield_contract_national"] = (
+        row["rent_transacted_national"] * 12.0 / max(row["price_national"], 1.0)
+        if row["rent_transacted_national"] > 0.0
+        else float("nan")
+    )
     # household-weighted national growth, per tick. The zone series already exist; these are
     # the national aggregates the published Spanish figures (INE IPV, BdE) are quoted on.
     row["price_growth_national"] = sum(

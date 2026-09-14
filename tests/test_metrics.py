@@ -6,6 +6,7 @@ that reads it meaningless.
 """
 
 import numpy as np
+import pytest
 
 from resim import metrics
 from resim.config import SimConfig, ZoneType
@@ -142,3 +143,23 @@ def test_gross_yield_columns_are_rent_over_price_not_a_mean_of_zones():
         f"national yield {row['gross_yield_national']:.4f} collapsed onto the "
         f"mean of the zone yields {zone_mean:.4f} — the basis is no longer pinned"
     )
+
+
+def test_income_mode_median_mean_are_reported_and_ordered():
+    """All three central tendencies, and the gap between them, which is the point.
+
+    The model draws income lognormally, so mode < median < mean strictly. At the baseline's
+    €36,100 median and σ=0.70 the mode is ≈€22,100 and the mean ≈€46,300 — the modal household
+    earns less than half what the mean household earns. A single number called "household
+    income" hides that, and this project has been bitten by basis confusion twice already.
+
+    `income_median` stays the gated one: INE ECV and EFF quote medians, so anything else would
+    compare the model against published Spain on the wrong basis.
+    """
+    frame = metrics.to_frame(
+        Engine(Scenario(name="b", baseline=SimConfig.baseline(seed=1, ticks=8))).run()
+    )
+    row = frame.iloc[1]
+    assert row["income_mode"] < row["income_median"] < row["income_mean"]
+    # the mode is estimated parametrically, so it must track exp(µ − σ²), not a binned peak
+    assert row["income_mode"] == pytest.approx(row["income_median"] * np.exp(-(0.70**2)), rel=0.10)

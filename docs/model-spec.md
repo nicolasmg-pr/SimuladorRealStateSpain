@@ -722,6 +722,135 @@ Each phase closes with an explicit hostile-reader pass: every objection answered
 in writing**. `docs/validation.md` "Honest qualifications" is the register; it is procedure,
 not goodwill.
 
+### 13.7 Rental-yield basis (decided 2026-09-12, phase B)
+
+Every yield the model reports or is judged on is on a **contract basis**, not a portal asking
+basis. Portal asks are not transactions: prices are negotiated down, listings are edited and
+re-posted, and a withdrawn ad leaves no trace. What was signed is the more reliable object.
+
+That decision leaves a second axis, and it is not the same one. Contract-basis yields come in
+two flavours, and Banco de España publishes both:
+
+| | What it measures | Value | Series |
+|---|---|---|---|
+| **Stock** (RBA) | AEAT declared rents for the stock of let dwellings ÷ Registradores prices per m² | 4.65% (2014Q2) → 2.90% (2026Q2) | `D_TKR60REA_VIV_IPV` |
+| **Entry** | New contracts, BdE's own estimate since 2015 | **6.5–7.5%** | DO 2432 §3.3, a range not a series |
+
+The stock yield is an average over contracts signed across many years under LAU terms and
+capped within-contract updates. It is the right object for asking *what letting has returned*.
+It is the wrong object for a landlord's **entry** decision, which is made on the marginal unit
+at today's terms — and the entry decision is exactly what §7.1's reservation rent and §7.3's
+buy-to-let margin model.
+
+**Therefore:**
+
+1. The model's yield observable is an **entry** yield and is computed on `rent_transacted`
+   (median new-contract rent, SERPAVI-like), not on `rent_index` (asking). `gross_yield_*`
+   keeps the asking basis and is retained for comparability with the portals;
+   `gross_yield_contract_*` is the contract-basis entry yield and is the one the targets are
+   set against. Both are reported so the basis can never be silently confused again — the same
+   discipline §5b applies to the two rent bases.
+2. Target 9's band is BdE's entry range, **6.5–7.5% national**, not the RBA's 2.90%. The
+   per-zone ladder keeps its ordering claim; its levels are re-derived in phase B rather than
+   carried over from the portal cross-section.
+3. The §7.1 compression test is settled by this decision and stops being source-dependent.
+   On the contract stock basis the RBA compresses monotonically across the whole 2014–26 boom,
+   −175 bp from the 2014Q2 peak. The portal series disagree in sign before 2021 — Fotocasa's
+   asking yield *rises* 5.0% → 6.8% to 2020 — and that disagreement is now recorded as a
+   basis difference, not as an open question about the world.
+4. `π` is a **constant with a zone gradient**, declared, not a cyclical term. No free
+   historical prime-yield series exists (403 on CBRE and Savills), so π can be bounded at a
+   point — ≈ +25 bp Madrid / +45 bp Barcelona prime against the March 2026 bond — and not
+   tracked through a cycle. Claiming a cyclical π would be claiming a series nobody has.
+
+**Still blocking §7.1:** the operating-cost share `c` in
+`r_req = V·(i_bond + π − E[g]) / (12·(1−c))` has no sourced value. DO 2432 quantifies the
+*tax* wedge (0.5–1.25 pp by bracket) but the sentence carrying the *cost* wedge does not come
+out of the PDF text layer, and AEAT's rental P&L rows give net income without the gross-to-net
+ratio. §7.1 and §7.2 are not coded until it is retrieved.
+
+### 13.8 Migration: interior and exterior, reported separately (decided 2026-09-12, phase B)
+
+Target 12 is restated on **total** migration — interior plus international — not on interior
+flows alone. The reason is that the two run in opposite directions in Spain and only their sum
+answers the question the model is asked: does the metro zone grow?
+
+| | Direction, 2017–2024 | Source |
+|---|---|---|
+| interior | metro **loses** every year (capitals −29,400 in 2019, −117,596 in 2020, −55,195 in 2024) | INE EVR microdata 2015–21; EMCR 69753 2021–24 |
+| international | metro gains — this is why Spanish cities grow | INE EVR/EMCR exterior leg |
+
+Stating the target on interior flows alone, as the spec did, registers the model's correct
+behaviour as a failure. Stating it on total flows makes the claim the one anybody arguing about
+Spanish housing actually makes.
+
+**Structural consequence, and the reason this is worth doing beyond fixing a target.** The
+model already contains international arrivals — it just does not say so.
+`PopulationConfig.formation_zone_weights` tilts new households toward the metro, and that tilt
+is doing the work of immigration while being labelled *household formation*. Two flows with
+different drivers, different sources and different policy exposure are fused into one
+parameter, and that parameter was calibrated by screening against the §9 gates (finding 8).
+
+Phase B therefore splits it:
+
+1. **Domestic household formation** — Spaniards forming new households. Driven by the INE
+   household projection already in `scenario.py`, allocated by existing population.
+2. **International arrivals** — allocated on the observed exterior-migration zone gradient,
+   with its own rate. **Exogenous, and already declared so**: §14 places "foreign
+   origin-country conditions" outside the model, and arrivals are driven by them. Making the
+   flow explicit does not widen the exogenous boundary; it stops an exogenous flow from
+   hiding inside a fitted weights vector.
+3. **Interior migration** — the §7.5 bidirectional rule, from a zone comparison (expected
+   income × amenity − housing cost) with a friction, identified against the 2020 reversal:
+   the metro outflow is 4.2× its 2019 value while *gross* interior flows fall 7.9%, so it is
+   pure redirection of a shrinking flow and identifies the elasticity without a volume
+   confound.
+
+Interior and total net migration are both reported per zone, the same discipline already
+applied to the two rent bases and the two yield bases (§13.7). Nobody gets to quote one as the
+other.
+
+**The zone mapping is declared, because the sign depends on it.** INE's size bands do not sum
+to the model's 45% tensioned zone: provincial capitals are 31.7% of the padrón, adding
+>100k non-capital gives 42.2%, adding 50–100k gives 53.4%. The tensioned zone sits in the gap.
+
+**Mapping B is fixed: tensioned = provincial capitals + non-capital municipalities above
+100,000.** 42.2% against the model's 45% is the closest in size, and the only one that also
+matches in character — a tensioned metro market is capitals and large cities, not towns of
+50,000. Secondary = 20,001–100,000, rural = ≤20,000.
+
+This is not a cosmetic choice. On total migration the metro is negative in 2020 and 2021 under
+mappings A and B and **positive** under C, in both statistics: the 50,001–100,000 band alone,
+11% of Spain, carries enough exterior inflow to reverse the aggregate sign in exactly the years
+the target is most interesting. A model that passes under B would fail under C. The mapping is
+therefore part of the target, declared here, and any result quoted against target 12 is void
+without it.
+
+**Target 12, restated.** Two claims, doing different jobs, both falsifiable:
+
+1. **Baseline** — total net migration into the tensioned zone is **positive**. That is what
+   Spain does in six of the eight years measured (2017–2024, mapping B).
+2. **Identifying episode** — a 2020-like shock turns it **negative**, with the interior outflow
+   rising and the exterior inflow falling at the same time. Under mapping B the metro total was
+   −14,649 (2020) and −11,548 (2021), driven by the interior outflow quadrupling while capital
+   arrivals from abroad halved, 362,085 → 203,256.
+
+The model has to reproduce both. That is strictly harder than the original target, not easier.
+
+**Two signs are robust and may be relied on** regardless of mapping: interior net turns negative
+for the metro in 2017 under every mapping and both statistics, and exterior net is positive in
+every year under every mapping.
+
+**Caveat carried with the 2021 figure.** *Bajas por caducidad* — expiry of the registration of
+non-EU foreigners who do not renew — have counted inside exterior emigration since 2006, and
+INE's own methodological note says foreigners' departures are otherwise largely uncaptured.
+There is no published split, so part of the capitals' 210,387 departures abroad in 2021 may be
+an administrative purge rather than emigration. 2021 is one of the two negative years, so the
+episode is identified on 2020 and 2021 is corroboration, not evidence in its own right.
+
+**Levels are not coded yet.** The mechanism is specified; the rates come with the §7.5
+implementation.
+
 ## 14. Exogenous boundary
 
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
