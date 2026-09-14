@@ -61,13 +61,15 @@ class LargeInvestor:
                     key=lambda u: u.tenure is not Tenure.VACANT,
                 )
                 for u in sellable[:n_list]:
-                    ask = zs.price_index * u.quality
+                    ask = zs.price_index * u.quality * (1.0 + state.config.market.ask_markup)
                     intents.append(
                         ListForSale(
                             agent_id=self.id,
                             unit_id=u.id,
                             ask=ask,
-                            reserve=ask * 0.92,
+                            # an institutional seller carries no mortgage in this model,
+                            # so only the negotiation-margin leg of the reserve binds
+                            reserve=ask * (1.0 - state.config.market.max_seller_discount_hi),
                         )
                     )
             elif gross_yield > hurdle * 1.15:

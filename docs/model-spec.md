@@ -236,6 +236,168 @@ The premium is applied to purchase willingness only, not to the rent-acceptance 
 30–40% screening band is a sourced behavioural norm [household-tenant §6] and rents follow
 prices through the zone yield ladder without it.
 
+## 5c. Sale-side price formation (phase D)
+
+Phase 0 registered this as the model's second finding: the sale price was set by
+`overbid_sigma`, a guessed dispersion parameter, and Sobol put **56% of the variance in
+price-to-income** on it. A price level whose largest single driver is an unsourced scalar is
+not a reportable magnitude (§13.2). Three mechanisms replace it, and each is identified
+against an observable the model was not using.
+
+### 5c.1 Ascending auction instead of a sealed first-price bid
+
+Bidding was: each buyer draws a bid around the ask (`ask × N(1, overbid_sigma)`), highest
+bid above the reserve wins **at its own bid**. So the price was the ask times a random
+number, and the random number's standard deviation was a guess.
+
+Now: bidders on a listing are ordered by what they are willing to pay, and the price is
+
+```
+n ≥ 2 bidders:   price = clip( second_highest + increment,  reserve,  highest )
+n = 1 bidder:    price = reserve + θ · ( min(bid, ask) − reserve )
+```
+
+The two-bidder rule is the ascending (English) auction: the winner pays what it takes to
+outbid the runner-up, never more than their own valuation. **Competition enters through the
+bidder count**, which is an outcome of demand and supply rather than a parameter — which is
+the whole point. The model can now close *above* the ask when several buyers land on one
+listing, and Fotocasa's seller survey says that is a real event: 9% of negotiating sellers
+raised the final price in 2024, against 6% a year earlier.
+
+The one-bidder rule is a bilateral negotiation, split by a bargaining weight `θ`. It is the
+only free parameter in the block, it is **declared reduced form**, and it is identified on a
+registered observable: the Cátedra Tecnocasa-UPF measures the discount between asking and
+sale price at **6.2% on average (2S 2025)**, and Fotocasa's survey gives the distribution
+behind it — 53% of buyers negotiate, 80% of those obtain something, only 23% get more than
+10% off. θ is set so the model's realised discount reproduces the mean, and the *shape* of
+the distribution is then a prediction, not an input.
+
+`overbid_sigma` survives, demoted exactly as the redesign specified: it is no longer
+dispersion around a *price*, it is **idiosyncratic taste** — how much this buyer happens to
+like this dwelling, applied to the value they put on it. A real friction, and one that can no
+longer set the price level on its own. Whether it stays below the 25% variance threshold is a
+question for phase E's Sobol run, and the answer is reported either way.
+
+### 5c.2 Search over m listings
+
+Buyers looked at **one** affordable listing drawn at random. That is why bidding wars
+existed: buyers did not look. The rule is now that a buyer samples `m` affordable listings
+and bids on the one with the largest surplus (value minus ask), so bid concentration is
+endogenous — a well-priced dwelling attracts bidders, an overpriced one does not.
+
+`m` is reduced form and is identified against two observables the model has never used:
+
+- **Days on market** [idealista/data, 2T 2026]: 7% of dwellings sell in under a week, 19%
+  within the month, 27% within three months, 36% within the year and 11% take longer — so
+  ≈26% inside a month, ≈53% inside a quarter, ≈89% inside a year. The model's tick is a
+  quarter, so the testable statement is the share of listings still unsold after one, two and
+  four ticks.
+- **Bidders per dwelling** [Cátedra Tecnocasa-UPF]: an average of **seven potential buyers
+  per dwelling** in 2S 2025, double the figure two years earlier. Read with care and gated
+  loosely because of it: Tecnocasa counts *interested parties on its own agency files*, the
+  model counts *bids placed*. Every bid is an interested party; not every interested party
+  bids. The model's number should sit at or below seven, and the doubling in two years is the
+  part that identifies the mechanism, because it happened while supply fell 16% and demand
+  rose 30% — exactly the ratio `m` operates on.
+
+### 5c.3 Seller reservation from the mortgage
+
+The reserve was `ask × (1 − U(0.05, 0.15))`: a guess, and the register said so. It is now
+
+```
+reserve = max( outstanding debt + selling costs,  ask × (1 − max_discount) )
+```
+
+Two legs, and the first one is accounting rather than behaviour. **A household in negative
+equity cannot convey clear title below what it owes**: the sale has to repay the loan. No
+elasticity is invented — the lock-in follows from the LTV distribution, which is BdE data
+(bunching at 0.80 at origination, 70% on Tecnocasa's 2S-2025 file, realised average 0.63–0.67
+across the stock), and from the price path the model itself produces.
+
+This is the mechanism behind "volume adjusts first, prices are sticky", which the model has
+been reproducing with `PARTICIPATION_RATE_SENSITIVITY = 20` — a hand-fitted coefficient on
+the mortgage rate, one of the twenty rules the register counts as failing the
+derived-or-reduced-form rule. **It dies here.** A rate shock now reaches volume through the
+credit screen (fewer buyers clear the DSTI cap) and through the reserve (owners who bought at
+the top cannot sell into a lower market), both of which are accounting, not coefficients.
+
+The second leg keeps a floor under the reserve when there is no debt — an outright owner with
+no mortgage still refuses a derisory offer. `max_discount` stops being `U(0.05, 0.15)` and
+becomes the measured negotiation margin: mean 6.2% [Tecnocasa-UPF], with only 23% of
+negotiated sales beyond 10% [Fotocasa], so the range is 0.04–0.12.
+
+### 5c.4 What this is checked against
+
+| Indicator | Anchor | Status |
+|---|---|---|
+| `median_ticks_to_sale` | idealista/data: ≈53% inside a quarter, ≈89% inside a year | gated from phase D (target 13 stops being "reported, not gated") |
+| `sale_discount_median` — (ask − price) / ask over transactions | Tecnocasa-UPF 6.2%; Fotocasa's tail (23% beyond 10%) | gated |
+| `sales_above_ask_share` | Fotocasa: 9% of negotiating sellers raised the price | reported, not gated — the bases differ |
+| `bidders_per_listing` | Tecnocasa: seven interested parties per dwelling, doubled in two years | reported, gated only as an upper bound |
+| `locked_in_share` — owners whose debt exceeds what the market would pay | emergent; no Spanish series measures it directly | reported |
+
+**Falsification.** If the auction cannot reproduce the days-on-market distribution at any `m`
+in 1–10, the search mechanism is wrong. If removing `PARTICIPATION_RATE_SENSITIVITY` destroys
+the rate-shock signature (volume falls first, prices lag), then the coefficient was carrying
+something real and the reserve does not replace it — in which case the honest outcome is to
+say so, not to put the coefficient back with a new justification.
+
+### 5c.5 What happened when it was built (2026-09-14)
+
+Measured on 3 seeds, 60 ticks, last 20 averaged; the full table is in `docs/validation.md`.
+
+**The mechanism that had to be added, and was not in the redesign spec.** The auction alone
+did not produce a scarcity-to-price channel, and the reason is worth recording: a buyer's
+valuation was anchored on the price index, so `price ≈ index × (a selection premium in the
+taste draw)`, and the premium is proportional to `overbid_sigma`. That swaps one dispersion
+dependence for another — with σ small the price cannot respond to competition at all, and
+with σ large σ sets the level again. What closes it is where the *expectation* enters:
+`MOMENTUM_GAIN × expected growth` used to shade the buyer's **budget**, where the index cap
+in clearing threw it away for every buyer whose credit limit exceeded market value. Moved
+onto the **valuation anchor**, it reaches the price: excess demand raises prices, the rise
+feeds the adaptive expectation (§6), and the loop runs until credit binds. The gain was
+re-identified when the channel moved (5.0 → 2.5) on calibration-window moments only —
+price-to-income and the BdE's 35–40% purchase effort — never on the 2021–25 hold-out.
+
+**What it closed.** Five gates that phase B had left as dated strict xfails, all of them
+rent-side, all of them recorded as "phase D's to close", and all closed by exactly the
+mechanism those notes predicted: the landlord's reservation rent is a function of the
+dwelling's *value* (§7.1), so once the sale price responds to scarcity the rent floor does
+too. The insider/outsider wedge is **+5.1%** (was −6.3%, the wrong sign); a rent cap now cuts
+contract rents **−3.6%** (was +4.9%, the wrong sign) and cuts contracts **−11.1%** at
+elasticity 2, so Monràs & García-Montalvo's −5%/−10% pair sits inside the dial; coverage
+scales the cap as a ceiling rather than as a magnet; and boom-time rent growth holds.
+**Finding 2 — no scarcity-to-price channel — is closed on both sides by one change.**
+
+**What it broke, and what that means.**
+
+- *The rate-shock magnitude.* This is the falsification above, and it fired. With
+  `PARTICIPATION_RATE_SENSITIVITY` gone, a +2.8pp euríbor shock cuts volume **1.6%** against
+  the 5% the gate asserts (prices −1.1%, so the ordering survives). The coefficient was
+  carrying something the mechanisms do not reproduce. It is **not** reinstated: the gate
+  becomes a dated strict xfail, and the episode as it actually happened — a rate rise *and* a
+  tightening of standards, both documented in the BdE lending survey — is tested separately
+  and passes (volume −5.5%, prices −1.5%) on mechanisms rather than on a fitted elasticity.
+- *The 2021–25 boom's price leg.* +3.88%/yr ± 0.17 over 10 seeds against a 4% threshold that
+  was itself a compromise (the sourced episode is +8–13%/yr). The model reaches ≈40% of the
+  observed magnitude, which is about where it was before phase D; what changed is that the
+  boom is now produced by expectations reaching the price rather than by a fitted
+  participation term. Split out as its own xfailing test so the volume leg stays live.
+- *The negotiation margin.* 3.0% against a measured 6.2%. The model's sale market is more
+  competitive than Spain's on both identifying observables — 3.6 bids per listing and 17% of
+  sales above the ask against Fotocasa's 9% — and those are the same fact: with more bidders
+  the auction runs the price to the runner-up's valuation and leaves nothing to negotiate
+  away. Closing it means fewer buyers per listing, which is `buy_attempt_prob` (an admitted
+  guess on the demand side), not the auction this target exists to test.
+
+**Where the price level now comes from.** Not from `overbid_sigma`: halving it moves
+price-to-income by less than 25%, where the pre-phase-D model had 56% of that variance on it.
+It comes from credit capacity and the expectation loop, and the model sits at price-to-income
+**7.78** with purchase effort **36.6%** — inside the BdE's observed 35–40%, which is the
+check that says the level is being set by something real. Whether `overbid_sigma` is under
+the 25% variance threshold is phase E's Sobol question, and the answer is reported either
+way.
+
 ## 6. Expectations
 
 **Adaptive extrapolation with momentum** (this is what produces cycles):
@@ -502,6 +664,13 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Award price | 0.70 of auction value (habitual residence) | fraction | LEC art. 670.4 | statute |
 | Post-foreclosure credit lockout | 20 (range 8–20) | quarters | LOPDGDD art. 20.1.d (5-year register ceiling) | legal ceiling used as a behavioural horizon — reduced form |
 | Bank REO discount / release | discount 0.15 (0.10–0.35); release 0.15 of held stock per tick | fraction | Sareb 2012 transfer haircuts (31–63% on book, not market) | the block's weakest parameter — declared reduced form |
+| Search breadth `m` | 2 (range 1–10) | affordable listings sampled per buyer per tick | idealista/data days-on-market distribution; Tecnocasa bidders per dwelling | reduced form, identified on two observables |
+| Ask markup over expected value | 0.08 (range 0.04–0.12) | fraction | Tecnocasa-UPF 6.2% realised margin; Fotocasa distribution (23% beyond 10%) | medium — the posting convention is sourced, the level is the measured margin |
+| Seller reserve | max(debt + 2% selling costs, ask × (1 − discount)) | € | accounting (the sale repays the loan) + the negotiation margin above | derived (debt leg) / medium (floor leg) |
+| Auction increment | 0.005 of the runner-up's bid | fraction | institutional minimum | guess — it moves the price by half a percent at most |
+| Seller bargaining power θ (single-bidder sales) | 0.85 | fraction of the surplus | calibrated against the 6.2% measured margin | reduced form, the block's one free parameter |
+| Taste dispersion (`overbid_sigma`) | 0.02 (range 0.02–0.06) | sd of value multiplier | none — guess, DEMOTED in phase D from price dispersion to taste | guess; its variance share is phase E's Sobol question |
+| Expectation gain on the valuation (`MOMENTUM_GAIN`) | 2.5, capped ±10% | multiplier on expected growth | re-identified on price-to-income and the BdE purchase effort when the channel moved | reduced form, calibration-window only |
 | Emancipation/formation age anchor | first purchase ≈41y; buyers 25–44 ≈ 62% | years | Fotocasa [household-owner §6] | medium |
 
 Unsourced values are explicitly labeled `guess` in `config.py`. Zone multipliers are the
@@ -626,16 +795,28 @@ pass is allowed to mean.
     (`engine._demography` moves households one step *down* the ladder and never up). **Strict
     xfail** — it cannot be positive until the rule changes. Fixed by bidirectional flows
     identified on the INE series (spec §7.5 — **phase B**).
-13. **Time to sell** (`median_ticks_to_sale`, quarters): **reported, not gated**. No source in
-    `docs/sources.md` carries days on market; the idealista days-on-market distribution is on
-    the §9 retrieval list and phase D gates this once it lands. It is the observable that
-    identifies the phase-D ascending auction *without* touching the price level (spec §7.7).
-    Its governing assumptions today are `MarketConfig.ask_decay` and `max_listing_ticks`,
-    both guesses (`docs/assumptions.md`) — "guess" and "fails the derived-or-reduced-form
-    rule" are different predicates, though: `ask_decay` is a guessed *level* that still names
-    an identifying episode and an admitted range, so of the two only `max_listing_ticks` is
-    among the twenty failing rules. Conversion note: listings age before clearing, so
-    "sold within the tick" is 0 ticks, not ≤1.
+13. **Time to sell** (`sold_within_quarter_share`): **gated since phase D**, at 43–63%
+    against idealista/data's ≈53% of dwellings sold inside a quarter (7% under a week, 19%
+    within the month, 27% within three months, 36% within the year, 11% longer). The model
+    reads **47.7%**. The within-a-year leg is a floor only (≥85%, model 99.97%): the model
+    cannot produce the 11% tail beyond a year, because `max_listing_ticks` withdraws a
+    listing after six quarters and that parameter is a guess.
+13b. **Bidders per listing**: gated as a **bound**, 1 < b ≤ 7, against Tecnocasa's seven
+    interested parties per dwelling (2S 2025, double two years earlier). The bases differ on
+    purpose — that is interest on an agency's files, this is bids placed — so the bound is
+    what the evidence supports and a band is not. Model **3.6**.
+13c. **Negotiation margin** (`sale_discount_median`): gated at 4–12% against a measured 6.2%
+    [Cátedra Tecnocasa-UPF] and Fotocasa's distribution. **Strict xfail on arrival**: the
+    model reads 3.0%, because its market is more competitive than Spain's (17% of sales above
+    the ask against Fotocasa's 9%), and the fix is on the demand side rather than in the
+    auction (§5c.5).
+    Provenance: until phase D these three were one target, reported and not gated, because no
+    source in `docs/sources.md` carried days on market. The two that identify the auction were
+    retrieved on 2026-09-14 and the gates followed. `max_listing_ticks` remains a guess and is
+    what truncates the model's tail; `ask_decay` is a guessed *level* that names an
+    identifying episode and a range, which is why only the first is among the twenty rules
+    the register counts as failing the derived-or-reduced-form rule. Conversion note: listings
+    age before clearing, so "sold within the tick" is 0 ticks, not ≤1.
 14. **Landlord households** (`landlord_household_share`): **reported, not gated**, on an
     explicit **EFF basis** — households owning a dwelling they do not live in, which includes
     vacant second homes, withheld and seasonal stock. Two anchors are registered and they

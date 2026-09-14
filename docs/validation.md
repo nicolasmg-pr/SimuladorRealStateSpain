@@ -806,6 +806,122 @@ still **see** it when choosing a zone, which is a different thing from charging 
   model's three zones have no coastal type, which is why the overlay's emergent share is 2.2%
   against 6.5–8%.
 
+## Phase D — sale-side price formation (2026-09-14)
+
+The price used to be `ask × N(1, overbid_sigma)`: the ask times a guessed random number, with
+56% of the variance in price-to-income on that one scalar. It is now an ascending auction over
+search, with the seller's reserve carrying the mortgage. 3 seeds, 60 ticks, last 20 averaged,
+unless a line says otherwise.
+
+### Baseline, after
+
+| Moment | Before (phase C) | After | §9 band | |
+|---|---|---|---|---|
+| Price-to-income | 7.04 | **7.78 ± 0.10** | 7.0–8.2 | pass |
+| Purchase effort | — | **36.6% ± 0.5** | BdE 35–40% | pass |
+| Gross yield, contract basis | 0.069 | **0.070 ± 0.002** | 0.065–0.075 | pass |
+| Market-tenant overburden | 0.323 | **0.323 ± 0.001** | 0.26–0.34 | pass |
+| Ownership rate | 0.711 | **0.715 ± 0.004** | 0.70–0.74 | pass |
+| Sold inside the quarter | — | **47.7% ± 2.9** | 43–63% (idealista ≈53%) | pass |
+| Bidders per listing | — | **3.59 ± 0.12** | 1 < b ≤ 7 (Tecnocasa 7) | pass |
+| Negotiation margin | — | **3.0%** | 4–12% (Tecnocasa 6.2%) | **fail** |
+| Sales above the ask | — | **17.3%** | Fotocasa 9% (different basis) | reported |
+| Arrears, share of mortgaged | 0.029 | **0.028** | 0.010–0.040 | pass |
+| Vacancy, secondary | 0.135 | **0.139** | 0.081–0.131 | fail (phase C's, unchanged) |
+
+### The mechanism the redesign spec did not name, and the model needed
+
+The ascending auction on its own did **not** produce a scarcity-to-price channel. With the
+buyer's valuation anchored on the price index, `price ≈ index × (a selection premium in the
+taste draw)`, and that premium is proportional to `overbid_sigma` — so the model swapped one
+dispersion dependence for another: at σ = 0.02 competition could not move prices at all
+(baseline growth +2.1%/yr, the boom leg +1.7%/yr), at σ = 0.04 σ set the level again
+(price-to-income 8.4, purchase effort 38%).
+
+What closes it is **where the expectation enters**. `MOMENTUM_GAIN × expected growth` shaded
+the buyer's *budget*, and the index cap in clearing threw that away for every buyer whose
+credit limit exceeded market value — which is most of them. Moved onto the *valuation anchor*
+it reaches the price, and the adaptive loop of §6 runs until credit binds.
+
+Re-identifying the gain when the channel moved (5.0 → 2.5), on calibration-window moments
+only:
+
+| gain | price-to-income | purchase effort | baseline price growth | 2021–25 boom leg |
+|---|---|---|---|---|
+| 0 | 6.59 | 31.1% | +2.0%/yr | +1.7%/yr |
+| 1 | 6.94 | 32.7% | +2.6%/yr | +2.3%/yr |
+| 2 | 7.42 | 35.0% | +3.3%/yr | +3.0%/yr |
+| **2.5** | **7.78** | **36.6%** | **+3.7%/yr** | **+3.9%/yr** |
+| 3 | 8.26 | 38.9% | +4.3%/yr | +4.5%/yr |
+| 5 | 9.52 | 44.8% | +5.1%/yr | +8.5%/yr |
+
+The hold-out column is shown because it is informative, **not** because it was used: the gain
+was set on price-to-income and the BdE's 35–40% purchase effort, both calibration-window
+objects. Setting it on the boom column would have picked 5.0 and put the baseline on a
+permanent 5%/yr boom at 45% effort, which is how a model gets a good hold-out number and a
+wrong world.
+
+### Five gates closed, and by the mechanism their xfail notes predicted
+
+Every one of these was a dated strict xfail from phase B whose recorded reason ended "it is
+phase D's to close — the rent side needs the scarcity channel the sale side is getting". The
+§7.1 hurdle had made the landlord's reservation rent a function of the dwelling's *value*,
+and the sale side had no channel, so that floor only ever fell:
+
+| Gate | Before | After |
+|---|---|---|
+| Insider/outsider wedge | −6.3% (wrong sign) | **+5.1%** |
+| Rent cap on contract rents | +4.9% (wrong sign) | **−3.6%** |
+| Monràs co-movement (elasticity 2) | +6.8% rents, −21.8% contracts | **−3.6% rents, −11.1% contracts** |
+| Cap coverage scaling | scaled a magnet | scales a ceiling |
+| Boom-time rent growth | xfail | passes |
+
+Finding 2 of the redesign spec is closed on both sides by one change.
+
+### Three gates broken, one of them a falsification that fired
+
+**The rate-shock magnitude — the falsification §5c.4 wrote down in advance.** Removing
+`PARTICIPATION_RATE_SENSITIVITY = 20`, a coefficient fitted so a +2.4pp rate move cut
+transactions 11%, leaves the euríbor its mechanical channel only. Measured on 3 seeds, a
++2.8pp shock now cuts volume **1.6%** against the 5% the gate asserts; prices −1.1%, so the
+*ordering* survives and the *magnitude* does not. The coefficient was carrying something the
+mechanisms do not reproduce. It is not reinstated. What is added instead is the episode as it
+happened: 2022–23 was a rate rise **and** a tightening of standards, the second documented
+quarter by quarter in the BdE lending survey, and with both inputs the model gives volume
+−5.5% against prices −1.5% — the right signature, from mechanisms.
+
+**The 2021–25 boom's price leg.** +3.88%/yr ± 0.17 over 10 seeds against a 4% threshold, with
+the sourced episode at +8–13%/yr. So ≈40% of the observed magnitude, about where the model
+was before phase D; what changed is that the boom is now produced by expectations reaching
+the price instead of by a participation coefficient fitted on a rate episode. Volume leg
+passes at 1.62× (gate 1.15×) and stays a live test; the price leg is split out and xfailed.
+
+**The negotiation margin.** 3.0% against a measured 6.2%. The model's market is more
+competitive than Spain's on both identifying observables — 3.6 bids per listing, 17% of sales
+above the ask against Fotocasa's 9% — and these are one fact, not two: with more bidders the
+auction runs the price to the runner-up's valuation and leaves nothing to negotiate away.
+Closing it means fewer buyers per listing, i.e. `buy_attempt_prob` on the demand side, an
+admitted guess — not the auction this target exists to test.
+
+### Referee pass — what a hostile economist would say
+
+- *"You moved a coefficient and called it a mechanism."* The coefficient moved from the budget
+  to the valuation, which is a modelling claim with a consequence: a budget is capacity and a
+  valuation capitalises expectations, and only the second can bid a price above today's index.
+  The consequence is testable and was tested — it is what closed the five rent-side gates.
+- *"You re-fitted the gain to get your numbers."* On calibration-window moments, and the
+  hold-out column is printed above so the choice can be checked against the alternative. The
+  gain that the hold-out would have chosen (5.0) is visibly rejected.
+- *"`m = 2` is not how people search."* Correct, and it is why `m` is declared reduced form.
+  It is affordable listings *sampled per quarter*, not viewings; what identifies it is the
+  days-on-market distribution, and 2 is what reproduces it.
+- *"Your discount is half the measured one."* Conceded in the table and in the gate, which
+  fails rather than being widened. The diagnosis names the demand-side parameter responsible.
+- *"The price level is still a guess."* Less of one: halving `overbid_sigma` now moves
+  price-to-income by under 25%, where 56% of its variance used to sit on that scalar, and
+  purchase effort lands inside the BdE's observed 35–40%. Whether σ is under the variance
+  rule's 25% threshold is phase E's Sobol run, and it is reported either way.
+
 ## Phase C — insolvency and forced sale (2026-09-14)
 
 The budget constraint binds from this pass. `engine._household_flows` used to write

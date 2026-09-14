@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..market.clearing import seller_reserve
 from ..state import HouseholdStatus, WorldState
 from .bank import cash_price, max_price
 from .base import Intent, ListForSale, MakeOffer, RentApplication
@@ -25,16 +26,20 @@ from .base import Intent, ListForSale, MakeOffer, RentApplication
 # d(participation)/d(expected growth above the long-run anchor): the FOMO/boom channel,
 # fitted on the 2024–25 easing surge (sales +10.7% to a 17-year high) [household-owner §4]
 PARTICIPATION_GROWTH_SENSITIVITY = 15.0
-# d(participation)/d(mortgage rate above the comfort threshold): the freeze channel.
-# Fitted so a +2.4pp rate move (1.5→3.9% new-mortgage rates, 2022–23) cuts transactions
-# ≈11%, the MIVAU 2023 figure [household-owner §4]. Identified purely by the shock episode:
-# at baseline rates the term is zero, so it does not touch moments 1–5. Depends on
-# CreditConfig.pass_through — refit both together, never one alone.
-PARTICIPATION_RATE_SENSITIVITY = 20.0
-RATE_COMFORT_THRESHOLD = 0.035  # /yr offered rate above which buyers start to withdraw
-# WTP momentum: expected-growth shading of the bank-permitted budget, capped either way
-MOMENTUM_GAIN = 5.0
-MOMENTUM_CAP = 0.10
+# The rate leg of participation — `PARTICIPATION_RATE_SENSITIVITY = 20` on the mortgage rate
+# above a 3.5% comfort threshold — WAS REMOVED IN PHASE D (model-spec §5c.3). It was a
+# hand-fitted coefficient standing in for a mechanism the model did not have: when rates rise,
+# volume falls before prices do. That now comes out of two things the model computes rather
+# than assumes — the credit screen (fewer households clear the DSTI cap at a higher rate) and
+# the seller's reserve, which is the outstanding mortgage, so owners who bought at the top
+# cannot sell into a lower market. If the rate-shock signature had not survived the removal,
+# the honest conclusion would have been that the coefficient carried something real; the
+# measurement is in docs/validation.md, phase D.
+# WTP momentum moved to market/clearing.py in phase D (MOMENTUM_GAIN, MOMENTUM_CAP live
+# there now): expected growth shades the VALUATION of a dwelling, not the credit-limited
+# budget, because the budget is a capacity and the capitalisation of expected appreciation
+# is a valuation. Kept out of this module entirely rather than imported back, so there is
+# exactly one place the expectation reaches a price.
 
 # --- the sharing margin (model-spec §5, household-tenant §6) ---------------------------
 # A household that keeps failing to find a home does not leave the market: it accepts a
@@ -93,16 +98,24 @@ class Households:
             zone_cfg = cfg.zone(hh.zone)
             zs = state.zones[hh.zone]
             itp = macro.itp[hh.zone]
-            momentum = float(
-                np.clip(MOMENTUM_GAIN * zs.expected_price_growth, -MOMENTUM_CAP, MOMENTUM_CAP)
-            )
-
             if hh.status is HouseholdStatus.OWNER:
                 # rare movers: list the home; they re-enter demand after it sells
                 if move_draw[i] < pop.owner_move_prob:
                     unit = state.stock.units[hh.unit_id]
-                    ask = zs.price_index * unit.quality * (1.0 + zs.expected_price_growth)
-                    reserve = ask * (1.0 - discount_draw[i])
+                    ask = (
+                        zs.price_index
+                        * unit.quality
+                        * (1.0 + zs.expected_price_growth)
+                        * (1.0 + cfg.market.ask_markup)
+                    )
+                    # the reserve carries the mortgage: a sale has to repay the loan, so an
+                    # owner in negative equity cannot sell at all (model-spec §5c.3)
+                    reserve = seller_reserve(
+                        ask=ask,
+                        debt=hh.mortgage_balance + hh.arrears_balance,
+                        discount=float(discount_draw[i]),
+                        cfg=cfg,
+                    )
                     intents.append(
                         ListForSale(agent_id=hh.id, unit_id=unit.id, ask=ask, reserve=reserve)
                     )
@@ -162,9 +175,7 @@ class Households:
                 np.clip(
                     1.0
                     + PARTICIPATION_GROWTH_SENSITIVITY
-                    * (zs.expected_price_growth - cfg.market.long_run_growth)
-                    - PARTICIPATION_RATE_SENSITIVITY
-                    * max(0.0, macro.mortgage_rate - RATE_COMFORT_THRESHOLD),
+                    * (zs.expected_price_growth - cfg.market.long_run_growth),
                     0.4,
                     1.6,
                 )
@@ -174,9 +185,12 @@ class Households:
             # household, normalised to 1.0 in the tensioned zone. It discounts willingness in
             # the low-amenity zones; without it nothing stops a rural household from bidding
             # its full credit limit and the zone price ladder closes from below.
-            budget = (
-                limit * shade_draw[i] * (1.0 + momentum) * own_vs_rent * zone_cfg.location_premium
-            )
+            # NOTE (phase D): the expected-growth shading that used to multiply this budget
+            # now sits on the VALUATION anchor in market/clearing.py. A budget is what the
+            # household can pay; what it is willing to pay for a particular dwelling — and
+            # how much of the expected appreciation it capitalises — belongs to the bid, and
+            # putting it here meant the index cap in clearing threw it away (model-spec §5c).
+            budget = limit * shade_draw[i] * own_vs_rent * zone_cfg.location_premium
             can_buy = budget >= 0.6 * median_price  # cheapest habitable segment [guess]
             if wants_to_buy and can_buy:
                 intents.append(

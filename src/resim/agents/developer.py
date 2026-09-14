@@ -108,6 +108,8 @@ class Developer:
                     agent_id=self.id,
                     unit_id=unit.id,
                     ask=ask,
+                    # a developer carries no household mortgage, so only the
+                    # negotiation-margin leg binds (model-spec §5c.3)
                     reserve=ask * (1.0 - cfg.market.max_seller_discount_hi),
                 )
             )
