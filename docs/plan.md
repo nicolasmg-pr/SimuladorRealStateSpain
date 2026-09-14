@@ -145,4 +145,16 @@ Mark phases done here; details and dates in commit history.
   frictions that stop that in reality are phase D. Two defects it exposed were fixed at the
   source: the opening mortgage book was never screened against DSTI, and the income draw
   double-counted unemployment.
+- [x] Redesign phase D — sale-side price formation (`model-spec.md §5c`, branch
+  `price-formation`, 2026-09-14): ascending auction, search over m listings, seller reserve
+  from the mortgage. Three sources retrieved first (idealista days-on-market distribution,
+  Tecnocasa-UPF negotiation margin and bidder count, Fotocasa's negotiation survey). It
+  **closed finding 2 on both sides** — five phase-B rent-side xfails fell to one change, the
+  expectation moving from the buyer's budget to its valuation, because the landlord's
+  reservation rent is a function of the sale value. `PARTICIPATION_RATE_SENSITIVITY` died as
+  specified and **its falsification fired**: the rate channel is now weaker than the 2022–23
+  episode, recorded as an xfail rather than patched, with the episode as it happened (rate
+  rise + tighter standards) tested separately and passing. The negotiation margin (3.0%
+  against 6.2%) and the boom's price leg (+3.9%/yr against a 4% threshold and a sourced
+  8–13%) fail and are reported.
 - [x] KB refresh 2026-09-08 (`kb-refresh-2026-09.md`): sources re-checked against Jul–Sep 2026 releases; INE projection vintages, rent-cap coverage, buyer-type ITP, ICO wealth cap, IRAV-relative indexation added. **Re-measurement found the Phase-7 rent-cap gate no longer met on the tenancy leg** (the August audit and Funcas revision changed the baseline and the experiment was not re-run) — fixed the same day by the tensioned-tightness revision (`validation.md` T1–T7): metro-weighted formation, a shadow rent under caps, hazard scale 3.0; gate met again on 5 seeds. Then partial coverage was made reportable by regulatory segment, and the location premium (`model-spec` §5b) closed the zone price ladder — the model's oldest known gap — restoring the price-to-income ordering and, unplanned, lifting cash purchases 3.1% → 18.7%. Then the shadow-rent anchor was made exogenous (two richer anchors measured and rejected), the hazard scale re-fitted so all three rent-cap studies sit inside the 0–2 dial, and boom-time rent growth passed for the first time (+3.6%/yr, ≈40% of the sourced magnitude) — **the suite now carries no xfails and every §9 target is met**. Open: the size/quality margin behind the remaining boom-rent gap; a per-CCAA formation series to replace the metro-weighting guess. **Morris screening and Sobol indices are done** (`src/resim/sensitivity.py`, validation.md, 230 + 1,152 evaluations): `overbid_sigma` explains 56% of the variance in price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned market vacancy and 40% of the rent level — **both are unsourced guesses, and sourcing them is now the highest-value evidence work on this model**. Three weakly-sourced parameters (`max_starts_per_tick`, `presale_share`, `margin_threshold`) are inert and can be left alone
