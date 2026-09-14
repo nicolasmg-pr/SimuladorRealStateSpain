@@ -648,6 +648,68 @@ unrelated price-side changes is the evidence that it was being held shut by a co
 than by a mechanism.** The underlying deficiency is unchanged: the only pull toward the metro is
 the income ratio, and what is missing is where the job is.
 
+## §7.4's falsification test, run (2026-09-14)
+
+The spec states it explicitly: *"if Registradores' non-resident purchase series tracks Spanish
+transaction volume one-for-one (2007–2025), the exogenous treatment is wrong."*
+
+**It does not track it. The exogenous treatment stands.**
+
+Series: **MIVAU Boletín Online Tabla 1.6**, quarterly 2007Q1–2026Q1, 77 points, operations, all
+housing, split TOTAL / residentes (españoles, extranjeros) / no residentes (españoles,
+extranjeros). Independently confirmed by the Notariado CIEN annex (semi-annual, *vivienda libre*
+only): non-resident foreign purchases 2007 = 24,489 (MIVAU) vs 24,570 (CIEN), 0.3% apart; 2025 =
+51,367 vs 52,781, 2.8% apart.
+
+**2007→2013: total Spanish transactions −64.1% while non-resident foreign purchases +20.4%.**
+Arc elasticity **−0.18**.
+
+| window | corr | elasticity | 95% CI | R² |
+|---|---|---|---|---|
+| 2007Q1–2025Q4 (the spec's window) | +0.499 | +0.753 | [0.455, 1.050] | 0.249 |
+| 2007Q1–2013Q4 (**sealed hold-out**) | +0.116 | +0.093 | [−0.215, 0.401] | 0.013 |
+| 2014Q1–2026Q1 | +0.713 | +0.769 | [0.553, 0.985] | 0.508 |
+
+The decisive fact is the ratio rather than the elasticity: the non-resident share ran **2.55% →
+10.67%**, a 4.18× swing, so no constant `k` exists. Freezing `k` at its 2007 value predicts
+8,795 non-resident purchases for 2013 against 29,496 actual — wrong by **3.35×**; RMSE of the
+log ratio is 0.891 across all 77 quarters.
+
+**Reported against the conclusion**, because it belongs in the record: on year-on-year *growth
+rates* the full-window elasticity is 0.905 with a confidence interval covering 1, so growth
+co-movement alone cannot reject one-for-one. It is 1.45 post-2013 and 0.66 excluding COVID —
+unstable, and consistent with common shocks rather than with proportionality. The level and
+ratio evidence is what carries the conclusion.
+
+Hold-out discipline: the 2007–2013 numbers are evidence about the *specification* and are
+flagged unusable for calibration. The calibration window stays 2014–2025.
+
+### Four corrections this pass forced
+
+1. **The spec names the wrong institution.** Registradores does not publish a non-resident
+   series and says it cannot — ERI methodology annex p. 116: *"no se adentran en el concepto de
+   residencia, ya que no es un dato que quede recogido en la escritura de compraventa."* §7.4's
+   falsification test should name **MIVAU / Notariado**.
+2. **The earlier "CID-encoded PDF" diagnosis was wrong.** PyMuPDF reads all 122 ERI pages as
+   text with no CMap work; the blocker was simply that no renderer was installed. What does
+   block a series there is that ERI's history is drawn as **vector charts**.
+3. **INE ETDP has no nationality or residence breakdown** — all 17 tables enumerated. Confirmed
+   negative, recorded so it is not re-checked.
+4. **The €/m² premium is not a constant.** §7.4's "3,063 vs 1,713" is exactly CIEN 2S2024 — one
+   point on a series running **1.02× (1S07) → 1.79× (2S24)**, a ~75% drift. It must enter as a
+   range or a path, not a point, and this is the identified cause of the model's 2.28%
+   emergent share.
+
+### The finding that outranks the test result
+
+**Resident foreigners track domestic volume at β = 1.01; non-residents do not.** The model has
+ONE foreign agent, so it is averaging two opposite mechanisms. That is a specification defect
+§7.4 did not anticipate and neither did the critique it answers.
+
+Post-2013 the two series do co-move (corr +0.71 to +0.86, elasticity 0.63–0.77), so the
+defensible claim is **"own cycle, partially correlated"**, not "orthogonal". The model's
+exogenous stream is the right shape and should not be described as independent.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
