@@ -12,6 +12,9 @@ This module is the single place it is expressed:
     6. market clearing         — sales (sealed bid), then rentals (queue)
     7. settlement              — clearing.settle is the only ownership writer
     8. supply response         — completions arrive, starts enter the pipeline
+    8b. balance sheets & insolvency — incomes and savings, the exogenous unemployment path
+                                 and its incidence, arrears, statutory foreclosure,
+                                 bank REO release (insolvency.py)
     9. metrics snapshot
 """
 
@@ -21,9 +24,10 @@ from collections.abc import Iterator
 
 import numpy as np
 
+from . import insolvency as insolvency_mod
 from . import metrics
 from . import rng as rng_mod
-from .agents.bank import Bank, itp_wedge, max_price
+from .agents.bank import NET_INCOME_FACTOR, Bank, itp_wedge, max_price
 from .agents.base import (
     IntentBundle,
     ListForRent,
@@ -76,7 +80,10 @@ class Engine:
         self.scenario = scenario
         base = scenario.baseline
         self.rng = rng_mod.make_rng(base.seed)
-        streams = rng_mod.spawn(self.rng, 7)
+        # 8 streams: the eighth is insolvency (model-spec §6c). Spawning one more child does
+        # not disturb the first seven — SeedSequence children are keyed by index — so every
+        # pre-phase-C draw is unchanged by this line.
+        streams = rng_mod.spawn(self.rng, 8)
         self.households_agent = Households(HOUSEHOLDS_AGENT_ID, streams[0])
         self.landlords_agent = SmallLandlords(LANDLORDS_AGENT_ID, streams[1])
         self.investor_agent = LargeInvestor(LARGE_INVESTOR_ID, streams[2])
@@ -84,6 +91,7 @@ class Engine:
         self.bank_agent = Bank(BANK_AGENT_ID, streams[4])
         self.government_agent = Government(GOVERNMENT_AGENT_ID, streams[5])
         self.market_rng = streams[6]
+        self.insolvency_rng = streams[7]
 
     # ------------------------------------------------------------------ init
 
@@ -112,10 +120,17 @@ class Engine:
                 shadow_rent=rent,
             )
 
+        # incomes are drawn as POTENTIAL (employed) income: the EFF/ECV median the config
+        # carries was measured on a population that already contains unemployed households,
+        # so drawing at that median and then applying the unemployment path would subtract
+        # the same loss twice (insolvency.potential_income_uplift)
+        uplift = insolvency_mod.potential_income_uplift(cfg)
         for zcfg in cfg.zones:
             n_hh = int(round(pop.n_households * zcfg.household_share))
             incomes = rng.lognormal(
-                np.log(pop.income_median * zcfg.income_multiplier), pop.income_sigma, n_hh
+                np.log(pop.income_median * zcfg.income_multiplier * uplift),
+                pop.income_sigma,
+                n_hh,
             )
             n_tenants = int(round(n_hh * zcfg.tenant_share))
             statuses = [HouseholdStatus.TENANT] * n_tenants + [HouseholdStatus.OWNER] * (
@@ -170,7 +185,22 @@ class Engine:
                         hh.mortgage_balance = 60_900.0 * float(rng.lognormal(0.0, 0.5))
                         r = state.macro.mortgage_rate / 4
                         n_left = int(rng.integers(20, 90))
-                        hh.mortgage_payment = hh.mortgage_balance * (r / (1 - (1 + r) ** -n_left))
+                        annuity = r / (1 - (1 + r) ** -n_left)
+                        payment = hh.mortgage_balance * annuity
+                        # The opening mortgage book must satisfy the SAME screen the bank
+                        # applies to every new loan. It did not: balance and income were drawn
+                        # independently, so a household with a €15k income could open the run
+                        # owing €150k on a five-year tail — a payment of twice its income.
+                        # Nothing noticed while non-payment was absorbed by
+                        # `wealth = max(0, wealth - payment)`; with the budget constraint
+                        # binding (§6c.2) those households went into arrears on tick 1 and
+                        # their forced listings moved the price level. Phase C found it; the
+                        # fix belongs here, at the source [bank §3, model-spec §4 step 5].
+                        cap = cfg.credit.max_dsti * NET_INCOME_FACTOR * hh.income / 4.0
+                        if payment > cap:
+                            hh.mortgage_balance *= cap / payment
+                            payment = cap
+                        hh.mortgage_payment = payment
                         hh.mortgage_ticks_left = n_left
                 state.stock.add(unit)
 
@@ -378,7 +408,10 @@ class Engine:
                 income=float(
                     rng.lognormal(
                         np.log(
-                            pop.income_median * zcfg.income_multiplier * pop.formation_income_factor
+                            pop.income_median
+                            * zcfg.income_multiplier
+                            * pop.formation_income_factor
+                            * insolvency_mod.potential_income_uplift(cfg)
                         ),
                         pop.income_sigma,
                     )
@@ -686,6 +719,11 @@ class Engine:
             hh = state.households.get(offer.agent_id)
             if hh is None:
                 continue
+            # a foreclosed household is in the credit register for up to five years
+            # [LOPDGDD art. 20.1.d, model-spec §6c.3]. It may still buy for cash — the
+            # register blocks credit, not purchases — and cash offers never reach here.
+            if hh.credit_lockout_ticks > 0:
+                continue
             # the guarantee decision belongs to the household (means test); the bank only
             # re-checks that the programme envelope is still open at screening time
             guaranteed = offer.guaranteed and state.macro.guarantee_budget_left > 0.0
@@ -991,32 +1029,62 @@ class Engine:
     # -- household balance-sheet flows ---------------------------------------
 
     def _household_flows(self, state: WorldState) -> None:
+        """Step 8b: incomes, savings, income risk, arrears, foreclosure, REO (§6c).
+
+        Runs after clearing on purpose: a dwelling repossessed this tick reaches the market
+        next tick, which is the real sequence, and it keeps `clearing.settle` the only writer
+        of ownership *inside* a tick.
+        """
         cfg = state.config
         sr = cfg.population.saving_rate
         income_growth = cfg.market.long_run_growth  # nominal wage anchor, /tick
+        rng = self.insolvency_rng
+        events = insolvency_mod.TickInsolvency()
+
+        events.unemployed = insolvency_mod.update_employment(state, rng)
+        incomes = [hh.income for hh in state.households.values()]
+        median_income = float(np.median(incomes)) if incomes else 1.0
+
         for hh in state.households.values():
+            # the wage anchor grows POTENTIAL income; unemployment takes a household off it
+            # for the length of the spell, it does not reset the career path
             hh.income *= 1.0 + income_growth
+            if hh.credit_lockout_ticks > 0:
+                hh.credit_lockout_ticks -= 1
             # search spell: counted here, at the end of the tick, so a household formed this
             # tick starts at 0 and only a *failed* search increments it. Reset by settle()
             # when the household is housed — the escalation is a spell, not a history
             # (agents/household.search_burden: the sharing margin).
             if hh.status is HouseholdStatus.SEEKER:
                 hh.ticks_searching += 1
-            saving = sr * hh.income / 4.0
+
+            income_eff = insolvency_mod.effective_income(hh, cfg)
+            saving = sr * income_eff / 4.0
             if hh.status is HouseholdStatus.TENANT and hh.unit_id is not None:
                 rent_y = state.stock.units[hh.unit_id].rent * 12.0
-                saving *= max(0.0, 1.0 - rent_y / max(hh.income, 1.0))
+                saving *= max(0.0, 1.0 - rent_y / max(income_eff, 1.0))
             hh.wealth += saving
+
             if hh.mortgage_ticks_left > 0:
-                r = state.macro.mortgage_rate / 4.0
-                interest = hh.mortgage_balance * r
-                principal = min(hh.mortgage_balance, hh.mortgage_payment - interest)
-                hh.mortgage_balance = max(0.0, hh.mortgage_balance - max(0.0, principal))
-                hh.wealth = max(0.0, hh.wealth - hh.mortgage_payment)
-                hh.mortgage_ticks_left -= 1
-                if hh.mortgage_balance <= 0.0:
-                    hh.mortgage_ticks_left = 0
-                    hh.mortgage_payment = 0.0
+                events.mortgaged += 1
+                insolvency_mod.service_mortgage(hh, state, income_eff, saving, median_income)
+            if hh.arrears_instalments > 0:
+                events.in_arrears += 1
+            insolvency_mod.advance_foreclosure(hh, state, rng)
+            # the sale decision follows the statutory threat, not the first missed payment
+            if hh.foreclosure_tick is not None and hh.status is HouseholdStatus.OWNER:
+                events.distressed_listings += int(insolvency_mod.list_distressed(state, hh))
+            elif hh.arrears_instalments == 0:
+                insolvency_mod.withdraw_distressed(state, hh)
+
+        # deliveries are collected after the pass so the arrears count above is the state at
+        # the end of servicing, not a mix of before and after possession
+        for hh in list(state.households.values()):
+            if hh.delivery_tick is not None and state.tick >= hh.delivery_tick:
+                insolvency_mod.deliver(hh, state, rng, events)
+
+        insolvency_mod.release_reo(state, rng, events)
+        state.tick_events["insolvency"] = events
 
     # ------------------------------------------------------------------ run
 

@@ -246,6 +246,59 @@ class RateShock(Intervention):
 
 
 @dataclass(frozen=True)
+class CreditCrunch(Intervention):
+    """Lending standards tighten together — the hold-out's credit leg (model-spec §6c).
+
+    Spain's 2008–13 credit stop was not one dial: LTV and DSTI caps fell while the spread
+    over euríbor widened, and the three arrived together. Applying them as one lever keeps
+    that fact visible instead of inviting a sweep over a combination that never occurred.
+
+    Ranges are the 2008–13 move, not a guess: realised LTVs fell from the boom's bunching at
+    0.80 toward 0.60, and the spread over euríbor widened by whole points [bank §4, §6].
+    The default is a moderate tightening; the hold-out's own values are set explicitly.
+    """
+
+    name: str = "credit_crunch"
+    start_tick: int = 8
+    ltv_delta: float = -0.10  # -0.05 … -0.20
+    dsti_delta: float = -0.05  # -0.03 … -0.10
+    spread_delta: float = 0.01  # +0.005 … +0.03
+
+    def apply(self, config: SimConfig) -> SimConfig:
+        credit = config.credit
+        return config.with_credit(
+            max_ltv=max(0.1, credit.max_ltv + self.ltv_delta),
+            max_dsti=max(0.05, credit.max_dsti + self.dsti_delta),
+            spread=max(0.0, credit.spread + self.spread_delta),
+        )
+
+
+@dataclass(frozen=True)
+class LabourShock(Intervention):
+    """A different exogenous unemployment path (model-spec §6c.1, §14).
+
+    `rate` is the share of households whose active members are ALL unemployed — INE's
+    household-level series, not the individual unemployment rate, because the model's
+    household is a single income unit. Reference points from that series: 3.15% at the
+    2007 peak of the boom, **15.02% at the 2013Q1 trough**, 5.28% in 2026Q2
+    [INE EPA tabla 65276].
+
+    This is an input, not a result: the model decides incidence, never the aggregate.
+    """
+
+    name: str = "labour_shock"
+    start_tick: int = 8
+    rate: float = 0.15  # 2013Q1
+    exit_hazard: float | None = None  # None keeps the calibrated 0.25; the bust ran ≈0.15
+
+    def apply(self, config: SimConfig) -> SimConfig:
+        changes: dict[str, float] = {"jobless_rate": self.rate}
+        if self.exit_hazard is not None:
+            changes["exit_hazard"] = self.exit_hazard
+        return config.with_labour(**changes)
+
+
+@dataclass(frozen=True)
 class Scenario:
     """A baseline plus an ordered set of interventions."""
 

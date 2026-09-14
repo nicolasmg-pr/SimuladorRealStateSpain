@@ -39,6 +39,20 @@ class HouseholdState:
     # escalation in agents/household.py (the sharing margin) — reset by clearing.settle the
     # moment the household is housed, so it measures the current search spell, not a history.
     ticks_searching: int = 0
+    # --- labour and insolvency (model-spec §6c) ---
+    # Employment is a household-level state: the model's household is a single income unit,
+    # so a hit removes its earned income entirely (the severity overstatement and frequency
+    # understatement this implies are stated in §6c.1, not silently absorbed).
+    employed: bool = True
+    unemployed_ticks: int = 0  # length of the current spell, 0 while employed
+    arrears_instalments: int = 0  # unpaid MONTHLY instalments — the statutory unit (art. 24)
+    arrears_balance: float = 0.0  # € missed payments + default interest, never capitalised
+    # tick the statutory trigger matured (demand notice included); None until it does
+    foreclosure_tick: int | None = None
+    # tick possession is due on the judicial route; None for the voluntary route and before
+    # the trigger
+    delivery_tick: int | None = None
+    credit_lockout_ticks: int = 0  # quarters left without access to mortgage credit
     # U(0,1) drawn once from the engine's seeded Generator when the household is created.
     # Means-tested eligibility (rent subsidy) compares it against the eligible share, so
     # decide() stays pure AND reproducible — Python's hash() is salted per process and
@@ -76,6 +90,10 @@ class SaleListing:
     reserve: float  # €
     ticks_listed: int = 0
     presale: bool = False  # developer new-build sold off-plan
+    # listed by an owner facing foreclosure (insolvency.list_distressed). Marked because it
+    # is withdrawn again if the arrears are cured — a threat that goes away takes the
+    # listing with it, and without the flag the model could not tell it from a voluntary sale
+    distressed: bool = False
 
 
 @dataclass

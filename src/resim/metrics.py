@@ -102,6 +102,36 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     else:
         row["income_mode"] = float("nan")
 
+    # --- insolvency block (model-spec §6c, §9 target 15) ---
+    #
+    # Four indicators, each pointed at a registered series, and the two gated ones are on
+    # DIFFERENT bases on purpose: the BdE reports arrears as a share of credit and deliveries
+    # as a share of mortgages, and conflating them is how this target would be faked.
+    ins = state.tick_events.get("insolvency")
+    mortgaged = getattr(ins, "mortgaged", 0) if ins else 0
+    row["unemployment_rate"] = (getattr(ins, "unemployed", 0) / n_hh) if ins else float("nan")
+    # mortgaged households behind on payments. Anchor: BdE doubtful ratio on house-purchase
+    # credit — 1.60% (2026Q1), 2.33–3.40% over 2019–2024, 6.28% at the 2014Q1 peak. The BdE
+    # measures euros of credit and this measures households; they coincide only if arrears
+    # are uncorrelated with loan size, which the incidence gradient makes unlikely — so the
+    # band is wide and the comparison is an order-of-magnitude one [docs/sources.md].
+    row["arrears_share"] = getattr(ins, "in_arrears", 0) / mortgaged if mortgaged else float("nan")
+    # dwellings delivered to the lender, annualised per outstanding mortgage. Anchor: the
+    # BdE's own 0.7%/yr in 2014 (0.6% for main residences) — the only published like-for-like
+    # rate — against ≈0.10%/yr implied by INE's 2019 trough [BdE Circular 1/2013 note].
+    row["foreclosure_rate"] = (
+        4.0 * getattr(ins, "deliveries", 0) / mortgaged if mortgaged else float("nan")
+    )
+    row["foreclosures"] = getattr(ins, "deliveries", 0) if ins else 0
+    # composition, reported not gated: it is an outcome split the model is GIVEN (0.397 of
+    # deliveries), so gating it would test the input rather than the model.
+    deliveries = getattr(ins, "deliveries", 0) if ins else 0
+    row["dacion_share"] = getattr(ins, "daciones", 0) / deliveries if deliveries else float("nan")
+    # the forced-supply channel: distressed owners listing ahead of possession, and the
+    # bank-owned overhang. Both are absent from the pre-phase-C model entirely.
+    row["distressed_listings"] = getattr(ins, "distressed_listings", 0) if ins else 0
+    row["reo_stock"] = getattr(ins, "reo_stock", 0) if ins else 0
+
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)
     # construction flow vs household formation (model-spec §9 target 4). All three are

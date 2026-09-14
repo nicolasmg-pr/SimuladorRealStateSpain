@@ -269,6 +269,31 @@ POLICY_SUMMARIES: dict[str, str] = {
         "**Para qué sirve:** comprobar que el modelo reproduce la firma de la subida "
         "de tipos real antes de fiarse de sus predicciones sobre otras políticas."
     ),
+    "restricción de crédito": (
+        "**Qué es:** el cierre del grifo del crédito. No es una política de vivienda ni "
+        "la elige nadie: es una condición de contorno, la mitad financiera de lo que pasó "
+        "en 2008–13.\n\n"
+        "**Cadena causal:** LTV y esfuerzo máximos bajan y el diferencial sube a la vez → "
+        "menos hogares pasan el filtro → el volumen de compraventas cae primero y los "
+        "precios después, despacio. Los tres se mueven juntos porque así ocurrió: barrer "
+        "sólo uno sería barrer una combinación que nunca se dio.\n\n"
+        "**Para qué sirve:** es una de las dos entradas del episodio 2008–13, que está "
+        "**sellado** como validación fuera de muestra (fase E). Mirarlo aquí es mirar el "
+        "mecanismo, no el resultado."
+    ),
+    "shock de desempleo": (
+        "**Qué es:** un cambio del paro. Ojo con qué paro: el modelo trata cada hogar "
+        "como **una sola unidad de renta**, así que la serie que usa es la del INE de "
+        "hogares con *todos* sus activos en paro — 3,15% en 2007, 15,02% en 2013T1, "
+        "5,28% en 2026T2. La tasa individual es aproximadamente el doble.\n\n"
+        "**Cadena causal:** el hogar pierde su renta → cobra la prestación (70% y luego "
+        "60%, con el tope legal, que a renta mediana es lo que ata) → si no llega a la "
+        "cuota, entra en mora → a los 12 impagos el acreedor puede vencer el préstamo → "
+        "o vende antes, o entrega la vivienda al banco, que la saca al mercado con "
+        "descuento.\n\n"
+        "**Lo que el modelo decide y lo que no:** la tasa agregada es un dato, nunca un "
+        "resultado. Lo endógeno es **a quién** le toca — y con ello, qué hipotecas caen."
+    ),
 }
 
 # Per policy: (actor, how it reacts and why it matters). Order: most affected first.
@@ -500,6 +525,55 @@ ACTOR_REACTIONS: dict[str, list[tuple[str, str]]] = {
             "compra, más oferta en venta.",
         ),
     ],
+    "restricción de crédito": [
+        (
+            "🏦 Banco",
+            "Es el actor que actúa: baja el LTV y el esfuerzo máximos y sube el "
+            "diferencial. El racionamiento no es una decisión caso a caso, son los "
+            "topes — y con ellos cae la capacidad de puja de todo el que necesita "
+            "hipoteca.",
+        ),
+        (
+            "🔑 Aspirantes a comprar",
+            "Los que financiaban al límite dejan de poder pujar. El volumen cae antes "
+            "que el precio: esa es la firma que el modelo tiene que reproducir.",
+        ),
+        (
+            "🏠 Hogares con hipoteca",
+            "Si además sube el diferencial, la cuota de los nuevos préstamos sube; los "
+            "que ya tienen hipoteca viva sufren por el euríbor, no por este filtro.",
+        ),
+        (
+            "🏗️ Promotor",
+            "Sin compradores financiables, las preventas no cubren el umbral y los "
+            "inicios de obra se paran — con ocho trimestres de retraso en la entrega, "
+            "el ajuste de oferta llega tarde a todo.",
+        ),
+    ],
+    "shock de desempleo": [
+        (
+            "🏠 Hogares con hipoteca",
+            "Es donde pega. Pierden la renta salarial, cobran la prestación con su "
+            "tope legal, tiran del ahorro y comprimen el consumo hasta el suelo de "
+            "subsistencia; si aun así no llegan, entran en mora.",
+        ),
+        (
+            "🏦 Banco",
+            "Acumula mora, ejecuta cuando la ley se lo permite (12 cuotas, o 3 en el "
+            "régimen anterior a 2019) y se queda con vivienda adjudicada que revende "
+            "con descuento. Ese stock es el sobrante bancario de 2008–13.",
+        ),
+        (
+            "🔑 Hogares ejecutados",
+            "Vuelven a buscar vivienda como inquilinos y quedan fuera del crédito "
+            "mientras el fichero de solvencia conserve el impago — hasta cinco años.",
+        ),
+        (
+            "🏘️ Zonas",
+            "El paro no cae igual en todas: el gradiente medido dice que el metro es "
+            "la zona **menos** expuesta y que la brecha se abre en la crisis.",
+        ),
+    ],
 }
 
 MODEL_EXPLANATION = """
@@ -649,6 +723,16 @@ KPI_HELP: dict[str, str] = {
     "España real: ~35–40% en 2024–25 (Banco de España).",
     "vacancy_rate": "Porcentaje del parque de viviendas sin ocupar (incluye retenidas "
     "y segundas residencias vacías).",
+    "arrears_share": "Porcentaje de hogares **con hipoteca viva** que están en mora. "
+    "Referencia real: la ratio de dudosos del crédito para compra de vivienda del Banco "
+    "de España — 1,6% en 2026T1, 2,3–3,4% entre 2019 y 2024, y 6,28% en el pico de "
+    "2014T1. El BdE cuenta euros de crédito y esto cuenta hogares: la comparación es de "
+    "orden de magnitud, no exacta.",
+    "foreclosure_rate": "Viviendas entregadas al acreedor al año por cada hipoteca viva, "
+    "sumando entregas voluntarias, daciones y adjudicaciones judiciales. Referencia real: "
+    "0,7%/año en 2014 (Banco de España) y ≈0,10% en el suelo de 2019.",
+    "unemployment_rate": "Porcentaje de hogares con todos sus activos en paro. Es una "
+    "**entrada** del modelo, no un resultado: lo que el modelo decide es a quién le toca.",
 }
 
 

@@ -10,7 +10,9 @@ from __future__ import annotations
 import streamlit as st
 
 from resim.scenario import (
+    CreditCrunch,
     DemandSubsidy,
+    LabourShock,
     LandRelease,
     PublicHousing,
     RateShock,
@@ -29,6 +31,10 @@ LEVER_CLASSES = {
     "ayudas a la demanda (avales)": DemandSubsidy,
     "liberación de suelo": LandRelease,
     "shock de tipos": RateShock,
+    # Condiciones de contorno, no políticas: nadie las elige. Están aquí porque son las dos
+    # entradas del episodio 2008-13 y el usuario tiene que poder moverlas (model-spec §6c).
+    "restricción de crédito": CreditCrunch,
+    "shock de desempleo": LabourShock,
 }
 
 
@@ -201,4 +207,53 @@ def lever_params(lever: str) -> dict:
         )
     elif lever == "shock de tipos":
         params["euribor"] = st.slider("Euríbor", 0.0, 0.06, 0.04, 0.005)
+
+    elif lever == "restricción de crédito":
+        params["ltv_delta"] = st.slider(
+            "Cambio en el LTV máximo",
+            -0.30,
+            0.0,
+            -0.10,
+            0.01,
+            help="En 2008-13 el LTV concedido bajó del 0,80 en el que se amontonaban las "
+            "operaciones hacia 0,60 [BdE IEF, dossier bank §4].",
+        )
+        params["dsti_delta"] = st.slider(
+            "Cambio en el DSTI máximo",
+            -0.15,
+            0.0,
+            -0.05,
+            0.01,
+            help="Cuota máxima sobre renta neta. El baseline es 0,35.",
+        )
+        params["spread_delta"] = st.slider(
+            "Cambio en el diferencial",
+            0.0,
+            0.04,
+            0.01,
+            0.005,
+            help="Puntos sobre euríbor. Los tres se mueven juntos porque así ocurrió: "
+            "no es un barrido sobre combinaciones que nunca se dieron.",
+        )
+
+    elif lever == "shock de desempleo":
+        params["rate"] = st.slider(
+            "Hogares con todos sus activos en paro",
+            0.02,
+            0.20,
+            0.15,
+            0.005,
+            help="NO es la tasa de paro individual: es la serie de hogares del INE (EPA "
+            "tabla 65276), que es la que corresponde a un hogar modelado como una sola "
+            "unidad de renta. 3,15% en el pico de 2007, 15,02% en 2013T1, 5,28% en 2026T2.",
+        )
+        params["exit_hazard"] = st.slider(
+            "Probabilidad trimestral de salir del paro",
+            0.10,
+            0.30,
+            0.25,
+            0.01,
+            help="Se deduce del paro de larga duración: (1−f)⁴ = la proporción de parados "
+            "de más de un año. 32,1% (2025) ⇒ 0,25; 52,8% (pico de 2014) ⇒ 0,15.",
+        )
     return params

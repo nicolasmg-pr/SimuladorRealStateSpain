@@ -73,6 +73,13 @@ Exactly this order, expressed once in `engine.py`:
    `clearing.settle()` only.
 8. **Supply response** — developer completions arrive (lag pipeline), new units enter
    stock; construction starts enter pipeline.
+8b. **Household balance sheets and insolvency** — incomes and savings accrue; the
+   exogenous unemployment path is applied and its incidence drawn; mortgages amortise or
+   fall into arrears; statutory foreclosure triggers mature, deliveries transfer the
+   dwelling to the bank and the household to SEEKER with a credit lockout; the bank lists
+   part of its repossessed stock (§6c). It sits *after* clearing on purpose: a dwelling
+   repossessed this tick reaches the market next tick, which is the real sequence and
+   keeps `clearing.settle` the only writer of ownership inside a tick.
 9. **Metrics snapshot** — `metrics.snapshot()` appends one row.
 
 Rationale: credit before clearing reproduces "volume adjusts first, prices sticky"
@@ -278,6 +285,153 @@ Unsold completed inventory is **re-priced every tick** at a markdown that widens
 time (2%/tick, capped at 25% — guess). Developers carry debt against stock and cut to clear;
 letting a completion fall out of the market instead creates permanently dead supply.
 
+## 6c. Insolvency and forced sale (phase C)
+
+Until phase C the budget constraint did not bind: `_household_flows` wrote
+`wealth = max(0, wealth − payment)`, so a household that could not pay its mortgage simply
+had its shortfall absorbed by the floor. Nothing defaulted, nothing was repossessed, no
+dwelling ever came back to the market against its owner's will. The 2008–13 hold-out
+cannot be run against a model with no forced-sale channel at all, which is why phase C
+precedes phase E (redesign spec §5).
+
+Deriving the mechanism turned up a dependency that had to be fixed first: **there was no
+income risk**. Every household's income grew at exactly the nominal anchor, so default had
+no source. The chain is therefore, in order: employment status → arrears → statutory
+foreclosure → bank-owned stock.
+
+### 6c.1 Employment: exogenous rate, endogenous incidence
+
+The unemployment *rate* is an exogenous path, on the same footing as the euríbor (§14). Who
+it lands on is endogenous, and that is the part that matters for housing.
+
+- **Zone rate.** The national path is scaled by the sourced urbanisation gradient: cities
+  0.94, towns/suburbs 1.06, rural 1.03 of the national rate, then renormalised on the zones'
+  household weights so the model's aggregate equals the path. The direction is the
+  interesting one — **the tensioned metro is the least exposed zone**, and the gap widens in
+  the bust (2013: 24.2 / 27.3 / 28.7 against 26.1 national) [Eurostat `lfst_r_urgau`].
+- **Exit hazard.** A household leaves unemployment with probability `f` per quarter, constant
+  within a run. With a constant hazard, the share of spells lasting over a year is
+  `(1 − f)⁴`, which is exactly what the long-term-unemployment share measures: 32.1% in 2025
+  ⇒ f ≈ 0.25; 52.8% at the 2014 peak ⇒ f ≈ 0.15 [Eurostat `une_ltu_a`]. The parameter is a
+  measured range, not a dial.
+- **Separation hazard** is then whatever makes the zone's unemployment share track its
+  target, from the flow identity `u′ = (1 − f)·u + s·(1 − u)`:
+
+  ```
+  s_t = clip( (u*_z − (1 − f)·u_t) / (1 − u_t),  0,  1 )
+  ```
+
+  So the model never invents an aggregate labour-market story: it reproduces the one in the
+  data, and decides only *whose* mortgage is at risk.
+- **Incidence.** Within a zone, the separation hazard is tilted by income: the relative risk
+  between the bottom and top income tercile is **2.2**, the ratio the education gradient
+  shows over the whole cycle (ISCED 0-2 against 5-8: 2.0 in 2007, 2.2 in 2013, 2.45 in 2025)
+  [Eurostat `lfsa_urgaed`]. Weights are normalised so the zone aggregate is unchanged. This
+  is **reduced form and declared as such**: the identifying observable is education, and the
+  model has income. It is registered as such rather than presented as derived.
+- **Income while unemployed.** 70% of previous income for the first two ticks of the spell
+  and 60% after, benefit exhausted after 8 ticks, then an assistance floor of 80% of IPREM
+  (≈€5,760/yr) [LGSS arts. 269–270; IPREM 2026 €7,200/yr]. The statutory cap (175% of IPREM)
+  is applied to the benefit.
+
+**Known limitation, stated rather than fixed**: a model household is a single income unit, so
+a labour-market hit removes its whole earned income. Real Spanish households average more
+than one earner, which makes the *severity* here an overstatement and the *frequency* an
+understatement (two earners give two chances of a hit). The two biases offset in an unknown
+ratio; the EFF earner-count distribution would settle it and is not retrieved.
+
+### 6c.2 Arrears: the budget constraint binds
+
+For a mortgaged household each tick, with `income_eff` the income after any benefit
+replacement:
+
+```
+saving        = saving_rate · income_eff / 4                     (as before)
+consumption   = NET_INCOME_FACTOR · income_eff / 4 − saving      (implied by the saving rule)
+essential     = essential_share · median_income / 4
+compressible  = max(0, consumption − essential)
+available     = wealth + compressible
+```
+
+If `available ≥ payment` the household pays, taking the money from savings first and cutting
+discretionary consumption for the remainder. If not, it **misses the quarter — three monthly
+instalments** — the principal is not amortised, and the arrears balance accrues at the
+statutory default rate (remuneratory + 3pp, Ley 5/2019 art. 25; the law forbids capitalising
+it into the principal, so the model keeps it in a separate balance). Arrears are cured
+whenever capacity returns, oldest instalment first.
+
+`essential_share` is the model's only new consumption parameter and it is a **sourced range,
+not a guess**: INE's at-risk-of-poverty threshold is €12,220/yr for a one-person household
+and €25,663 for two adults with two children (2025), i.e. 0.34 and 0.71 of the model's
+median household income. The default sits at the conservative (one-person) end, so the model
+under-produces arrears rather than over-produces them.
+
+Note what this does **not** do: an employed household at the DSTI cap never enters arrears,
+because 0.35 of net income leaves it above the floor by construction. Arrears in this model
+come from *income loss*, which is the mechanism the evidence describes, and their level is
+checked against the BdE doubtful ratio (§9 target 15).
+
+### 6c.3 Foreclosure: the lag comes from the law
+
+This is the best-identified mechanism in the model, and the only one whose timing is a
+statute rather than an estimate.
+
+- **Trigger** (`ley5_2019`, contracts from 16 Jun 2019): unpaid instalments ≥ **12** (or 3% of
+  the principal granted) in the first half of the loan's life, ≥ **15** (or 7%) in the second,
+  plus a lender demand giving at least one month [Ley 5/2019 art. 24, verbatim in
+  `sources.md`]. The model applies the instalment leg and adds one tick for the demand.
+- **Trigger** (`ley1_2013`, the regime governing the 2008–13 hold-out): **3** unpaid monthly
+  instalments [LEC art. 693 as amended by Ley 1/2013]. The regime is a config switch, because
+  the hold-out and the calibration window are legally different worlds. This alone changes the
+  foreclosure lag by roughly three quarters and is not a parameter anyone fits.
+- **Outcome.** At the trigger, with probability **0.478** the delivery is voluntary and happens
+  without the judicial phase; of deliveries, **0.397** are daciones en pago, which extinguish
+  the debt [BdE Circular 1/2013 note, 2014 data]. The remainder goes through a judicial phase
+  of `foreclosure_lag_ticks` quarters before possession — **8–16 (2–4 years)**, the only
+  element of the chain without a primary source. CGPJ publishes 8.5 months as the average
+  duration of *all* first-instance civil matters, which bounds it from below, and only
+  practitioner guides estimate the procedure itself, so it enters as a swept range and never
+  as a reported magnitude.
+- **Price.** The bank takes the dwelling at **70% of the auction value** — the statutory floor
+  for a debtor's habitual residence [LEC art. 670.4]. The residual (debt + arrears − award) is
+  **not forgiven**: Spanish mortgage debt is recourse [LEC art. 579]. The model writes the
+  residual off the household's balance sheet but keeps its consequence, the credit lockout,
+  which is what recourse means for the household's ability to buy again.
+- **After delivery** the household becomes a SEEKER with a **credit lockout** of
+  `lockout_ticks`, defaulted to 20 = the five-year maximum a default may be held in a credit
+  register [LOPDGDD art. 20.1.d]. It is the legal ceiling used as a behavioural horizon, so
+  it is declared reduced form with a 8–20 range.
+
+### 6c.4 Bank-owned stock (REO)
+
+The bank holds what it takes and releases it at a markdown — the overhang channel that
+existed in 2008–13 and that the model has never had. Each tick it lists a share
+`reo_release_share` of its stock at `zone price index × quality × (1 − reo_discount)`.
+
+The discount is the weakest parameter in the block and is labelled as such: the registered
+anchors (Sareb's 2012 transfer haircuts of 31–63% on housing; the 2012 provisioning
+requirements) are haircuts against *book* value, not against market price, so they bound the
+range rather than set the value. It enters as 0.10–0.35 with a 0.15 default, declared reduced
+form, and the sensitivity analysis (phase E) decides whether anything reportable depends on it.
+
+### 6c.5 What it is checked against, and what would kill it
+
+`metrics.py` gains four indicators, each pointed at a registered series:
+
+| Indicator | Anchor |
+|---|---|
+| `arrears_share` — mortgaged households in arrears | BdE doubtful ratio: 1.6% (2026Q1), 2.4–3.4% 2019–2024, 6.28% peak 2014Q1 |
+| `foreclosure_rate` — deliveries per mortgage per year | BdE Circular 1/2013: **0.7%/yr in 2014** (0.6% main residences) |
+| `dacion_share` — voluntary, debt-extinguishing deliveries | BdE note: 39.7% of deliveries |
+| `unemployment_rate` — the model's realised rate | the exogenous path it is fed |
+
+**Falsification** (redesign spec §7.6): run with 2008–13 inputs, the foreclosure flow must
+reach the order of the CGPJ series at its peak — 93,636 filings in 2010, ≈1.4% of the
+6.46M household mortgages outstanding, twice the 0.7% of 2014. If the mechanism cannot
+produce that under the 3-instalment regime of the period, it is false and is reported as
+false. That test belongs to phase E: the hold-out is run once, after recalibration, and
+nothing here is touched afterwards.
+
 ## 7. Parameters
 
 Full machine-readable table lives in `config.py` (typed dataclasses, each field
@@ -336,6 +490,18 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Shadow-rent anchor | median renter paying capacity (burden × income) over non-owners, ratio to the asking index fixed at cap activation, smoothing = `price_index_smoothing` 0.3 | €/month, standard unit | mechanism (§5); no free parameter beyond the smoothing it shares with the price index | mechanism high |
 | Exit hazard scale (`HAZARD_SCALE`) | maps the per-listing quarterly hazard onto the studies' annual contract elasticity; re-fitted after the shadow rent so elasticity 2 reaches Monràs's −10% contracts — value and sweep in validation.md / experiments/rent-cap.md | dimensionless | Monràs & García-Montalvo 2023/2025 (IV ≈2) | calibrated |
 | Public social-rental stock | 1.5–3.3% of stock | % stock | MIVAU/Provivienda [government §6] | medium |
+| Unemployment path (level) | exogenous quarterly path; baseline 0.105 (2026Q2), bust leg reaches 0.263 (2013Q1) | share of active population | Eurostat/INE EPA `une_rt_q` | high — it is an input, not a result |
+| Zone unemployment gradient | T 0.94 / S 1.06 / R 1.03 of the national rate, renormalised on household weights | dimensionless | Eurostat `lfst_r_urgau` 2006–2025 | high (direction and level) |
+| Unemployment exit hazard | 0.25 /quarter (range 0.15–0.25), from (1−f)⁴ = long-term-unemployment share | prob/quarter | Eurostat `une_ltu_a` | derived from a measurement |
+| Unemployment incidence gradient | relative risk 2.2 between bottom and top income tercile (range 2.0–2.45) | dimensionless | Eurostat `lfsa_urgaed` (education basis) | reduced form — the observable is education, the model has income |
+| Benefit replacement | 0.70 for 2 ticks then 0.60, exhausted after 8 ticks, floor 80% IPREM, cap 175% IPREM | fraction of previous income | LGSS arts. 269–270; IPREM 2026 | high |
+| Essential consumption floor | 0.34 of median household income (range 0.34–0.71) | fraction | INE ECV poverty thresholds (1 person / 2 adults + 2 children) | high as a range, conservative end chosen |
+| Foreclosure trigger | 12 instalments (3% of principal) first half of the loan, 15 (7%) second half; **3 instalments** under the pre-2019 regime | unpaid monthly instalments | Ley 5/2019 art. 24; LEC art. 693 (Ley 1/2013) | statute — not a parameter |
+| Judicial phase | 8–16 (default 10) | quarters | practitioner guides (2–4 yr), bounded below by CGPJ's 8.5-month civil average | low — swept, never reported as a magnitude |
+| Delivery outcome split | voluntary 0.478 of deliveries; daciones 0.397 (0.83 of voluntary ones) | share | BdE Circular 1/2013 note, 2014 | high |
+| Award price | 0.70 of auction value (habitual residence) | fraction | LEC art. 670.4 | statute |
+| Post-foreclosure credit lockout | 20 (range 8–20) | quarters | LOPDGDD art. 20.1.d (5-year register ceiling) | legal ceiling used as a behavioural horizon — reduced form |
+| Bank REO discount / release | discount 0.15 (0.10–0.35); release 0.15 of held stock per tick | fraction | Sareb 2012 transfer haircuts (31–63% on book, not market) | the block's weakest parameter — declared reduced form |
 | Emancipation/formation age anchor | first purchase ≈41y; buyers 25–44 ≈ 62% | years | Fotocasa [household-owner §6] | medium |
 
 Unsourced values are explicitly labeled `guess` in `config.py`. Zone multipliers are the
@@ -355,6 +521,8 @@ subclasses; effect direction = theory prediction, magnitude must EMERGE from cle
 | Tourist-rental restriction (`tourist-rental-restriction.md`) | VUT licence cap/phase-out; option value destroyed | Municipal/CCAA | conversion 0.10–0.50; evasion 0.10–0.50 | rents/prices −0…−4%/pp VUT share removed |
 | Demand subsidy (`demand-subsidy.md`) | guarantee lifts LTV 0.80→0.95–1.00 for eligible **with liquid wealth ≤ cap** (ICO 2026 adenda: €150k); rent subsidy €250–300/m | State via banks | eligible share 0.05–0.50 FTB; wealth cap (150k; `inf` = pre-2026 instrument); budget cap FIFO | prices ↑ (capitalization 0–100%+ emergent, zone-dependent); access effect ~0.35–0.45; the wealth cap is nearly inert on tenant wealth distributions (≈1% of tenants above it) |
 | Land release (`land-release.md`) | developer land stock +units after 20–60-tick lag; permit lag −0–6 ticks | Municipal/CCAA | elasticity multiplier 1.0–2.0 | prices: no short-run effect (validation!), long-run 0…−35% |
+| Credit crunch (`CreditCrunch`, phase C) | max LTV, max DSTI and the lending spread move together; optionally an unemployment path | Bank practice + supervisor (exogenous) | ΔLTV −0.05…−0.20; ΔDSTI −0.03…−0.10; Δspread +0.5…+3pp | lending volume collapses first, arrears and foreclosures follow with the statutory lag, bank REO builds up |
+| Unemployment path (`LabourShock`, phase C) | the exogenous quarterly unemployment path, per §6c.1 | exogenous (declared boundary) | any path; the 2008–13 leg is the EPA series itself | arrears → foreclosures → forced supply; the hold-out's main input |
 | Rate shock (bonus lever) | euríbor path shift | ECB (exogenous) | ±pp path | volume ↓↓, prices sticky (2022–23 signature) |
 
 ## 9. Validation (contract for Phase 6)
@@ -479,10 +647,30 @@ pass is allowed to mean.
     retrieval list), which is what would say where inside the bracket a model with no
     buy-to-let entry margin should sit. Phase B specifies the AEAT-basis sibling column
     (rented units only) and decides which basis the gate is set against.
-15. **Foreclosure flow** [CGPJ mortgage foreclosures initiated, quarterly]: **deferred to
-    phase C** and deliberately **not written as a test**. No insolvency mechanism exists
-    (`engine._household_flows` absorbs non-payment), so there is nothing to measure: a test
-    that cannot run is not evidence, and an xfail on a missing mechanism is decoration.
+15. **Foreclosure flow and arrears** [BdE Circular 1/2013; BdE table 4.13; CGPJ; INE EH]:
+    live since **phase C**, measured on two legs, because the two published bases are not the
+    same quantity and conflating them is how this target would be faked.
+    - *Arrears*, gated: `arrears_share` — mortgaged households behind on payments — must sit
+      in **1.0–4.0%** in a calibration-window baseline. The BdE doubtful ratio on
+      house-purchase credit ran 1.60% (2026Q1), 2.33–3.40% over 2019–2024 and peaked at
+      **6.28% in 2014Q1**; the band is the calm-period range with room for seed noise, and the
+      peak is a hold-out observation, not a baseline one.
+    - *Deliveries*, gated and **failing on arrival (strict xfail, 2026-09-14)**:
+      `foreclosure_rate` — dwellings delivered per mortgage per year — must sit in
+      **0.10–0.80%/yr**. The only like-for-like published figure is the BdE's **0.7% in 2014**
+      (0.6% for main residences), the tail of the bust; INE's dwelling series falls from
+      34,880 (2014) to 5,361 (2019) main residences, and 2019's flow over ≈5.6M mortgages is
+      ≈0.10%. The model produces **≈0.02%/yr**, five times below the floor, and the reason is
+      identified: a distressed owner with positive equity always finds a buyer inside the
+      listing window, so almost every statutory trigger becomes a voluntary sale. What stops
+      that in reality is negative equity after a price fall, the discount on an occupied
+      dwelling, and the months a sale takes — the first two are phase D (§7.7) and the third
+      is the bust itself. Reported as a failure rather than closed by moving the band.
+    - *Composition*, reported not gated: `dacion_share` against the BdE's 39.7% of deliveries.
+      It is an outcome split the model is given, so gating it would test the input.
+    The bust leg — CGPJ's 93,636 filings of 2010, ≈1.4% of outstanding mortgages — is **not**
+    tested here. It is the phase-E hold-out and the mechanism's declared falsification
+    (§6c.5): run once, after recalibration, and reported pass or fail.
     Registered in `docs/holdout-2008-2013.md` and in the assumption register.
 
 Three of these (9, 11, 12) are strict xfails. Strict means an accidental pass also fails the
@@ -856,4 +1044,7 @@ implementation.
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
 boundary": macro feedback, employment and income paths, policy rates, foreign origin-country
 conditions, geography below the zone, construction input costs, landlord taxation and
-utilities, and unmodellable shocks. Being outside is not a defect. Leaving it unsaid would be.
+utilities, and unmodellable shocks. Phase C makes one of these explicit rather than widening
+it: the **unemployment rate** is now a declared exogenous path (§6c.1), on the same footing as
+the euríbor. What the model decides is incidence — which household loses its income, and what
+that does to its mortgage — not the aggregate labour market. Being outside is not a defect. Leaving it unsaid would be.
