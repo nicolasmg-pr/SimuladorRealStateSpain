@@ -1220,6 +1220,34 @@ episode is identified on 2020 and 2021 is corroboration, not evidence in its own
 **Levels are not coded yet.** The mechanism is specified; the rates come with the §7.5
 implementation.
 
+## 13.9 What the model may claim, after phase E (2026-09-14)
+
+The variance rule is no longer a policy, it is a verdict. Sobol on the eight parameters Morris
+left standing (1,280 evaluations, `docs/validation.md`) gives:
+
+| Quantity | Largest unsourced share | Category |
+|---|---|---|
+| Ownership rate | flat across the design | **magnitude** |
+| Arrears | < 0.10 (the 0.78 is `essential_share`, a measured range) | **magnitude, conditional on the INE poverty-threshold band** |
+| Completion ratio | `base_starts_per_tick` 0.56, a sourced flow with a range | **magnitude, conditional on that band** |
+| Price level, price-to-income, purchase effort | `overbid_sigma` **0.26** | **direction only** |
+| Rent level, zone price ratio, overburden | `overbid_sigma` 0.29–0.40 | **direction only** |
+| Transactions | `ask_markup` 0.89 | **direction only** |
+| Market vacancy, cash share | `overbid_sigma` 0.37–0.42 | **direction only** |
+| Time to sale, negotiation margin | `search_listings` 0.94 / 0.56 | **direction only**, and identified on those same observables |
+
+Phase D cut `overbid_sigma`'s share of the price-level variance from **56% to 26%** — and 26%
+is still above the threshold, so the price level stays direction-only. The way to change that
+is to measure the dispersion of willingness-to-pay for identical dwellings, not to argue about
+the threshold.
+
+The 2008–13 hold-out was run once on 2026-09-14 and is reported in full in
+`docs/validation.md` and `docs/holdout-2008-2013.md`: three of six pre-registered predictions
+passed, including the foreclosure flow, which both phase C and phase D had predicted in
+writing would fail. Prices overshoot the observed fall by a fifth and the arrears stock comes
+out at a third of the BdE's, both for the same reason — nothing in this model slows a market
+once it turns. **No parameter has been changed since that run and none may be.**
+
 ## 14. Exogenous boundary
 
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous

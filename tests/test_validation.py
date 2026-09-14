@@ -24,11 +24,17 @@ from resim.scenario import (
 )
 from resim.state import HouseholdStatus
 
+# Phase E (model-spec §13.4): nothing is reported on fewer than ten seeds. The fixture ran on
+# three until 2026-09-14, and moving to ten immediately surfaced a gate that three had hidden —
+# transaction volume, which reads 3.85%/yr ± 0.12 against a 2.5–3.6% band. That is the reason
+# the rule exists, and the cost is a slower suite.
+SEEDS = tuple(range(1, 11))
+
 
 @pytest.fixture(scope="module")
 def baseline_moments():
     rows = []
-    for seed in (1, 2, 3):
+    for seed in SEEDS:
         state = Engine(build_scenario("baseline", seed, 60)).run()
         frame = metrics.to_frame(state)
         tail = frame.iloc[-20:]

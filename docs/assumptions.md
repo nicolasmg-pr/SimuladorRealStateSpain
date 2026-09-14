@@ -121,6 +121,14 @@ downgraded to direction-only until the row is sourced.
 | The opening mortgage book satisfies the bank's own DSTI screen | derived | `engine.initialise` | bank §3 — the same screen every new loan passes. Before 2026-09-14 balances were drawn independently of income and the book did not (validation.md, phase C) | — | — |
 | Potential income is scaled up so the *realised* distribution reproduces the EFF median | derived | `insolvency.potential_income_uplift` | EFF/ECV measure a population that already contains unemployed households; without the correction the model subtracted the loss twice | — | A test asserts the realised median lands back on the configured one |
 
+## Corrections the hold-out forced (2026-09-14)
+
+| Row | What it said | What the hold-out showed |
+|---|---|---|
+| Absent forbearance (Código de Buenas Prácticas, 2012–13 moratoria, court backlog) — phase C's referee pass | "Its absence pushes arrears **up**, so the direction of the omission is stated rather than hidden" | **Wrong sign.** Both mechanisms shorten the time a household spends in arrears in the model's terms: with the three-instalment regime the model converts arrears into deliveries in three quarters, so the *stock* never accumulates while the *flow* matches. The model's arrears peak at 2.2% against the BdE's 6.28% — absence pushes the stock **down** and the flow **up** |
+| Foreclosure flow expected to miss low (phases C and D) | "A distressed owner with positive equity always finds a buyer, so the model under-produces deliveries; phase D's negative-equity lock-in should close it in a bust" | **Confirmed, and it closed.** Negative equity reaches 11.9% of mortgaged owners in the episode and the peak flow reaches 1.34%/yr against CGPJ's ≈1.4%. The prediction was right about the mechanism and wrong about the outcome, in the model's favour |
+| Price formation has no brake in a fall | not registered — nobody wrote it down | The bust overshoots by a fifth (−57% against −30…−45%). Nothing in the model plays the role of nominal rigidity, of the seller who withdraws rather than realise a loss, or of the lender that will not foreclose into a dead market. **New row, and the largest known gap after phase E** |
+
 ## Exogenous boundary
 
 Outside the model by construction. Being outside is not a defect; leaving it unsaid would be.
