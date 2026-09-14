@@ -312,15 +312,24 @@ def test_total_migration_leg_of_target_12_is_not_yet_modelled():
 
 @pytest.mark.xfail(
     strict=True,
-    reason="2026-09-14: 2.28% against an observed 8%. Section 7.4 made the non-resident stream "
-    "exogenous, which is what makes this number a PREDICTION rather than the input it was - and "
-    "the prediction is wrong. Cause: the budget anchor compounds at the model's 2%/yr nominal "
-    "rate while model prices grow faster, so an exogenously-anchored buyer loses purchasing "
-    "power through the run and is progressively outbid. A cyclical or wealth-indexed path would "
-    "fix it and needs an origin-country income or wealth index, which is NOT retrieved. NOT "
-    "closed by raising foreign_arrivals_per_tick until the share comes back: that would restore "
-    "the number by fitting the flow to the target it is supposed to predict, which is the "
-    "defect section 7.4 exists to remove.",
+    reason="2026-09-14, ATTRIBUTION CORRECTED the same day. 2.23% against an observed 6.5-8% for "
+    "the non-resident basis (not the ~17% all-foreigner share - resident and non-resident "
+    "foreigners are different objects and the model's overlay is non-resident only). The "
+    "first reason written here blamed the budget anchor's growth rate, on the retrieval's "
+    "own diagnosis: the anchor compounded at 2%/yr, which is Spanish CPI to within 0.1pp, "
+    "while the observed non-resident buyer ran +3.69%/yr real. That was correct about the "
+    "anchor and WRONG about the binding constraint. The growth rate is now sourced at "
+    "+5.86%/yr nominal (CIEN Tabla 1C, calibration window) and the share moved 2.28% to "
+    "2.23% - i.e. not at all. Measured instead: 310 foreign offers over a 40-tick run "
+    "against 3,471 transactions, so every offer winning would give 8.9%, and they win 31%. "
+    "The constraint is LISTING SUPPLY in the one zone the overlay operates in, not budget. "
+    "Behind that sits a zone-abstraction problem the spec did not anticipate: Spanish non- "
+    "resident purchases concentrate in coastal and island markets - Alicante, Malaga, "
+    "Balears - and this model's three zones have no coastal type, so the overlay is "
+    "confined to a tensioned metro zone that is not where non-residents actually buy. "
+    "Raising foreign_arrivals_per_tick would not fix it either; it would just make more "
+    "offers lose. Closing this needs either a coastal zone or an overlay that reaches more "
+    "than one zone, and that is a specification decision, not a calibration.",
 )
 def test_emergent_non_resident_share_matches_registradores(baseline_moments):
     """Target: the non-resident share of purchases, now an OUTPUT of the arrival stream.

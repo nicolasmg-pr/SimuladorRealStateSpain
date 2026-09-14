@@ -628,10 +628,29 @@ rather than off `ZoneState.price_index`.
 | non-resident share of purchases | 8% **by construction** | **2.28%**, a prediction and wrong |
 
 **The share becoming wrong is the point.** It was an input and could not be wrong; it is now
-produced by a constant stream and can be. The cause is identified: the budget anchor compounds
-at the model's 2%/yr nominal rate while model prices grow faster, so an exogenously-anchored
-buyer loses purchasing power through the run and is progressively outbid. A wealth-indexed path
-would fix it and needs an origin-country income or wealth index, **not retrieved**.
+produced by a constant stream and can be.
+
+**The cause, corrected 2026-09-14 after measuring it.** The first diagnosis — the retrieval's
+and mine — was that the budget anchor compounded at the model's 2%/yr rate, which is Spanish CPI
+to within 0.1 pp, while the observed non-resident buyer ran +3.69%/yr real. That was right about
+the anchor and **wrong about the binding constraint**. The growth rate is now sourced at
++5.86%/yr nominal [CIEN Tabla 1C, calibration window only — the full-window +2.16%/yr contains
+the sealed bust and adopting it would import hold-out information], and the share moved 2.28% →
+2.23%, which is to say not at all.
+
+Measured instead: **310 foreign offers over a 40-tick run against 3,471 transactions.** Every
+offer winning would give 8.9%; they win 31%. The constraint is **listing supply in the one zone
+the overlay operates in**, not budget.
+
+Behind that sits a zone-abstraction problem the spec did not anticipate. Spanish non-resident
+purchases concentrate in **coastal and island markets** — Alicante, Málaga, Balears — and this
+model's three zones have no coastal type, so the overlay is confined to a tensioned metro zone
+that is not where non-residents actually buy. Raising `foreign_arrivals_per_tick` would not fix
+it; it would make more offers lose. Closing it needs a coastal zone or an overlay reaching more
+than one zone, and that is a **specification decision, not a calibration**.
+
+The sourced growth rate is kept regardless: a budget flat in real terms by construction was
+wrong whether or not it was what bound.
 
 It is **not** closed by raising `foreign_arrivals_per_tick` until the share returns: that
 restores the number by fitting the flow to the target it is supposed to predict, which is the
@@ -687,7 +706,7 @@ flagged unusable for calibration. The calibration window stays 2014–2025.
 ### Four corrections this pass forced
 
 1. **The spec names the wrong institution.** Registradores does not publish a non-resident
-   series and says it cannot — ERI methodology annex p. 116: *"no se adentran en el concepto de
+   series and says it cannot — ERI methodology annex folio 117 (PDF page 117 of 122; an earlier note said 116, which was PyMuPDF's 0-based index): *"no se adentran en el concepto de
    residencia, ya que no es un dato que quede recogido en la escritura de compraventa."* §7.4's
    falsification test should name **MIVAU / Notariado**.
 2. **The earlier "CID-encoded PDF" diagnosis was wrong.** PyMuPDF reads all 122 ERI pages as

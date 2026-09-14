@@ -658,13 +658,18 @@ class Engine:
     def _foreign_anchor(self, state: WorldState, zcfg) -> float:
         """Exogenous €-level a non-resident buyer prices off, model-spec §7.4.
 
-        The zone's INITIAL price level compounded at the nominal anchor. It deliberately never
-        reads `ZoneState.price_index`: the whole point is that this buyer's willingness to pay
-        is formed abroad and does not respond to what Spanish prices have done, so the model
-        can be asked whether foreign demand is propping prices up rather than assuming it.
+        The zone's INITIAL price level compounded at `foreign_budget_growth` — the +5.86%/yr
+        the €/m² actually paid by non-residents grew over 2014H1–2025H2 [CIEN Tabla 1C], not
+        the model's own 2%/yr nominal anchor, which is Spanish CPI and would leave this buyer
+        flat in real terms while the real one gained 3.69%/yr.
+
+        It deliberately never reads `ZoneState.price_index`: the whole point is that this
+        buyer's willingness to pay is formed abroad and does not respond to what Spanish prices
+        have done, so the model can be ASKED whether foreign demand is propping prices up
+        rather than assuming it either way.
         """
         base = state.config.stock.median_value * zcfg.price_multiplier
-        return base * (1.0 + state.config.market.long_run_growth) ** state.tick
+        return base * (1.0 + state.config.population.foreign_budget_growth) ** state.tick
 
     # -- 5 ------------------------------------------------------------------
 

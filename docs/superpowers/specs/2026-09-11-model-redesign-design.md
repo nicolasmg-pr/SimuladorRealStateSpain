@@ -264,7 +264,7 @@ elasticity by construction.
   > 2.55% → 10.67%, so no constant `k` exists. Full record in `docs/validation.md`.
   >
   > **Institution corrected.** This said *Registradores*, which does not publish a non-resident
-  > series and says it cannot — residence is not in the deed (ERI methodology annex p. 116).
+  > series and says it cannot — residence is not in the deed (ERI methodology annex folio 117 (PDF page 117 of 122; an earlier note said 116, which was PyMuPDF's 0-based index)).
   > The series is **MIVAU Boletín Online Tabla 1.6** (quarterly 2007Q1–2026Q1), corroborated by
   > the **Notariado CIEN** annex.
   >

@@ -200,6 +200,32 @@ class PopulationConfig:
     # an assumption, and the falsification test is whether the real series co-moves one-for-one
     # with Spanish transaction volume]
     foreign_arrivals_per_tick: float = 7.7
+    # Nominal growth of the non-resident buyer's budget, per TICK. SOURCED 2026-09-14: the
+    # €/m² a non-resident actually paid grew **+5.86%/yr over 2014H1–2025H2** [Consejo General
+    # del Notariado, CIEN anexo Tabla 1C, row Extranjero→No residente, 38 semi-annual points].
+    # 0.0143/tick compounds to that.
+    #
+    # WHY IT IS NOT THE MODEL'S 2%/yr NOMINAL ANCHOR, which is what it was until today. That
+    # anchor is Spanish CPI to within 0.1 pp (+2.09%/yr on the same window), so a budget
+    # growing at it is **flat in real terms by construction**, while the observed non-resident
+    # buyer ran +3.69%/yr REAL. Over the 11.5-year window that is a factor of 1.53 — the order
+    # of the gap between the model's 2.28% emergent non-resident share and the observed ≈8%.
+    # The failure was in the growth rate of the budget, not in the arrival rate and not in the
+    # premium level.
+    #
+    # CALIBRATION WINDOW ONLY. The full-window CAGR is +2.16%/yr, close enough to 2% that it is
+    # presumably where the old anchor came from — but it differs from this figure by 2.7×
+    # *because it contains the bust*, so adopting it would import sealed 2007–2013 hold-out
+    # information into a calibrated parameter. The series is also not monotone (−32.3% drawdown
+    # 08H1→13H1), so no constant-growth anchor is right in both directions and this one is
+    # explicitly a calibration-window object.
+    #
+    # CAVEAT, and it is why the §7.4 xfail is narrowed rather than closed: this is what
+    # non-residents paid **in Spain**, so it embeds Spanish market conditions. It is a large
+    # improvement on anchoring to `ZoneState.price_index` — it is a price they pay, not an
+    # index their purchases set — but it is a HYBRID, not the origin-country income/wealth
+    # index §7.4 specifies. That index is not retrieved.
+    foreign_budget_growth: float = 0.0143
     # × zone median value; non-res pay +76–79% €/m² [Notariado CIEN — high]
     foreign_budget_multiplier: float = 1.6
     tenant_move_prob: float = 0.06  # /tick; range 0.04–0.08 [derived, household-tenant §6 — low]
