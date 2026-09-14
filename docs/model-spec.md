@@ -810,9 +810,46 @@ Interior and total net migration are both reported per zone, the same discipline
 applied to the two rent bases and the two yield bases (§13.7). Nobody gets to quote one as the
 other.
 
-**Levels are not set here.** The exterior component is being retrieved; until it is in
-`docs/sources.md` the split is specified but not coded, per the rule that every *to verify*
-figure is retrieved before the mechanism using it is written.
+**The zone mapping is declared, because the sign depends on it.** INE's size bands do not sum
+to the model's 45% tensioned zone: provincial capitals are 31.7% of the padrón, adding
+>100k non-capital gives 42.2%, adding 50–100k gives 53.4%. The tensioned zone sits in the gap.
+
+**Mapping B is fixed: tensioned = provincial capitals + non-capital municipalities above
+100,000.** 42.2% against the model's 45% is the closest in size, and the only one that also
+matches in character — a tensioned metro market is capitals and large cities, not towns of
+50,000. Secondary = 20,001–100,000, rural = ≤20,000.
+
+This is not a cosmetic choice. On total migration the metro is negative in 2020 and 2021 under
+mappings A and B and **positive** under C, in both statistics: the 50,001–100,000 band alone,
+11% of Spain, carries enough exterior inflow to reverse the aggregate sign in exactly the years
+the target is most interesting. A model that passes under B would fail under C. The mapping is
+therefore part of the target, declared here, and any result quoted against target 12 is void
+without it.
+
+**Target 12, restated.** Two claims, doing different jobs, both falsifiable:
+
+1. **Baseline** — total net migration into the tensioned zone is **positive**. That is what
+   Spain does in six of the eight years measured (2017–2024, mapping B).
+2. **Identifying episode** — a 2020-like shock turns it **negative**, with the interior outflow
+   rising and the exterior inflow falling at the same time. Under mapping B the metro total was
+   −14,649 (2020) and −11,548 (2021), driven by the interior outflow quadrupling while capital
+   arrivals from abroad halved, 362,085 → 203,256.
+
+The model has to reproduce both. That is strictly harder than the original target, not easier.
+
+**Two signs are robust and may be relied on** regardless of mapping: interior net turns negative
+for the metro in 2017 under every mapping and both statistics, and exterior net is positive in
+every year under every mapping.
+
+**Caveat carried with the 2021 figure.** *Bajas por caducidad* — expiry of the registration of
+non-EU foreigners who do not renew — have counted inside exterior emigration since 2006, and
+INE's own methodological note says foreigners' departures are otherwise largely uncaptured.
+There is no published split, so part of the capitals' 210,387 departures abroad in 2021 may be
+an administrative purge rather than emigration. 2021 is one of the two negative years, so the
+episode is identified on 2020 and 2021 is corroboration, not evidence in its own right.
+
+**Levels are not coded yet.** The mechanism is specified; the rates come with the §7.5
+implementation.
 
 ## 14. Exogenous boundary
 

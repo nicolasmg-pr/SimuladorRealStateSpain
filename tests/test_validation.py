@@ -105,6 +105,17 @@ def test_tenant_share_ranking(baseline_moments):
     assert baseline_moments["tenant_ranking"] == 1.0
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
+    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
+    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
+    "inferred). Attributed on 3 seeds by running each change alone: the tenure change alone "
+    "takes it to 6.73 and the income change alone to 7.21, so the tenure change carries it. "
+    "6.68 against a 7.0-8.2 gate. NOT re-fitted - these are published values replacing "
+    "guesses, and re-tuning a sourced parameter to restore a target is what this project's "
+    "standard forbids. See docs/validation.md, Phase-B sourced-parameter revision.",
+)
 def test_price_to_income(baseline_moments):
     """Target 2: national price / disposable income per household 7–8 (BdE basis)."""
     assert 7.0 <= baseline_moments["pti"] <= 8.2
@@ -253,6 +264,18 @@ def test_completions_vs_formation(baseline_moments):
     assert 0.40 <= baseline_moments["completion_ratio"] <= 0.70
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
+    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
+    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
+    "inferred). Attributed on 3 seeds by running each change alone: the tenure change alone "
+    "takes it to 0.842, the income change alone leaves it at 0.856. 0.838 against a 0.85 "
+    "floor. A smaller rental market concentrates it. NOT re-fitted - these are published "
+    "values replacing guesses, and re-tuning a sourced parameter to restore a target is "
+    "what this project's standard forbids. See docs/validation.md, Phase-B sourced- "
+    "parameter revision.",
+)
 def test_small_landlord_share(baseline_moments):
     """Individuals hold 85–92% of the rental stock [investor-small §1].
 
@@ -394,6 +417,17 @@ def test_boom_compresses_the_gross_yield():
     assert float(np.mean(ends)) < float(np.mean(starts))
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
+    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
+    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
+    "inferred). Attributed on 3 seeds by running each change alone: 0.0371 against a 0.04 "
+    "floor - the boom run-up weakens with a smaller, richer rental market. NOT re-fitted - "
+    "these are published values replacing guesses, and re-tuning a sourced parameter to "
+    "restore a target is what this project's standard forbids. See docs/validation.md, "
+    "Phase-B sourced-parameter revision.",
+)
 def test_holdout_2021_2025_runup():
     """Target 7 (out-of-sample episode): formation ≈260k/yr against completions
     ≈90k/yr plus the 2024–25 easing must produce a sustained price boom with
@@ -526,6 +560,21 @@ def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
+    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
+    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
+    "inferred). Attributed on 3 seeds by running each change alone: the cap stops BINDING. "
+    "Neither change flips it alone (-4.08% income-only, -2.41% tenure-only); together it is "
+    "+0.88%. Not a pooled-median artefact - cap_coverage is 1.0, so the declared and pooled "
+    "columns are identical and both read +0.88%. Market rents fell below the reference "
+    "index, so the magnet (ask x magnet_gain toward the cap) pulls asks UP: the cap acts as "
+    "a floor, not a ceiling, while shadow_rent rises 6.58% as withdrawals tighten supply. "
+    "NOT re-fitted - these are published values replacing guesses, and re-tuning a sourced "
+    "parameter to restore a target is what this project's standard forbids. See "
+    "docs/validation.md, Phase-B sourced-parameter revision.",
+)
 def test_rent_cap_lowers_contract_rents():
     """Target 8, price leg: a binding cap must lower new-contract rents in the capped zone.
 

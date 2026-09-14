@@ -12,6 +12,8 @@ finding 8: "two target rows are config identities"). Moved here 2026-09-12, phas
 assertion weakened — what changed is what the check is said to prove.
 """
 
+import pytest
+
 from resim.config import SimConfig, ZoneType
 
 
@@ -47,3 +49,37 @@ def test_zone_stock_ratios_hold_their_anchors():
     assert by_zone[ZoneType.RURAL] > by_zone[ZoneType.SECONDARY] > by_zone[ZoneType.TENSIONED]
     usable = [(z.units_per_household - 1.0) * (1.0 - z.withheld_share) for z in cfg.zones]
     assert max(usable) - min(usable) < 0.004, f"mobilisable stock diverged: {usable}"
+
+
+def test_zone_income_multipliers_average_to_the_national_anchor():
+    """`income_multiplier` is "× national household income", so it must average to 1.0.
+
+    It did not. Until 2026-09-14 the guessed gradient 1.15 / 1.00 / 0.80 weighted by household
+    share came to **1.0275**: the model's households were 2.75% richer than the national anchor
+    they were said to be drawn against, by construction, and nothing checked it. The supply
+    elasticities and the stock ratios were both held to their anchors by the guards above; the
+    income ladder was not.
+
+    The gradient is now INE ECV table 59952 (*renta neta media por hogar* by grado de
+    urbanización) renormalised to this model's household shares, so this is exact rather than
+    banded — it is arithmetic on config, not a measurement.
+    """
+    cfg = SimConfig.baseline()
+    weighted = sum(z.household_share * z.income_multiplier for z in cfg.zones)
+    assert weighted == pytest.approx(1.0, abs=1e-3), f"income gradient averages {weighted:.4f}"
+
+
+def test_zone_income_gradient_matches_the_published_ladder():
+    """The metro/rural income ratio must be the one ECV publishes, not a wider invented one.
+
+    ECV-2025: 41,657 / 34,410 = **1.211**. The model asserted 1.15 / 0.80 = 1.437 — it had the
+    metro household earning 44% more than the rural one where the published figure is 21%, and
+    the published ratio has been narrowing (1.29 in 2019 to 1.21 in 2025), not widening.
+
+    Asserted loosely at ±0.02: renormalising to the model's zone shares is a linear rescaling
+    and preserves ratios exactly, so this only guards against someone re-widening the ladder.
+    """
+    cfg = SimConfig.baseline()
+    by_zone = {z.zone: z.income_multiplier for z in cfg.zones}
+    ratio = by_zone[ZoneType.TENSIONED] / by_zone[ZoneType.RURAL]
+    assert ratio == pytest.approx(1.211, abs=0.02), f"metro/rural income ratio is {ratio:.3f}"

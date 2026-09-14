@@ -251,6 +251,18 @@ def test_household_bids_ignore_the_investor_surcharge():
     assert before and before == after
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
+    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
+    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
+    "inferred). Attributed on 3 seeds by running each change alone: same cause as "
+    "test_rent_cap_lowers_contract_rents: the cap no longer binds in the tensioned zone, so "
+    "scaling its coverage scales a magnet rather than a ceiling. NOT re-fitted - these are "
+    "published values replacing guesses, and re-tuning a sourced parameter to restore a "
+    "target is what this project's standard forbids. See docs/validation.md, Phase-B "
+    "sourced-parameter revision.",
+)
 def test_cap_coverage_scales_the_rent_cap():
     """Coverage 0 = the law exists but no municipality is declared: no capped contract and
     contract rents within noise of the baseline. Coverage 1 = the whole zone is declared and

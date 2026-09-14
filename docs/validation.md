@@ -318,6 +318,71 @@ currently registering the model's correct behaviour as a failure. Pending a deci
 replacement, it stays xfailed and this section is the reason — the xfail is not evidence of a
 defect, and must not be read as one.
 
+## Phase-B sourced-parameter revision (2026-09-14)
+
+Two guessed zone parameters replaced with published ones. Both were free numbers; neither is
+any more.
+
+| | was (guess) | now (INE ECV) | table |
+|---|---|---|---|
+| `income_multiplier` | 1.15 / 1.00 / 0.80 | **1.085 / 0.950 / 0.896** | 59952, *renta neta media por hogar* by grado de urbanización |
+| `tenant_share` | 0.28 / 0.20 / **0.145 (inferred)** | **0.237 / 0.186 / 0.108** | 60181, *régimen de tenencia* by grado de urbanización |
+
+Two defects fixed on the way. The income multipliers are labelled "× national household
+income" and weighted by household share came to **1.0275** — the model's households were 2.75%
+richer than their own national anchor, by construction, and no guard checked it (the supply
+elasticities and stock ratios both had one). And the model asserted a metro/rural income ratio
+of **1.437** where ECV publishes **1.211**, a ratio that has been *narrowing* (1.29 in 2019 →
+1.21 in 2025), not widening.
+
+### What it cost, attributed
+
+Each change was run alone on 3 seeds, so the breakage is attributed rather than guessed:
+
+| variant | cap rent | cap leases | price-to-income | small-landlord share | ownership |
+|---|---|---|---|---|---|
+| both guesses | −3.70% | −1.04% | 7.11 | 0.858 | 0.693 |
+| ECV income only | −4.08% | +0.26% | 7.21 | 0.856 | 0.691 |
+| ECV tenure only | −2.41% | −6.70% | **6.73** | **0.842** | 0.713 |
+| both sourced | **+0.88%** | −1.66% | 6.68 | 0.838 | **0.716** |
+
+**The income gradient alone breaks nothing.** Every gate it touches still passes, and the cap's
+rent leg gets *stronger*. The tenure change carries price-to-income (6.73) and the small-landlord
+share (0.842) below their gates on its own.
+
+**The cap sign flip is an interaction.** Neither change flips it alone; together the cap raises
+tensioned contract rents by 0.88%. It is **not** the pooled-median composition artefact the
+model already documents: `cap_coverage` is 1.0 in the baseline, so the declared and pooled
+columns are identical and both read +0.88%. The mechanism is that the cap **stops binding** —
+market rents fall below the reference index, and the magnet (`ask × magnet_gain` toward the cap)
+then pulls asks *up*. The cap acts as a floor rather than a ceiling, while `shadow_rent` rises
+6.58% as withdrawals tighten supply. That is a real model result on a real reference-index
+mechanism, and reference indices acting as focal points is not a fictional phenomenon.
+
+Five targets are now dated strict xfails: price-to-income, small-landlord share, the 2021–25
+run-up, and the cap's rent leg in both its validation and engine tests. **Nothing was re-fitted.**
+These are published values replacing guesses; re-tuning a sourced parameter to restore a target
+is precisely the move this project's standard exists to forbid.
+
+**One target improved.** Ownership rose 0.693 → 0.716, well inside its 0.69–0.75 gate and closer
+to the EFF band it has been sitting below. Sourcing the rural tenure cell did that.
+
+### The caveat that matters more than the breakage
+
+**ECV's `densamente poblada` is not the model's `TENSIONED`.** ECV classifies by population
+density (Eurostat DEGURBA); the model's tensioned zone is defined by *housing-market tension*.
+Madrid and Barcelona have market-rent tenant shares well above the 19.5% ECV reports for all
+densely-populated Spain, so taking the dense cell for the tensioned zone probably understates
+renting there — and understating the tensioned rental market is the most likely explanation for
+why the cap stopped binding.
+
+This is the same mapping problem the migration data raised, and it is declared the same way
+rather than absorbed. A real datum on the wrong aggregate is not automatically better than an
+inference on the right one; what makes it better here is that it is checkable, and this
+paragraph is what makes it checkable. Resolving it needs a tension-based rather than
+density-based aggregate — the MIVAU declared tensioned-zone municipality list crossed with ECV
+or ADRH — which is not retrieved.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity

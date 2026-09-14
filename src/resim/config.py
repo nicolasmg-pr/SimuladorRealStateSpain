@@ -31,11 +31,41 @@ class ZoneConfig:
 
     zone: ZoneType
     household_share: float  # share of all households at init [Censo approx — guess]
-    # share of zone households renting. National anchor: ECV 2025 20.2% renting + 6.5% ceded
-    # (2024: 20.4 + 6.1), owners 73.3%; the zone ladder is ECV 2024 regional with the rural
-    # cell inferred [INE ECV 2025 (5 Feb 2026), household-tenant §6 — medium]
+    # Share of zone households renting. SOURCED 2026-09-14 from INE ECV table 60181, *hogares
+    # por régimen de tenencia y grado de urbanización* — the rural cell was **inferred** until
+    # then; ECV publishes it. ECV-2025, % of households, market rent + below-market rent:
+    #
+    #   densamente poblada  19.5 + 4.2 = 23.7      (→ TENSIONED)
+    #   nivel intermedio    15.7 + 2.9 = 18.6      (→ SECONDARY)
+    #   poco poblada         8.6 + 2.2 = 10.8      (→ RURAL)
+    #   national            16.7 + 3.5 = 20.2
+    #
+    # BASIS, declared because the two halves are not interchangeable. `HouseholdStatus.TENANT`
+    # covers every renter, so the comparable ECV object is the SUM of the two rent rows, not
+    # the market row alone. Quoting the market row (19.5 / 15.7 / 8.6) against this parameter
+    # would understate renting by 2–4 pp per zone. Ceded/free-use households (5.0 / 7.2 / 10.4)
+    # are NOT renters and are excluded — the model carries them inside `SEEKER` sharing.
+    #
+    # DECLARED RESIDUAL, not rescaled away: these published cells weighted by this model's
+    # household shares (0.45 / 0.35 / 0.20) give a national 19.3%, against ECV's own 20.2%.
+    # The 0.9 pp gap is not a measurement problem — it is `household_share`, still a guess
+    # ("Censo approx"), not matching ECV's urbanisation shares. Renormalising the cells to
+    # close it would hide a guess inside three sourced numbers, so the published values stand
+    # and the residual is stated. It is `household_share` that should move when it is sourced.
+    # [INE ECV table 60181 (ECV-2025); household-tenant §6 — high]
     tenant_share: float
-    income_multiplier: float  # × national income distribution [guess]
+    # × national household income. SOURCED 2026-09-14 from INE ECV table 59952, *renta neta
+    # media por hogar* by grado de urbanización (densamente poblada / intermedia / poco
+    # poblada — the closest published object to this model's three zones): ECV-2025 gives
+    # 41,657 / 36,469 / 34,410 € against a national 38,994, i.e. 1.0683 / 0.9352 / 0.8824,
+    # renormalised here to this model's household shares so the weighted mean is exactly 1.0
+    # (`tests/test_config_guards.py`). Was a free guess of 1.15 / 1.00 / 0.80.
+    #
+    # Basis, stated because this project has been bitten by it: ECV *renta neta* is
+    # disposable household income after transfers and tax, a MEAN, and no median is published
+    # on this cross. It is not a wage. The gradient is what is being taken from it, not the
+    # level — the level anchor stays `PopulationConfig.income_median`.
+    income_multiplier: float
     price_multiplier: float  # × national median dwelling value [guess from €/m² press]
     gross_yield: float  # /yr, rent/price at init [idealista+BdE RBA, investor-small §6 — high]
     itp_rate: float  # fraction of price, buyer transaction tax [OCU/CCAA, government §6 — medium]
@@ -449,8 +479,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.TENSIONED,
                 household_share=0.45,
-                tenant_share=0.28,  # ECV: 27–30
-                income_multiplier=1.15,
+                tenant_share=0.237,  # ECV densa: 19.5 market + 4.2 below-market
+                income_multiplier=1.0851,  # ECV densamente poblada
                 price_multiplier=1.6,
                 gross_yield=0.052,  # 4.7–5.6
                 itp_rate=0.10,
@@ -467,8 +497,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.SECONDARY,
                 household_share=0.35,
-                tenant_share=0.20,
-                income_multiplier=1.0,
+                tenant_share=0.186,  # ECV intermedia: 15.7 + 2.9
+                income_multiplier=0.9499,  # ECV nivel intermedio
                 price_multiplier=0.9,
                 gross_yield=0.070,  # 6.5–7.5
                 itp_rate=0.08,
@@ -485,8 +515,8 @@ class SimConfig:
             ZoneConfig(
                 zone=ZoneType.RURAL,
                 household_share=0.20,
-                tenant_share=0.145,  # 12–17
-                income_multiplier=0.80,
+                tenant_share=0.108,  # ECV poco poblada: 8.6 + 2.2 — was inferred
+                income_multiplier=0.8963,  # ECV poco poblada
                 price_multiplier=0.5,
                 gross_yield=0.080,  # 7–9
                 itp_rate=0.06,
