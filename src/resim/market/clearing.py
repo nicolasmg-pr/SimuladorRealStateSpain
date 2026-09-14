@@ -1,9 +1,16 @@
 """Price formation — the single most consequential module in the model.
 
-Mechanism (model-spec §5): sealed-bid per listing. Each buyer targets one random
-affordable listing in their zone; bids scatter around the ask; the highest bid at or
-above the reserve wins at that bid. Bidding wars emerge when several buyers land on
-one listing; sticky asks emerge because failed listings decay slowly.
+Mechanism (model-spec §5, §5c): an **ascending auction** per listing. Each buyer samples
+`m` affordable listings in their zone and bids on the one offering the most surplus; the
+winner pays what it takes to outbid the runner-up, capped by their own valuation and floored
+by the seller's reserve. With a single bidder the price is a bilateral negotiation split by
+the seller's bargaining weight. Bidding wars emerge when several buyers converge on one
+well-priced listing; sticky asks emerge because failed listings decay slowly.
+
+Until phase D this was a sealed first-price bid drawn as `ask × N(1, overbid_sigma)`, which
+made the price the ask times a guessed random number — Sobol put 56% of the variance in
+price-to-income on that one scalar. `overbid_sigma` is still here, demoted to idiosyncratic
+taste over VALUE rather than dispersion over price.
 
 Rentals: queue matching — applicants sorted by willingness, each takes the BEST listing
 they can afford; rent = posted ask (landlords post, tenants accept — the Spanish rental
@@ -32,6 +39,20 @@ from ..config import ZoneType
 from ..state import HouseholdStatus, WorldState
 from .stock import LARGE_INVESTOR_ID, Tenure
 
+# Expectation shading of the valuation anchor, moved here from agents/household.py in
+# phase D so that it reaches the price instead of being clipped by the index cap below.
+#
+# RE-IDENTIFIED when the channel moved (5.0 -> 2.5). At 5.0 the shading multiplied a budget
+# that the index cap then threw away for every buyer whose credit limit exceeded market
+# value; applied to the valuation it reaches the price in full, and the same 5.0 put the
+# baseline on a permanent 5.1%/yr boom with price-to-income at 9.5 and purchase effort at
+# 45%. Identified on CALIBRATION-WINDOW moments only — price-to-income 7-8 and the BdE's
+# 35-40% purchase effort — which put it between 2 and 3 (2.0: 7.42 and 35.0%; 3.0: 8.26 and
+# 38.9%). The 2021-25 episode is a hold-out and was NOT used to set it; what the model then
+# does in that episode is reported in docs/validation.md, phase D.
+MOMENTUM_GAIN = 2.5
+MOMENTUM_CAP = 0.10
+
 FOREIGN_ID = -5  # non-resident overlay buyer (holiday/investment purchase)
 
 
@@ -46,6 +67,8 @@ class Trade:
     cash: bool = False
     guaranteed: bool = False
     ticks_listed: int = 0  # age of the listing when it matched — time-to-sale diagnostic
+    ask: float = 0.0  # what it was listed at — the discount (ask − price)/ask is a §5c target
+    bidders: int = 0  # how many bids the listing drew — competition, measured not assumed
 
 
 @dataclass(frozen=True)
@@ -56,6 +79,44 @@ class RentalMatch:
     tenant_id: int
     rent: float  # €/month
     capped: bool = False
+
+
+def auction_price(
+    *, highest: float, runner_up: float | None, ask: float, reserve: float, cfg
+) -> float:
+    """What the winner pays (model-spec §5c.1).
+
+    Two bidders or more — an ascending auction: the winner pays what it takes to outbid the
+    runner-up and never more than their own valuation. Competition reaches the price through
+    the BIDDER COUNT, which demand and supply produce, instead of through a dispersion
+    parameter nobody measured. A listing several buyers want can close above its ask, and
+    Fotocasa's survey says that happens: 9% of negotiating sellers raised the final price in
+    2024 against 6% a year earlier.
+
+    One bidder — a bilateral negotiation, split by the seller's bargaining weight θ. This is
+    the block's one free parameter and it is calibrated against the measured discount between
+    asking and sale price (6.2%, Cátedra Tecnocasa-UPF 2S 2025). The buyer never pays more
+    than the ask here: with no competition there is nothing to outbid.
+    """
+    if runner_up is None:
+        theta = cfg.market.seller_bargaining_power
+        target = min(highest, ask)
+        return max(reserve, reserve + theta * (target - reserve))
+    step = runner_up * (1.0 + cfg.market.auction_increment)
+    return float(min(max(step, reserve), highest))
+
+
+def seller_reserve(*, ask: float, debt: float, discount: float, cfg) -> float:
+    """The lowest price a seller can accept (model-spec §5c.3).
+
+    `max(debt + selling costs, ask × (1 − max_discount))`. The first leg is accounting, not
+    behaviour: a sale has to repay the loan, so a household in negative equity cannot convey
+    clear title below what it owes. That is the lock-in the model used to carry as a fitted
+    coefficient on the mortgage rate, and it now follows from the LTV distribution and the
+    price path the model itself produces. The second leg keeps a floor under an outright
+    owner, who still refuses a derisory offer; its size is the measured negotiation margin.
+    """
+    return max(debt * (1.0 + cfg.market.selling_cost_share), ask * (1.0 - discount))
 
 
 def clear_sales(
@@ -77,7 +138,30 @@ def clear_sales(
         listings = listings_by_zone.get(zone, [])
         if not listings:
             continue
-        # each buyer picks a random listing they can afford and bids around the ask
+        zs = state.zones[zone]
+        zone_price = zs.price_index
+        # What a buyer thinks the dwelling will be worth, not only what it is worth today.
+        # This is where expectations reach the SALE PRICE (model-spec §5c.1, §6): the
+        # valuation anchor is the index lifted by expected growth, so excess demand raises
+        # prices, the rise feeds the adaptive expectation, and the loop runs until credit
+        # binds. It used to sit on the buyer's *budget* in agents/household.py, where the
+        # index cap in this function silently clipped it away for every buyer whose credit
+        # limit exceeded market value — which is most of them, and it is why the model had
+        # no scarcity-to-price channel (redesign spec, finding 2).
+        momentum = float(
+            np.clip(
+                MOMENTUM_GAIN * zs.expected_price_growth,
+                -MOMENTUM_CAP,
+                MOMENTUM_CAP,
+            )
+        )
+        # Each buyer samples m affordable listings and bids on the one with the most surplus
+        # (what the dwelling is worth to them, minus what it costs). m < ∞ is the friction:
+        # with m = 1 (the pre-phase-D rule) buyers bid at random and bidding wars happened
+        # because nobody looked; with m = ∞ every buyer converges on the same bargain and the
+        # market clears like a single auction. Both are wrong, and m is identified against the
+        # days-on-market distribution and the bidders-per-dwelling count (model-spec §5c.2).
+        m = max(1, cfg.market.search_listings)
         bids: dict[int, list[tuple[float, MakeOffer]]] = defaultdict(list)
         order = rng.permutation(len(zone_offers))
         for idx in order:
@@ -85,12 +169,27 @@ def clear_sales(
             affordable = [lst for lst in listings if lst.ask <= offer.budget * 1.05]
             if not affordable:
                 continue
-            lst = affordable[int(rng.integers(len(affordable)))]
-            bid = min(
-                offer.budget,
-                lst.ask * float(rng.normal(1.0, cfg.market.overbid_sigma)),
-            )
-            bids[lst.unit_id].append((bid, offer))
+            sample_size = min(m, len(affordable))
+            picks = rng.choice(len(affordable), size=sample_size, replace=False)
+            # taste: how much THIS buyer happens to like each dwelling. The demoted
+            # `overbid_sigma` (model-spec §5c.1) — dispersion over value, not over price
+            taste = rng.normal(1.0, cfg.market.overbid_sigma, sample_size)
+            best, best_surplus, best_value = None, -np.inf, 0.0
+            for k, pick in enumerate(picks):
+                lst = affordable[int(pick)]
+                unit = state.stock.units[lst.unit_id]
+                value = min(
+                    offer.budget,
+                    zone_price * unit.quality * float(taste[k]) * (1.0 + momentum),
+                )
+                surplus = value - lst.ask
+                if surplus > best_surplus:
+                    best, best_surplus, best_value = lst, surplus, value
+            if best is None:
+                continue
+            # the bid is what the dwelling is worth to this buyer, capped by the budget the
+            # credit screen left them. What they actually PAY is set by the auction below
+            bids[best.unit_id].append((best_value, offer))
 
         # a household buys at most one home per tick. Negative agent ids are *aggregates*
         # (the foreign overlay, the large investor): each of their offers is a distinct
@@ -104,19 +203,29 @@ def clear_sales(
             ]
             if not unit_bids:
                 continue
-            best_bid, best_offer = max(unit_bids, key=lambda t: t[0])
+            unit_bids.sort(key=lambda t: -t[0])
+            best_bid, best_offer = unit_bids[0]
             if best_bid < lst.reserve:
                 continue
+            price = auction_price(
+                highest=best_bid,
+                runner_up=unit_bids[1][0] if len(unit_bids) > 1 else None,
+                ask=lst.ask,
+                reserve=lst.reserve,
+                cfg=cfg,
+            )
             unit = state.stock.units[unit_id]
             trades.append(
                 Trade(
                     unit_id=unit_id,
                     buyer_id=best_offer.agent_id,
                     seller_id=unit.owner_id,
-                    price=best_bid,
+                    price=price,
                     cash=best_offer.cash,
                     guaranteed=best_offer.guaranteed,
                     ticks_listed=lst.ticks_listed,
+                    ask=lst.ask,
+                    bidders=len(unit_bids),
                 )
             )
             if best_offer.agent_id >= 0:

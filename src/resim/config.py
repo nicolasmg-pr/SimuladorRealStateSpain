@@ -357,11 +357,52 @@ class MarketConfig:
 
     # /tick ask cut while unsold; range .02–.05 [sticky-ask evidence 2008–13 — guess]
     ask_decay: float = 0.03
-    # reserve = ask×(1−d), d drawn per listing ~U(lo, hi) (model-spec §5) [guess]
-    max_seller_discount_lo: float = 0.05
-    max_seller_discount_hi: float = 0.15
+    # --- §5c sale-side price formation (phase D, 2026-09-14) ------------------------------
+    # The floor leg of the seller's reserve: how far below the ask an owner will go before
+    # refusing. SOURCED as of phase D, where it used to be a bare guess: the Cátedra
+    # Tecnocasa-UPF measures the discount between asking and sale price at **6.2% on average**
+    # (2S 2025, "very similar to 2007"), and Fotocasa's buyer survey gives the distribution
+    # behind it — 53% of buyers negotiate, 80% of those obtain something, and only 23% get
+    # more than 10% off. Hence 0.04–0.12 rather than the old U(0.05, 0.15)
+    # [Cátedra Tecnocasa-UPF XLII; Fotocasa Experiencia en compraventa 2024 — medium]
+    max_seller_discount_lo: float = 0.04
+    max_seller_discount_hi: float = 0.12
     max_listing_ticks: int = 6  # withdraw after; range 4–8 [guess]
-    overbid_sigma: float = 0.04  # bid dispersion around ask in sealed bid [guess; calibrated]
+    # DEMOTED in phase D (model-spec §5c.1). It used to be dispersion around the *ask* and,
+    # through that, the thing that set the price: Sobol put 56% of the variance in
+    # price-to-income on it. It is now idiosyncratic TASTE — how much this buyer happens to
+    # like this dwelling — applied to the value they put on it, which is a real friction that
+    # cannot set the level on its own. Whether it stays under the 25% variance threshold is
+    # phase E's Sobol question [guess; range 0.02–0.06]
+    overbid_sigma: float = 0.02
+    # How many affordable listings a buyer actually looks at before bidding. Reduced form,
+    # identified against two observables the model did not use before: the days-on-market
+    # distribution [idealista/data 2T 2026 — 26% inside a month, 53% inside a quarter, 89%
+    # inside a year] and bidders per dwelling [Tecnocasa: seven interested parties, double
+    # two years earlier]. m = 1 is the pre-phase-D model, and it produced bidding wars for
+    # the wrong reason: buyers did not look [range 1–10]
+    search_listings: int = 2
+    search_listings_range: tuple[int, int] = (1, 10)
+    # What an ordinary seller posts ABOVE what it expects to get. Spanish sellers build the
+    # negotiation margin into the ask — the practitioner rule of thumb is 15–20% over the
+    # expected price, and the REALISED gap between asking and sale price is 6.2% on average
+    # [Cátedra Tecnocasa-UPF 2S 2025; Fotocasa 2024]. The model posts the smaller, measured
+    # number: the markup is the posting convention, and the discount that comes out of it is
+    # an OUTCOME of competition, not an input — high in a slack market, negative (sales above
+    # ask) when several buyers converge on one listing [range 0.04–0.12]
+    ask_markup: float = 0.08
+    # Ascending-auction increment, as a fraction of the runner-up's bid: what it takes to
+    # outbid them. Institutional minimum, not a behavioural parameter [guess; range .002–.01]
+    auction_increment: float = 0.005
+    # Seller's share of the surplus when there is only ONE bidder and the price is a bilateral
+    # negotiation rather than an auction. The block's one free parameter, declared reduced
+    # form and calibrated so the realised discount reproduces the measured 6.2% mean; the
+    # SHAPE of the discount distribution is then a prediction, not an input
+    seller_bargaining_power: float = 0.85
+    # Selling costs the seller must cover out of the price before the loan is repaid
+    # (notary, registry, plusvalía, agency) — the reserve's debt leg is debt + this
+    # [guess, order of magnitude from buyer_fees]
+    selling_cost_share: float = 0.02
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]

@@ -789,12 +789,14 @@ class Engine:
             state.rent_listings.pop(w.unit_id, None)
             if w.destination == "sale":
                 zs = state.zones[unit.zone]
-                ask = zs.price_index * unit.quality
+                ask = zs.price_index * unit.quality * (1.0 + cfg.market.ask_markup)
                 discount = float(
                     self.market_rng.uniform(
                         cfg.market.max_seller_discount_lo, cfg.market.max_seller_discount_hi
                     )
                 )
+                # a landlord's unit carries no household mortgage in this model, so the
+                # reserve is the negotiation-margin leg only (model-spec §5c.3)
                 state.sale_listings[unit.id] = SaleListing(
                     unit_id=unit.id, ask=ask, reserve=ask * (1.0 - discount)
                 )

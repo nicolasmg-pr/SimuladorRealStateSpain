@@ -731,6 +731,21 @@ KPI_HELP: dict[str, str] = {
     "foreclosure_rate": "Viviendas entregadas al acreedor al año por cada hipoteca viva, "
     "sumando entregas voluntarias, daciones y adjudicaciones judiciales. Referencia real: "
     "0,7%/año en 2014 (Banco de España) y ≈0,10% en el suelo de 2019.",
+    "sale_discount_median": "Diferencia entre el precio de salida del anuncio y el precio de "
+    "cierre, mediana de las ventas del trimestre. Referencia real: 6,2% de media (Cátedra "
+    "Tecnocasa-UPF, 2S 2025), con sólo un 23% de las operaciones negociadas por encima del "
+    "10% de rebaja (Fotocasa). Valores negativos = ventas por encima del precio de salida.",
+    "bidders_per_listing": "Pujas por anuncio vendido. Es el canal por el que la competencia "
+    "llega al precio: en una subasta ascendente el ganador paga lo que hace falta para "
+    "superar al segundo. Referencia real: siete interesados por vivienda (Tecnocasa, 2S "
+    "2025), el doble que dos años antes — pero eso cuenta interesados, no ofertas.",
+    "sold_within_quarter_share": "Porcentaje de anuncios que se venden en el mismo trimestre "
+    "en que salen. Referencia real: ≈53% de las viviendas se venden en menos de tres meses "
+    "(idealista/data, 2T 2026).",
+    "locked_in_share": "Porcentaje de propietarios con hipoteca que deben más de lo que el "
+    "mercado pagaría por su vivienda. No pueden vender: la venta tiene que cancelar el "
+    "préstamo. Es el bloqueo que explica que en una crisis caiga antes el número de "
+    "operaciones que el precio.",
     "unemployment_rate": "Porcentaje de hogares con todos sus activos en paro. Es una "
     "**entrada** del modelo, no un resultado: lo que el modelo decide es a quién le toca.",
 }

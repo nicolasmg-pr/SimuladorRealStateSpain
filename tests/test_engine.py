@@ -136,6 +136,21 @@ def test_supply_shock_lowers_prices():
     assert f_boost["price_national"].iloc[tail].mean() < f_base["price_national"].iloc[tail].mean()
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14 (phase D): THE FALSIFICATION THE SPEC ASKED FOR, and it fired. "
+    "Removing PARTICIPATION_RATE_SENSITIVITY = 20 — a coefficient fitted so that a +2.4pp "
+    "rate move cut transactions 11% — leaves the euríbor with only its mechanical channel: "
+    "the credit screen. Measured over 3 seeds, a +2.8pp euríbor shock now cuts volume 1.6% "
+    "against the 5% this test asserts, with prices at −1.1%, so the ORDERING survives and the "
+    "MAGNITUDE does not. Pass-through is slow by construction (7%/tick, BdE DO 2312) and "
+    "buyers hold enough slack under the DSTI cap to absorb what does arrive. The honest "
+    "reading, and the spec's own instruction, is to record that the coefficient was carrying "
+    "something the mechanisms do not reproduce — not to reinstate it with a new story. The "
+    "episode as it actually happened is tested below: 2022–23 was a rate rise AND a "
+    "tightening of standards [BdE Encuesta sobre Préstamos Bancarios, Jan 2023], and with "
+    "both inputs the model cuts volume 5.5% against prices 1.5%.",
+)
 def test_rate_shock_cuts_transactions_before_prices():
     """2022–23 signature: a rate shock compresses volumes, prices stay sticky.
 
@@ -162,6 +177,50 @@ def test_rate_shock_cuts_transactions_before_prices():
     price_ratio = float(np.mean(price))
     assert vol_drop < 0.95  # volumes fall
     assert price_ratio > vol_drop  # prices fall less than volumes (stickiness)
+
+
+def test_rate_rise_with_tighter_standards_cuts_transactions_before_prices():
+    """The 2022–23 episode as it happened: rates rose AND lending standards tightened.
+
+    The Banco de España's lending survey records the second half explicitly — criteria on
+    house-purchase loans tightened for a third consecutive quarter in 2022Q4, rejection rates
+    rose, margins widened and demand fell [BdE, Encuesta sobre Préstamos Bancarios, Jan 2023].
+    Modelling the episode as a euríbor move alone always left that out; before phase D the
+    gap was papered over by a coefficient fitted on the episode's own outcome
+    (PARTICIPATION_RATE_SENSITIVITY), which is what phase D removed.
+
+    Same window and same thresholds as the test above, so the two are directly comparable:
+    with both inputs the model cuts volume 5.5% and prices 1.5%, on mechanisms rather than on
+    a fitted elasticity.
+    """
+    from resim.scenario import CreditCrunch, RateShock
+
+    tail = slice(12, 24)
+    vol, price = [], []
+    for seed in (3, 9, 11):
+        f_base = run_frame(ticks=24, seed=seed)
+        scenario = Scenario(
+            name="rate+standards",
+            baseline=SimConfig.baseline(seed=seed, ticks=24),
+            interventions=(
+                RateShock(start_tick=8, euribor=0.05),
+                # a MODERATE tightening: the survey is qualitative on magnitude, so the
+                # deltas sit at the bottom of the CreditCrunch ranges rather than at 2008's
+                CreditCrunch(start_tick=8, ltv_delta=-0.05, dsti_delta=-0.03, spread_delta=0.005),
+            ),
+        )
+        f_shock = metrics.to_frame(Engine(scenario).run())
+        vol.append(
+            f_shock["transactions"].iloc[tail].mean()
+            / max(f_base["transactions"].iloc[tail].mean(), 1e-9)
+        )
+        price.append(
+            f_shock["price_national"].iloc[tail].mean() / f_base["price_national"].iloc[tail].mean()
+        )
+    vol_drop = float(np.mean(vol))
+    price_ratio = float(np.mean(price))
+    assert vol_drop < 0.95
+    assert price_ratio > vol_drop
 
 
 # --- KB refresh 2026-09: buyer-type tax wedges, cap coverage, guarantee wealth cap ----------
@@ -261,22 +320,19 @@ def test_household_bids_ignore_the_investor_surcharge():
     assert before and before == after
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: the section 7.1 total-return hurdle. Required rent is now V(i_bond + pi - "
-    "E[g]) / (12(1-c)), so a landlord expecting appreciation accepts less rent. That lands "
-    "the target it exists for - target 10, boom yield compression, which now passes - and "
-    "breaks the rent LEVEL machinery, because in this model the landlord's reservation "
-    "dominates rent formation while the demand channel (CONGESTION_GAIN = 0.05) is too weak "
-    "to offset a falling floor. That is spec finding 2 - no scarcity-to-price channel - on "
-    "the rent side rather than the sale side, and it is phase D's to close. Same cause as "
-    "test_rent_cap_lowers_contract_rents: scaling the coverage of a cap that is acting as a "
-    "floor scales a magnet, not a ceiling.",
-)
 def test_cap_coverage_scales_the_rent_cap():
     """Coverage 0 = the law exists but no municipality is declared: no capped contract and
     contract rents within noise of the baseline. Coverage 1 = the whole zone is declared and
-    contract rents fall. Phase-7 experiment design (cap at tick 20 of 40, 16 post ticks)."""
+    contract rents fall. Phase-7 experiment design (cap at tick 20 of 40, 16 post ticks).
+
+    CLOSED BY PHASE D (2026-09-14), and by the mechanism the xfail predicted would
+    close it. The §7.1 hurdle made the landlord's reservation rent a function of the
+    dwelling's VALUE, and the sale side had no scarcity-to-price channel, so that floor
+    only ever fell. With expectations reaching the sale price through the auction's
+    valuation anchor (§5c.1), the value rises when the market is tight, the reservation
+    rent rises with it, and the rent side inherits the channel. Finding 2 of the redesign
+    spec is closed on both sides by the same change.
+    """
     from resim.scenario import RentCap
 
     def response(coverage: float, seed: int) -> tuple[int, float]:

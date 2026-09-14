@@ -55,6 +55,37 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["median_ticks_to_sale"] = (
         float(np.median([t.ticks_listed for t in trades])) if trades else float("nan")
     )
+    # --- §5c sale-side price formation (phase D) ---
+    # What the auction actually did, measured against the two series that identify it.
+    # `ask` and `bidders` are carried on the Trade because reconstructing them afterwards
+    # would mean re-deriving the listing that has already been consumed by settle().
+    priced = [t for t in trades if t.ask > 0.0]
+    # discount between asking and sale price. Anchor: 6.2% mean [Cátedra Tecnocasa-UPF,
+    # 2S 2025], with only 23% of negotiated sales beyond 10% [Fotocasa]. Negative values
+    # are sales ABOVE the ask, which an ascending auction can produce and a first-price
+    # sealed bid on a random listing could not.
+    row["sale_discount_median"] = (
+        float(np.median([(t.ask - t.price) / t.ask for t in priced])) if priced else float("nan")
+    )
+    row["sales_above_ask_share"] = (
+        float(np.mean([t.price > t.ask for t in priced])) if priced else float("nan")
+    )
+    # competition, as an outcome rather than a parameter. Tecnocasa reports seven interested
+    # parties per dwelling (2S 2025, double two years earlier); the model counts BIDS, which
+    # is a subset of interest, so this belongs at or below seven.
+    row["bidders_per_listing"] = (
+        float(np.mean([t.bidders for t in priced])) if priced else float("nan")
+    )
+    # the days-on-market distribution, on the two cut points the source publishes.
+    # idealista/data 2T 2026: ≈53% of dwellings sell inside three months (one tick) and
+    # ≈89% inside a year (four ticks). A listing created and matched inside the same tick
+    # reads ticks_listed == 0, so "within a quarter" is `== 0`, not `<= 1`.
+    row["sold_within_quarter_share"] = (
+        float(np.mean([t.ticks_listed == 0 for t in trades])) if trades else float("nan")
+    )
+    row["sold_within_year_share"] = (
+        float(np.mean([t.ticks_listed <= 3 for t in trades])) if trades else float("nan")
+    )
     row["mortgage_rate"] = state.macro.mortgage_rate
     # how the purchase was paid for. Spain 2023: 973,637 sales against 381,560 new mortgage
     # deeds ⇒ 60.8% of purchases carried no registered mortgage [INE via Funcas 104 ch.3],
@@ -131,6 +162,26 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # bank-owned overhang. Both are absent from the pre-phase-C model entirely.
     row["distressed_listings"] = getattr(ins, "distressed_listings", 0) if ins else 0
     row["reo_stock"] = getattr(ins, "reo_stock", 0) if ins else 0
+
+    # seller lock-in: owner-occupiers whose debt (plus selling costs) exceeds what their
+    # dwelling would fetch at the zone index. These households cannot sell at all — the
+    # mechanism that replaced the fitted participation coefficient (model-spec §5c.3).
+    # No Spanish series measures this directly, so it is reported, never gated.
+    locked = 0
+    mortgaged_owners = 0
+    for h in hhs:
+        if h.status is not HouseholdStatus.OWNER or h.unit_id is None:
+            continue
+        if h.mortgage_balance <= 0.0:
+            continue
+        unit = state.stock.units.get(h.unit_id)
+        if unit is None:
+            continue
+        mortgaged_owners += 1
+        value = state.zones[unit.zone].price_index * unit.quality
+        if (h.mortgage_balance + h.arrears_balance) * 1.02 > value:
+            locked += 1
+    row["locked_in_share"] = locked / mortgaged_owners if mortgaged_owners else float("nan")
 
     all_units = state.stock.units.values()
     row["stock_total"] = len(state.stock)

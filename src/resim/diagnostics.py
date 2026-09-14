@@ -256,6 +256,40 @@ CRITERIA: tuple[Criterion, ...] = (
         "se mueven (−1,5 y −2,9 pb). Fase B debería revisar si el objetivo necesita una banda.",
     ),
     Criterion(
+        key="sold_within_quarter_share",
+        target="13",
+        label="Vendidas dentro del trimestre",
+        measure=lambda f: _tail_mean(f, "sold_within_quarter_share"),
+        band=(0.43, 0.63),
+        sourced="≈53% (7% <1 semana, 19% <1 mes, 27% 1–3 meses, 36% 3–12, 11% >1 año)",
+        fmt=".1%",
+        registered=Registered.GATED,
+        source="idealista/data, 2T 2026; el plazo medio de Tecnocasa (77 días) cae dentro",
+        reads="Identifica la amplitud de búsqueda `m`: con `m`=1 el comprador puja sobre lo "
+        "primero que encuentra y casi todo se vende (75%); cuanto más compara, más se "
+        "concentran las pujas en lo bien tasado y más tiempo se queda parado el resto.",
+        note="Una vivienda listada y vendida en el mismo trimestre lee `ticks_listed == 0`, "
+        "así que «dentro del trimestre» es `== 0`, no `<= 1`.",
+    ),
+    Criterion(
+        key="sale_discount_median",
+        target="13c",
+        label="Margen de negociación (oferta → cierre)",
+        measure=lambda f: _tail_mean(f, "sale_discount_median"),
+        band=(0.04, 0.12),
+        sourced="6,2% de media; sólo el 23% de las negociadas supera el 10%",
+        fmt=".2%",
+        registered=Registered.XFAIL,
+        source="Cátedra Tecnocasa-UPF (2S 2025); Fotocasa, Experiencia en compraventa 2024",
+        reads="Es una **salida**, no una entrada: el vendedor publica con margen y la subasta "
+        "decide cuánto queda de él. Por eso se gatilla.",
+        note="**Falla al nacer**: 3,0% contra 4–12%. El mercado del modelo está más "
+        "competido que el español — 3,6 pujas por anuncio y 17% de ventas por encima del "
+        "precio de salida, frente al 9% de vendedores que suben el precio en la encuesta de "
+        "Fotocasa. Cerrarlo es cuestión de la demanda (`buy_attempt_prob`, una conjetura "
+        "declarada), no de la subasta que este objetivo existe para probar.",
+    ),
+    Criterion(
         key="arrears_share",
         target="15",
         label="Impago — hogares hipotecados en mora",

@@ -31,6 +31,7 @@ import numpy as np
 
 from .agents.bank import NET_INCOME_FACTOR
 from .config import ZoneType
+from .market.clearing import seller_reserve
 from .market.stock import BANK_ID, Tenure
 from .state import HouseholdState, HouseholdStatus, SaleListing, WorldState
 
@@ -410,10 +411,21 @@ def list_distressed(state: WorldState, hh: HouseholdState) -> bool:
     # not a discount off the ask — so the haste shows up as a sale at the reserve, or as no
     # sale at all in negative equity, rather than as a lower asking price dragging the index.
     zs = state.zones[unit.zone]
-    ask = zs.price_index * unit.quality * (1.0 + zs.expected_price_growth)
+    ask = (
+        zs.price_index
+        * unit.quality
+        * (1.0 + zs.expected_price_growth)
+        * (1.0 + state.config.market.ask_markup)
+    )
     debt = hh.mortgage_balance + hh.arrears_balance
+    # phase D made this the general rule (model-spec §5c.3): every seller's reserve is the
+    # larger of what the loan requires and what the negotiation margin allows. A distressed
+    # seller is no longer a special case — it is the ordinary rule with a large debt leg
+    reserve = seller_reserve(
+        ask=ask, debt=debt, discount=state.config.market.max_seller_discount_hi, cfg=state.config
+    )
     state.sale_listings[unit.id] = SaleListing(
-        unit_id=unit.id, ask=ask, reserve=debt, distressed=True
+        unit_id=unit.id, ask=ask, reserve=reserve, distressed=True
     )
     return True
 
@@ -457,5 +469,16 @@ def release_reo(state: WorldState, rng: np.random.Generator, events: TickInsolve
     for i in chosen:
         unit = held[int(i)]
         ask = state.zones[unit.zone].price_index * unit.quality * (1.0 - ins.reo_discount)
-        state.sale_listings[unit.id] = SaleListing(unit_id=unit.id, ask=ask, reserve=ask * 0.9)
+        # the bank took the dwelling at the statutory 70% of auction value and has no loan
+        # against it, so only the negotiation-margin leg of the reserve binds
+        state.sale_listings[unit.id] = SaleListing(
+            unit_id=unit.id,
+            ask=ask,
+            reserve=seller_reserve(
+                ask=ask,
+                debt=0.0,
+                discount=state.config.market.max_seller_discount_hi,
+                cfg=state.config,
+            ),
+        )
         events.reo_listed += 1
