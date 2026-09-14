@@ -376,12 +376,108 @@ densely-populated Spain, so taking the dense cell for the tensioned zone probabl
 renting there — and understating the tensioned rental market is the most likely explanation for
 why the cap stopped binding.
 
-This is the same mapping problem the migration data raised, and it is declared the same way
-rather than absorbed. A real datum on the wrong aggregate is not automatically better than an
+**RELEASED 2026-09-14 — the caveat was right in direction and wrong in magnitude.** The
+declared tensioned-municipality list was retrieved (MIVAU national compilation, 317
+municipalities in 5 CCAA, every name joined to its INE code against padrón 29005, 317/317
+matched) and the aggregate the model's zone actually is — **the 89 largest municipalities**,
+all above 50,000 so Censo 2021 covers them directly — was measured:
+
+| | model (ECV dense) | top-89, measured | gap |
+|---|---|---|---|
+| `tenant_share` | 0.237 | **0.248** | +1.1 pp |
+| `income_multiplier` raw ratio | 1.0683 | **1.0766** | +0.8% |
+
+Barcelona (31.1% renting) and Madrid (24.0%) really are above the dense cell, but the 45%
+aggregate they sit inside is diluted by Sevilla 13.9%, Málaga 13.5%, Bilbao 14.4%, Murcia
+16.0%. **A 1.1 pp understatement cannot explain a rent cap that stopped binding**, so that
+hypothesis is withdrawn. The sign flip is re-attributed below, and the re-attribution is
+confirmed by the fix: the phase-B migration rewrite restored the cap without either parameter
+being touched.
+
+Two further findings from the same pass, both worth keeping:
+
+- **The declared list is a political aggregate, not a tension aggregate.** It is 19.98% of
+  Spanish households, not 45%, and 15 of 19 CCAA have declared nothing. **Madrid is not
+  declared**, at 24.0% renting, out-renting 26 of the 33 measured declared municipalities; 12
+  of the 20 highest rental shares among the 151 published municipalities are undeclared, and
+  the Balearic, Canarian and Levantine markets are absent entirely, while Barakaldo (11.0%) is
+  in. Validating a 45% zone against it would be validating against politics.
+- **`household_share = 0.45` is now the binding guess.** Every figure above is conditional on
+  it, because it decides which municipalities enter the aggregate.
+
+This is the same mapping problem the migration data raised, and it was declared the same way
+rather than absorbed — which is what made it checkable, and what let it be checked. A real datum on the wrong aggregate is not automatically better than an
 inference on the right one; what makes it better here is that it is checkable, and this
 paragraph is what makes it checkable. Resolving it needs a tension-based rather than
 density-based aggregate — the MIVAU declared tensioned-zone municipality list crossed with ECV
 or ADRH — which is not retrieved.
+
+## Phase-B §7.5: bidirectional migration, and what it restored (2026-09-14)
+
+The downward-only migration rule is replaced by a comparison (`engine._demography`):
+
+    gain(d) = income × (mult(d)/mult(o) − 1) − 12 × (rent(d) − rent(o)) − friction
+
+Both directions are reachable, so the sign is an outcome rather than a property of the code.
+Measured, 3 seeds × 60 ticks, cumulative net interior flows in model households:
+
+| zone | model | observed sign, mapping B |
+|---|---|---|
+| TENSIONED | **−103.3** | negative every year from 2017 |
+| SECONDARY | +45.7 | positive |
+| RURAL | +57.7 | positive |
+| sum | 0.0 | 0 by construction |
+
+### What it restored, without touching a parameter
+
+The sourced-parameter revision above broke five targets. **The migration rewrite closed six**,
+and no guess was reinstated to do it:
+
+| target | after sourcing | after §7.5 |
+|---|---|---|
+| price-to-income | 6.68 ✗ | passes |
+| 2021–25 run-up | 0.0371 ✗ | passes |
+| cap rent leg (direction) | +0.88% ✗ | passes |
+| cap coverage scaling | ✗ | passes |
+| cap supply leg, weak form | ✗ (phase A) | passes |
+| cap supply leg, **reaches Monràs** | ✗ (phase A) | **passes** |
+
+The rent-cap dial, measured the same way each time:
+
+| ε | phase A | after sourcing | after §7.5 |
+|---|---|---|---|
+| 0 | −4.9% / −0.7% | — | −13.3% / +3.0% |
+| 2 | −4.4% / −7.3% | +0.9% / — | **−13.3% / −10.1%** |
+
+**That is the real attribution of everything phase A and the sourced parameters appeared to
+break.** The guessed income and tenure ladders were compensating for a migration rule that
+funnelled every priced-out household into the rural zone. Fix the rule and the sourced values
+work. The 1.1 pp tenure understatement was never the explanation.
+
+### What it costs, and what it does not fix
+
+**The rent leg is now three times too strong**: −13.3% against the studies' −4…−6%. The
+supply leg reaches Monràs and the rent leg overshoots; target 8 is not closed, it has moved.
+No test gates the rent *magnitude* today — only its direction — so this is recorded here and
+belongs to §7.1, which re-derives the withdrawal margin from the arbitrage condition.
+
+Two targets broke and are dated strict xfails: the boom yield compression (target 10 — the
+boom now *raises* the yield, because the new rule sends households out of the metro faster as
+the boom widens the rent gap; the old rule could not respond to a boom at all, so its
+compression was insensitivity rather than mechanism) and the secondary vacancy ladder (13.36%
+against a 13.1% band top, a 0.26 pp overshoot, not re-fitted).
+
+**And the rule's gross flows are wrong, which is registered, not hidden.** At baseline there is
+**no interior inflow to the tensioned zone at all** — 3 seeds × 40 ticks give tensioned→rural
+224, secondary→rural 37, and nothing the other way. Spain's interior net (≈100k/yr) is a small
+difference between two large gross flows (≈1.6M moves/yr) and this rule has one of them at
+zero. The mechanism is not one-directional — a 35% metro income shock produces 329 and 124
+inbound immediately, which `test_interior_migration_is_bidirectional` asserts — but the only
+pull toward the metro here is the 1.21 income ratio, and it clears the rent gap for nobody.
+What is missing is where the job is, rather than what the average wage ratio is. **Not closed
+by adding an unsourced amenity term tuned until the gross flows look right**, which is the move
+phase B exists to remove; it needs §7.5's amenity term with its own identification — the same
+term that would make `location_premium` derivable rather than free.
 
 ## Config guards — not validation targets (moved 2026-09-12)
 

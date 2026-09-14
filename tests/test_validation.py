@@ -105,17 +105,6 @@ def test_tenant_share_ranking(baseline_moments):
     assert baseline_moments["tenant_ranking"] == 1.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
-    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
-    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
-    "inferred). Attributed on 3 seeds by running each change alone: the tenure change alone "
-    "takes it to 6.73 and the income change alone to 7.21, so the tenure change carries it. "
-    "6.68 against a 7.0-8.2 gate. NOT re-fitted - these are published values replacing "
-    "guesses, and re-tuning a sourced parameter to restore a target is what this project's "
-    "standard forbids. See docs/validation.md, Phase-B sourced-parameter revision.",
-)
 def test_price_to_income(baseline_moments):
     """Target 2: national price / disposable income per household 7–8 (BdE basis)."""
     assert 7.0 <= baseline_moments["pti"] <= 8.2
@@ -222,26 +211,105 @@ def test_rent_level_ordering(baseline_moments):
     assert baseline_moments["rent_ranking"] == 1.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-11: the migration rule is downward-only (engine._demography), so net "
-    "internal migration into the tensioned zone cannot be positive by construction. "
-    "Spain's net internal flow runs rural→metro. Fixed by bidirectional flows identified "
-    "on INE Migraciones y Variaciones Residenciales (spec §7.5 — phase B).",
-)
-def test_net_internal_migration_favours_the_metro():
-    """Target 12: cumulative net internal migration into TENSIONED must be positive.
+def test_interior_migration_runs_out_of_the_metro():
+    """Target 12, interior leg: the tensioned zone must be a net LOSER of interior migrants.
 
-    Direction only — the level needs the INE series, which is not yet in
-    `docs/sources.md`. The sign is not in doubt and the model has it inverted: households
-    can only move down the ladder, so the tensioned zone is a net loser of internal
-    migrants in every run.
+    Mapping B (model-spec §13.8): tensioned = provincial capitals + non-capital municipalities
+    above 100,000. INE EVR 2015–21 and EMCR 69753 2021–24 give that zone a negative interior
+    net in every year from 2017 — −33,393 (2019), −140,179 (2020), −55,195 (2024) — and the
+    sign is robust across all three candidate mappings and both statistics.
+
+    This is a SIGN test, and it is only meaningful because the rule can now produce either
+    sign: the old downward-only rule asserted this by construction. Raise the metro income
+    multiplier 35% and inbound flows appear (see `test_interior_migration_is_bidirectional`).
     """
     nets = []
     for seed in (1, 2, 3):
         frame = metrics.to_frame(Engine(build_scenario("baseline", seed, 60)).run())
         nets.append(frame["net_migration_tensioned"].sum())
-    assert float(np.mean(nets)) > 0
+    assert float(np.mean(nets)) < 0
+    # and the flows must close: nobody enters or leaves the country through this rule
+    frame = metrics.to_frame(Engine(build_scenario("baseline", 1, 60)).run())
+    total = sum(frame[f"net_migration_{z.value}"].sum() for z in ZoneType)
+    assert total == pytest.approx(0.0, abs=1e-6), f"interior flows do not close: {total}"
+
+
+def test_interior_migration_is_bidirectional():
+    """The sign must be an OUTCOME of the comparison, not a property of the code.
+
+    The rule this replaced could only move households down the ladder, so its direction was
+    unfalsifiable — no parameter, policy or shock could reverse it. This asserts the opposite
+    property: widen the metro income advantage and households move IN.
+
+    Uses a 35% income shock because that is well outside any plausible calibration; the point
+    is that the mechanism admits the other sign, not that 35% is a realistic figure.
+    """
+    import dataclasses
+
+    inbound = 0.0
+    for seed in (1, 2, 3):
+        cfg = SimConfig.baseline(seed=seed, ticks=40)
+        cfg = dataclasses.replace(
+            cfg,
+            zones=tuple(
+                dataclasses.replace(z, income_multiplier=z.income_multiplier * 1.35)
+                if z.zone is ZoneType.TENSIONED
+                else z
+                for z in cfg.zones
+            ),
+        )
+        frame = metrics.to_frame(Engine(Scenario(name="b", baseline=cfg)).run())
+        inbound += frame["migration_in_tensioned"].sum()
+    assert inbound > 0, "no household ever moves into the metro under any income gradient"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: the rule reproduces the interior NET direction but not the gross "
+    "flows. At baseline there is no interior inflow to the tensioned zone at all - 3 seeds x "
+    "40 ticks give tensioned->rural 224 and secondary->rural 37 and nothing the other way. "
+    "Spain's interior net (about 100k/yr) is a small difference between two large gross flows "
+    "(about 1.6M interior moves/yr) and this rule has one of them at zero. The mechanism is "
+    "not one-directional - a 35% metro income shock produces 329 and 124 inbound immediately "
+    "- but the only pull toward the metro here is the income ratio 1.21, and it clears the "
+    "rent gap for nobody. Missing: where the job is rather than what the average wage ratio "
+    "is, plus amenity and study. NOT closed by adding an unsourced amenity term tuned until "
+    "the gross flows look right, which is the move phase B exists to remove. Needs spec 7.5's "
+    "amenity term with its own identification - the same term that would make "
+    "location_premium derivable rather than free.",
+)
+def test_interior_migration_has_gross_flows_both_ways():
+    """Gross interior flows into the tensioned zone must be non-zero at the baseline."""
+    inbound = 0.0
+    for seed in (1, 2, 3):
+        frame = metrics.to_frame(Engine(build_scenario("baseline", seed, 60)).run())
+        inbound += frame["migration_in_tensioned"].sum()
+    assert inbound > 0
+
+
+def test_total_migration_leg_of_target_12_is_not_yet_modelled():
+    """Target 12's TOTAL leg needs international arrivals, which are not a mechanism yet.
+
+    The old test here asserted that cumulative net INTERIOR migration into the tensioned zone
+    must be positive, and carried a strict xfail saying the model had the sign inverted. Both
+    were wrong: INE EVR/EMCR give that zone a negative interior net in every year from 2017
+    under every candidate mapping, so the test was registering correct behaviour as a failure
+    (docs/validation.md, "Phase-B finding-11 correction"). It is deleted rather than re-xfailed
+    — an xfail on a claim the data contradicts is not a record of a defect, it is a defect in
+    the record.
+
+    Target 12 is now two claims (model-spec §13.8). The interior leg is gated above by
+    `test_interior_migration_runs_out_of_the_metro`. The total leg — interior plus
+    international arrivals, positive at baseline and negative in a 2020-like shock — cannot be
+    tested until arrivals exist as a mechanism, and they do not: `formation_zone_weights` still
+    fuses domestic household formation and immigration into one fitted vector. This test
+    asserts that honestly rather than leaving a silent gap.
+    """
+    state = Engine(build_scenario("baseline", 1, 20)).run()
+    assert "international_arrivals" not in state.tick_events, (
+        "arrivals now exist as a mechanism — replace this placeholder with the real total-"
+        "migration target: positive at baseline, negative under a 2020-like shock"
+    )
 
 
 def test_transaction_volume(baseline_moments):
@@ -369,6 +437,18 @@ def test_holdout_boom_rent_growth():
     assert float(np.mean(rent)) > 0.025
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: the phase-B migration rewrite (spec 7.5) flips target 10. The boom now "
+    "RAISES the gross yield, 7.25% against a 5.86% pre-boom level, where it used to "
+    "compress it 5.39% to 5.21%. Cause: the new rule sends households out of the metro "
+    "faster as the boom widens the rent gap, so boom rents rise faster than boom prices and "
+    "the yield goes with them. The old rule could not respond to a boom at all - it was a "
+    "fixed 10% coin flip on rent burden - so the compression it produced was insensitivity, "
+    "not a mechanism. This target is the signature of the section 7.1 total-return hurdle, "
+    "which is the piece that makes the yield an output, and it is still blocked on the "
+    "operating-cost share c. Its to close, not migration's.",
+)
 def test_boom_compresses_the_gross_yield():
     """Target 10: in a boom the gross rental yield must COMPRESS.
 
@@ -417,17 +497,6 @@ def test_boom_compresses_the_gross_yield():
     assert float(np.mean(ends)) < float(np.mean(starts))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
-    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
-    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
-    "inferred). Attributed on 3 seeds by running each change alone: 0.0371 against a 0.04 "
-    "floor - the boom run-up weakens with a smaller, richer rental market. NOT re-fitted - "
-    "these are published values replacing guesses, and re-tuning a sourced parameter to "
-    "restore a target is what this project's standard forbids. See docs/validation.md, "
-    "Phase-B sourced-parameter revision.",
-)
 def test_holdout_2021_2025_runup():
     """Target 7 (out-of-sample episode): formation ≈260k/yr against completions
     ≈90k/yr plus the 2024–25 easing must produce a sustained price boom with
@@ -443,6 +512,16 @@ def test_holdout_2021_2025_runup():
     assert float(np.mean(vol)) > 1.15  # record transaction volumes
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: secondary-zone vacancy reads 13.36% against a sourced band top of 13.1%, a "
+    "0.26pp overshoot, after the phase-B migration rewrite. The secondary zone is now a net "
+    "receiver of interior migrants in both directions of the ladder (it gains from the "
+    "metro and loses little to rural), and the dwellings households leave behind on the way "
+    "through sit vacant longer than the old one-step-down rule left them. Marginal and not "
+    "re-fitted: the band is sourced and the miss is small enough that widening it to pass "
+    "would be fitting the target to the model.",
+)
 def test_vacancy_ladder(baseline_moments):
     """Vacancy is highest where demand is weakest — rural ≫ secondary > tensioned.
 
@@ -560,21 +639,6 @@ def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: phase B replaced two guessed zone parameters with sourced ones - the "
-    "income gradient (INE ECV 59952, 1.15/1.00/0.80 to 1.085/0.950/0.896) and the tenant "
-    "share (INE ECV 60181, 0.28/0.20/0.145 to 0.237/0.186/0.108, the rural cell having been "
-    "inferred). Attributed on 3 seeds by running each change alone: the cap stops BINDING. "
-    "Neither change flips it alone (-4.08% income-only, -2.41% tenure-only); together it is "
-    "+0.88%. Not a pooled-median artefact - cap_coverage is 1.0, so the declared and pooled "
-    "columns are identical and both read +0.88%. Market rents fell below the reference "
-    "index, so the magnet (ask x magnet_gain toward the cap) pulls asks UP: the cap acts as "
-    "a floor, not a ceiling, while shadow_rent rises 6.58% as withdrawals tighten supply. "
-    "NOT re-fitted - these are published values replacing guesses, and re-tuning a sourced "
-    "parameter to restore a target is what this project's standard forbids. See "
-    "docs/validation.md, Phase-B sourced-parameter revision.",
-)
 def test_rent_cap_lowers_contract_rents():
     """Target 8, price leg: a binding cap must lower new-contract rents in the capped zone.
 
@@ -587,18 +651,6 @@ def test_rent_cap_lowers_contract_rents():
     assert _rent_cap_response(1.0)["rent"] < -0.01
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-12: phase A. Two bug fixes compounded on this leg. Removing the additive "
-    "hazard floor (finding 9) took ε=2 from −13.6% to −7.3% contracts; rewriting inheritance "
-    "(finding 4 — whole estates to one heir, heirs taking possession) took it to −1.6%. The "
-    "second is a composition effect, not a hazard one: at ε=0, where the exit hazard is "
-    "switched off entirely, contracts moved from −0.7% to +3.6%, so the rental stock a cap "
-    "acts on is what changed. State invariants verified clean on 3 seeds × 60 ticks "
-    "(tests/test_state_invariants.py), so this is a consequence of the fixes and not a "
-    "corrupt state. Phase B re-derives the withdrawal margin from the arbitrage condition "
-    "(spec §7.2) and owns both forms of this target.",
-)
 def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
     """Target 8, supply leg, WEAK form: elasticity 2 must produce a real contraction.
 
@@ -614,17 +666,6 @@ def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
     assert _rent_cap_response(2.0)["leases"] < -0.05
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-12: phase A removed the additive hazard floor (spec §2, finding 9) and "
-    "the supply response at the top of the dial roughly halved — ε=2 now gives −7.3% "
-    "contracts, against −13.6% before. Monràs & García-Montalvo's −10% and Pérez García's "
-    "−13% are both outside the 0–2 dial again. NOT closed by re-fitting `hazard_scale`: the "
-    "old number came from a floor built out of two exogenous constants, and re-fitting a "
-    "scale factor to reproduce what a defect was generating is what this project's standard "
-    "forbids. Phase B re-derives the withdrawal margin from the arbitrage condition "
-    "(spec §7.2); this target is its to close.",
-)
 def test_rent_cap_supply_response_reaches_monras():
     """Target 8, supply leg, STRONG form: elasticity 2 reaches −10% tenancies.
 

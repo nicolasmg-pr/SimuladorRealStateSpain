@@ -197,6 +197,67 @@ class PopulationConfig:
 
 
 @dataclass(frozen=True)
+class MigrationConfig:
+    """Interior migration between zones (model-spec §7.5).
+
+    Replaces a downward-only coin flip. The old rule moved a priced-out SEEKER one step down
+    the ladder at 10%/tick and could produce metro→rural and nothing else, so its sign was an
+    artefact of its construction rather than a result, and no policy could move it.
+
+    The new rule is a comparison, so both directions are reachable and the sign is an OUTCOME:
+    a household weighs what it would earn in another zone against what housing costs there,
+    net of a move friction. Metro→rural falls out when the rent gap dominates the income gap,
+    which is what Spain's interior flows do — and rural→metro falls out for households whose
+    income gain clears it, which is what they did before 2017 and what a policy that cut metro
+    housing costs would restore.
+
+    IDENTIFICATION. Interior net flows by municipality-size band, INE EVR microdata 2015–2021
+    and EMCR table 69753 2021–2024, aggregated on the declared mapping B (model-spec §13.8:
+    tensioned = provincial capitals + non-capital municipalities above 100,000). Persons:
+
+        zone         2015      2017      2019      2020      2021
+        TENSIONED  +14,911    -3,911   -33,393  -140,179   -90,777
+        SECONDARY  +11,256    +8,181   +10,456   +12,043   +20,484
+        RURAL      -26,167    -4,270   +22,937  +128,136   +70,293
+
+    The 2020 reversal identifies the responsiveness without a volume confound: the metro
+    outflow is 4.2× its 2019 value while GROSS interior flows FELL 7.9% (1,649,351 → 1,519,606),
+    so it is redirection of a shrinking flow, not a surge.
+
+    NOT SOURCED, and declared: migration statistics count PERSONS and this model moves
+    HOUSEHOLDS. No published Spanish series gives interior migration on a household basis, so
+    the levels below are fitted to reproduce the observed net DIRECTION and relative magnitude
+    by zone, not a persons-per-household conversion. Any claim about migration *volumes* is
+    therefore out of scope; direction and response are what this rule supports.
+    """
+
+    # Per-tick probability a household even considers moving zone. A move is then made only
+    # if the comparison clears the friction, so this is an attention rate, not a move rate.
+    # [guess — the observed flows identify the net response, not the consideration rate]
+    consideration_rate: float = 0.08
+    consideration_rate_range: tuple[float, float] = (0.04, 0.15)
+
+    # Move friction as a share of annual household income: search, deposit, removal, and the
+    # social cost of leaving. Sets how large a gain must be before anyone moves, so it is what
+    # keeps gross flows finite. [guess]
+    move_cost_share: float = 0.35
+    move_cost_share_range: tuple[float, float] = (0.15, 0.60)
+
+    # Scales how sharply the move probability responds once a gain clears the friction. THE
+    # parameter the 2020 episode identifies: a shock that widens the metro rent gap has to
+    # amplify the outflow ≈4× without gross flows rising. [fitted to the 2020 reversal]
+    responsiveness: float = 1.8
+    responsiveness_range: tuple[float, float] = (0.8, 3.0)
+
+    # An OWNER faces transaction costs a renter does not (ITP/notary on the way in, agency and
+    # timing on the way out), so owners move an order of magnitude less. The model already
+    # carries this for within-zone moves as `owner_move_prob` 0.011 against
+    # `tenant_move_prob` 0.06 [CED/BdE — medium]; this is the same ratio applied to the zone
+    # decision, not a second estimate of it.
+    owner_friction_multiplier: float = 5.5
+
+
+@dataclass(frozen=True)
 class StockConfig:
     """The initial housing stock: how many units, of what quality, where, owned by whom."""
 
@@ -469,6 +530,7 @@ class SimConfig:
     credit: CreditConfig
     developer: DeveloperConfig
     policy: PolicyConfig
+    migration: MigrationConfig = field(default_factory=MigrationConfig)
     cap_response: CapResponseConfig = field(default_factory=CapResponseConfig)
     zones: tuple[ZoneConfig, ...] = field(default_factory=tuple)
 

@@ -277,6 +277,12 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         # net internal migration, model-scale households/tick (model-spec §9 target 12).
         # Spain's net internal flow runs rural→metro; the current rule can only produce the
         # opposite sign, which is why this is measured before it is fixed.
+        # Gross flows in and out, not just the net. The net is a small difference between two
+        # large gross flows in Spain (≈100k net against ≈1.6M gross interior moves a year), so
+        # a model can get the net right with gross flows that are nothing like the real ones —
+        # which is exactly what this one does. Reporting only the net would hide that.
+        row[f"migration_in_{z}"] = sum(n for (_, dest), n in migration.items() if dest is zone)
+        row[f"migration_out_{z}"] = sum(n for (origin, _), n in migration.items() if origin is zone)
         row[f"net_migration_{z}"] = sum(
             n for (_, dest), n in migration.items() if dest is zone
         ) - sum(n for (origin, _), n in migration.items() if origin is zone)

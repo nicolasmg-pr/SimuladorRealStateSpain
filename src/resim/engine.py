@@ -470,19 +470,97 @@ class Engine:
                     inherited_homes += 1
                 state.tick_events["inherited_homes"] = inherited_homes
 
-        # migration: priced-out seekers slide down the zone ladder [guess — reduced form with
-        # no identifying episode, and the WRONG SIGN: Spain's net internal flow runs
-        # rural→metro. Replaced by bidirectional flows in phase B, spec §7.5. The flows are
-        # counted here so the defect is measurable before it is fixed.]
-        ladder = {ZoneType.TENSIONED: ZoneType.SECONDARY, ZoneType.SECONDARY: ZoneType.RURAL}
+        # Interior migration between zones (model-spec §7.5, phase B).
+        #
+        # Replaces a downward-only coin flip: `if rent burden too high and rng < 0.10: move one
+        # step down the ladder`. That rule could produce metro→rural and nothing else, so its
+        # sign was an artefact of its construction — it could not reproduce 2015–16, when
+        # Spain's interior flow genuinely ran the other way, and no policy could move it.
+        #
+        # The rule is now a COMPARISON, so both directions are reachable and the sign is an
+        # outcome. A household weighs annual income in the destination zone against annual
+        # housing cost there, net of a move friction:
+        #
+        #     gain(d) = income × (mult(d)/mult(o) − 1) − 12 × (rent(d) − rent(o)) − friction
+        #
+        # `income` already embeds the origin zone's multiplier (households are drawn with it at
+        # formation), so the income term is the RATIO, not the level. Metro→rural falls out
+        # when the rent gap dominates the income gap, which is what Spain's interior flows do
+        # under the declared mapping B; rural→metro falls out for households whose income gain
+        # clears the friction. Owners face a larger friction, the same asymmetry the model
+        # already carries for within-zone moves (`owner_move_prob` vs `tenant_move_prob`).
+        #
+        # KNOWN DEFICIENCY, measured and registered rather than patched (2026-09-14). At the
+        # baseline calibration this rule produces NO interior inflow to the tensioned zone at
+        # all — gross flows over 3 seeds × 40 ticks are tensioned→rural 224 and
+        # secondary→rural 37, and nothing in the other direction. The net direction is right
+        # and matches Spain; the gross flows are not. Spain's interior net (≈100k/yr) is a
+        # small difference between two large gross flows (≈1.6M interior moves/yr), and this
+        # rule has one of them at zero.
+        #
+        # The mechanism itself is not one-directional — raise the metro income multiplier 35%
+        # and secondary→tensioned 329 and rural→tensioned 124 appear immediately. The cause is
+        # that the only pull toward the metro here is the income ratio (1.085/0.896 = 1.21),
+        # and it does not clear the rent gap for anyone. What is missing is the reason people
+        # actually move to cities and that this model has no representation of: where the job
+        # is, rather than what the average wage ratio is, plus amenity and study.
+        #
+        # Not fixed by adding an amenity parameter, which is the obvious patch: an unsourced
+        # free term tuned until the gross flows look right is precisely what phase B exists to
+        # remove, and it would be fitted against the same targets it would then be said to
+        # pass. `tests/test_validation.py::test_interior_migration_has_gross_flows_both_ways`
+        # carries it as a dated strict xfail. Closing it needs a job-location or amenity
+        # mechanism with its own identification — spec §7.5's amenity term, which is also what
+        # would make `location_premium` derivable rather than free.
+        #
+        # Reproducibility: every draw comes from the engine's seeded Generator, and households
+        # are visited in registry order, so the flows are a function of the seed alone.
+        mig = cfg.migration
+        zone_list = [z.zone for z in cfg.zones]
+        mult = {z.zone: z.income_multiplier for z in cfg.zones}
+        rents = {z: state.zones[z].rent_index for z in zone_list}
         flows: dict[tuple[ZoneType, ZoneType], int] = {}
         for hh in state.households.values():
-            if hh.status is HouseholdStatus.SEEKER and hh.zone in ladder:
-                zs = state.zones[hh.zone]
-                if zs.rent_index * 12 > hh.max_rent_burden * hh.income and rng.random() < 0.10:
-                    origin, dest = hh.zone, ladder[hh.zone]
-                    hh.zone = dest
-                    flows[(origin, dest)] = flows.get((origin, dest), 0) + 1
+            if rng.random() >= mig.consideration_rate:
+                continue
+            friction = mig.move_cost_share * hh.income
+            if hh.status is HouseholdStatus.OWNER:
+                friction *= mig.owner_friction_multiplier
+            origin = hh.zone
+            best, best_gain = None, 0.0
+            for dest in zone_list:
+                if dest is origin:
+                    continue
+                income_gain = hh.income * (mult[dest] / mult[origin] - 1.0)
+                housing_gain = 12.0 * (rents[origin] - rents[dest])
+                gain = income_gain + housing_gain - friction
+                if gain > best_gain:
+                    best, best_gain = dest, gain
+            if best is None:
+                continue
+            # Response scales with the gain relative to income, so a bigger gap moves more
+            # households without the consideration rate having to change — which is what the
+            # 2020 episode requires: a 4.2× metro outflow while gross interior flows FELL.
+            p_move = min(0.9, mig.responsiveness * best_gain / max(hh.income, 1.0))
+            if rng.random() >= p_move:
+                continue
+            # A household that owns or rents a home here does not teleport out of it: moving
+            # zone means giving up the dwelling, so it re-enters the market as a SEEKER. An
+            # owner keeps the unit (it becomes stock they hold in the old zone) — selling it is
+            # the sale market's job, not demography's.
+            if hh.unit_id is not None:
+                unit = state.stock.units[hh.unit_id]
+                unit.occupant_id = None
+                unit.tenure = Tenure.VACANT
+                unit.vacant_since = state.tick
+                unit.rent = 0.0
+                state.sale_listings.pop(hh.unit_id, None)
+                state.rent_listings.pop(hh.unit_id, None)
+                hh.unit_id = None
+            hh.status = HouseholdStatus.SEEKER
+            hh.ticks_searching = 0
+            hh.zone = best
+            flows[(origin, best)] = flows.get((origin, best), 0) + 1
         state.tick_events["migration"] = flows
 
     # -- 3 ------------------------------------------------------------------
