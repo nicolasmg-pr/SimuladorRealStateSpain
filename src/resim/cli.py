@@ -17,8 +17,10 @@ from . import metrics
 from .config import SimConfig
 from .engine import Engine
 from .scenario import (
+    CreditCrunch,
     DemandSubsidy,
     HouseholdFormation,
+    LabourShock,
     LandRelease,
     PublicHousing,
     RateShock,
@@ -41,6 +43,10 @@ LEVERS = {
     "land-release": LandRelease,
     "rate-shock": RateShock,
     "household-formation": HouseholdFormation,
+    # phase C: the two inputs the 2008–13 hold-out is made of. Both are boundary conditions,
+    # not policies — they are here so a sweep can drive them, not because anyone chooses them
+    "credit-crunch": CreditCrunch,
+    "labour-shock": LabourShock,
 }
 
 # Multi-step paths, which are not a single Intervention. Kept apart from LEVERS so the

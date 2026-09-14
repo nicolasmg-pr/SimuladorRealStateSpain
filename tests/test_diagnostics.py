@@ -86,8 +86,12 @@ def test_reported_rows_are_not_verdicted(table):
 
 
 def test_unmeasurable_rows_say_so_instead_of_showing_a_number(table):
-    """Target 10 needs the boom hold-out; target 15 has no mechanism. Neither invents one."""
-    for key in ("boom_yield_compression", "foreclosure_flow"):
+    """Target 10 needs the boom hold-out, which one baseline frame cannot supply.
+
+    Target 15 used to sit here too, for a different reason — there was no insolvency
+    mechanism to measure. Phase C built one, so it moved to the measured rows above.
+    """
+    for key in ("boom_yield_compression",):
         assert table.loc[key, "Este run"] == "no medible aquí"
         assert table.loc[key, "Encaja"] == "—"
         assert math.isnan(table.loc[key, "value"])
@@ -117,6 +121,6 @@ def test_every_column_the_tab_plots_exists(frame):
 def test_summary_counts_the_registered_xfails(frame):
     counts = diagnostics.summary(frame)
     assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
-    assert counts["xfail"] == 3  # targets 9, 11, 12
+    assert counts["xfail"] == 4  # targets 9, 11, 12 and, since phase C, 15's deliveries leg
     assert counts["targets"] == 8  # 1c, 9, 10, 11, 12, 13, 14, 15
     assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)

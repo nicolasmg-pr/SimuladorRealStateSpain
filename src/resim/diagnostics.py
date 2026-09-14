@@ -256,19 +256,43 @@ CRITERIA: tuple[Criterion, ...] = (
         "se mueven (−1,5 y −2,9 pb). Fase B debería revisar si el objetivo necesita una banda.",
     ),
     Criterion(
-        key="foreclosure_flow",
+        key="arrears_share",
         target="15",
-        label="Flujo de ejecuciones hipotecarias",
-        measure=lambda _f: float("nan"),
-        band=None,
-        sourced="CGPJ — **por verificar**",
-        fmt=",.0f",
-        registered=Registered.DEFERRED,
-        source="CGPJ, ejecuciones hipotecarias presentadas",
-        reads="No existe mecanismo de insolvencia en el modelo, así que no hay nada que medir "
-        "y **no se ha escrito ningún test**. Un test que no puede correr no es evidencia de "
-        "nada, y un xfail sobre un mecanismo ausente sería decoración.",
-        note="Diferido a fase C. Registrado en `docs/holdout-2008-2013.md`.",
+        label="Impago — hogares hipotecados en mora",
+        measure=lambda f: _tail_mean(f, "arrears_share"),
+        band=(0.010, 0.040),
+        sourced="1,6% (2026T1), 2,3–3,4% en 2019–2024, 6,28% en el pico de 2014T1",
+        fmt=".2%",
+        registered=Registered.GATED,
+        source="BdE, Boletín Estadístico cuadro 4.13 (dudosos / crédito para adquisición "
+        "de vivienda)",
+        reads="Antes de la fase C el impago no existía: `wealth = max(0, wealth − cuota)` "
+        "absorbía cualquier falta de pago. Lo que mide esta fila es que la restricción "
+        "presupuestaria **ata**, y que ata en el orden de magnitud correcto.",
+        note="El BdE cuenta euros de crédito y esto cuenta hogares: coinciden sólo si la mora "
+        "no está correlacionada con el tamaño del préstamo, y el gradiente de incidencia "
+        "(§6c.1) hace improbable que lo esté. Por eso la banda es ancha y la comparación es "
+        "de orden de magnitud.",
+    ),
+    Criterion(
+        key="foreclosure_rate",
+        target="15",
+        label="Entregas de vivienda al acreedor (anual, por hipoteca viva)",
+        measure=lambda f: _tail_mean(f, "foreclosure_rate"),
+        band=(0.0010, 0.0080),
+        sourced="0,7%/año en 2014 (0,6% vivienda habitual); ≈0,10%/año en el suelo de 2019",
+        fmt=".2%",
+        registered=Registered.XFAIL,
+        source="BdE, nota informativa sobre ejecuciones hipotecarias (Circular 1/2013); "
+        "INE Estadística sobre Ejecuciones Hipotecarias",
+        reads="El modelo convierte casi todo disparo estatutario en **venta voluntaria**: un "
+        "propietario con equity positivo encuentra comprador dentro de la ventana de "
+        "publicación. Lo que lo impide en la realidad es el equity negativo tras una caída de "
+        "precios, el descuento de una vivienda ocupada y los meses que tarda una venta.",
+        note="**Esta es la pata que falla al nacer**: ≈0,01–0,02%/año contra 0,10–0,16% "
+        "observado en años tranquilos. Dos de las tres fricciones que faltan son formación de "
+        "precios (spec §7.7 — fase D) y la tercera es la propia crisis (fase E). Se reporta "
+        "como fallo en lugar de bajar la banda: la banda es el dato.",
     ),
 )
 
