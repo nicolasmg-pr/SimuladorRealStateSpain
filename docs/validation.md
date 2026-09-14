@@ -806,6 +806,252 @@ still **see** it when choosing a zone, which is a different thing from charging 
   model's three zones have no coastal type, which is why the overlay's emergent share is 2.2%
   against 6.5–8%.
 
+## Phase E — recalibration, the variance rule, and the sealed hold-out (2026-09-14)
+
+The calibration protocol (`model-spec.md §13.4`) in order: LHS over the free parameters →
+Morris screening → Sobol on the survivors → the variance rule → then the 2008–13 hold-out,
+**once**. Everything before the hold-out uses 2014–2025 moments only.
+
+### Step 0 — a defect in the instrument, found before it was used
+
+`hazard_scale` moved into `CapResponseConfig` in phase A, and `sensitivity.py` went on
+patching a module attribute that no longer existed. Every sweep since has therefore held it
+at its default while reporting it as swept. It is fixed here, and it shows up in the Morris
+table below exactly as it should: zero effect at baseline, because the rent cap it governs is
+not switched on.
+
+### Step 1 — LHS, 200 points × 3 seeds, scored on the §9 bands
+
+Scored by a **band loss**: zero inside each band, squared relative distance outside it. A
+distance to band midpoints would have invented precision the sources do not have and dragged
+the model toward the centre of bands it is already inside.
+
+| | loss |
+|---|---|
+| shipped defaults | **0.0142** |
+| best of 200 sampled points | 0.0177 |
+| 10th percentile | 0.0738 |
+| median | 0.3333 |
+
+**No sampled point beat the defaults — 0 of 200.** The protocol's fitting step therefore
+returns "keep what you have", which is the outcome least likely to be an artefact of the
+exercise: the parameters were identified one at a time against their own observables in
+phases B, C and D, and a 37-dimensional sweep cannot find a better joint point.
+
+What the defaults are still outside, on the LHS basis (40 ticks, 3 seeds): the foreclosure
+rate (0.04% against a 0.10–0.80% band) and the negotiation margin (3.1% against 4–12%) — the
+two failures phases C and D already registered as dated strict xfails, with their causes
+named. Purchase effort reads 33.9% against a 35–40% band at 40 ticks; at the 60-tick basis the
+gates use it is 36.6%, inside.
+
+### Step 2 — Morris screening, 380 evaluations
+
+Ranked by the mean of each parameter's normalised μ\* across the sixteen reported moments:
+
+| rank | parameter | mean | max |
+|---|---|---|---|
+| 1 | `ask_markup` | 0.70 | 1.00 |
+| 2 | `overbid_sigma` | 0.54 | 0.96 |
+| 3 | `search_listings` | 0.52 | 1.00 |
+| 4 | `price_index_smoothing` | 0.49 | 0.89 |
+| 5 | `buy_attempt_prob` | 0.47 | 1.00 |
+| 6 | `essential_share` | 0.44 | 1.00 |
+| 7 | `base_starts_per_tick` | 0.43 | 1.00 |
+| 8 | `momentum_gain` | 0.43 | 1.00 |
+| … | `small_landlord_premium` | 0.41 | 1.00 |
+| last | `hazard_scale` | 0.00 | 0.00 |
+
+Four of the top eight are phase-C and phase-D parameters, which is what one would expect
+after adding two mechanisms — and three of those four are the ones this project has already
+labelled reduced form. The screening is the reason to decompose exactly these eight.
+
+### Step 3 — Sobol on the eight survivors, 1,280 evaluations
+
+Total-order indices (ST), with the coefficient of variation of each moment across the design,
+because a large share of a small variance is not the same statement as a large share of a
+large one:
+
+| Moment | CV | first | second | third |
+|---|---|---|---|---|
+| price-to-income | 0.102 | `ask_markup` 0.34 | **`overbid_sigma` 0.26** | `price_index_smoothing` 0.19 |
+| purchase effort | 0.102 | `ask_markup` 0.34 | **`overbid_sigma` 0.26** | `price_index_smoothing` 0.19 |
+| price-to-income ladder margin | 0.222 | `ask_markup` 0.42 | `price_index_smoothing` 0.36 | `overbid_sigma` 0.35 |
+| transactions | 0.164 | `ask_markup` 0.89 | `search_listings` 0.17 | `price_index_smoothing` 0.09 |
+| completion ratio | 0.187 | `base_starts_per_tick` 0.56 | `ask_markup` 0.39 | `overbid_sigma` 0.18 |
+| rent overburden | 0.039 | `ask_markup` 0.69 | `overbid_sigma` 0.40 | `price_index_smoothing` 0.32 |
+| tensioned/rural price ratio | 0.118 | `ask_markup` 0.62 | `price_index_smoothing` 0.34 | `overbid_sigma` 0.31 |
+| rent level | 0.106 | `ask_markup` 0.50 | `price_index_smoothing` 0.46 | `overbid_sigma` 0.29 |
+| tensioned market vacancy | 0.302 | `base_starts_per_tick` 0.41 | `overbid_sigma` 0.37 | `search_listings` 0.31 |
+| cash-purchase share | 0.128 | `price_index_smoothing` 0.47 | `ask_markup` 0.44 | `overbid_sigma` 0.42 |
+| arrears | 0.217 | **`essential_share` 0.78** | `price_index_smoothing` 0.06 | `buy_attempt_prob` 0.06 |
+| foreclosure rate | 0.464 | `ask_markup` 0.58 | `search_listings` 0.36 | `essential_share` 0.30 |
+| negotiation margin | 2.956 | `search_listings` 0.56 | `ask_markup` 0.32 | `overbid_sigma` 0.13 |
+| sold inside the quarter | 0.678 | **`search_listings` 0.94** | `ask_markup` 0.35 | `overbid_sigma` 0.08 |
+| bidders per listing | 0.152 | `overbid_sigma` 0.40 | `search_listings` 0.32 | `buy_attempt_prob` 0.23 |
+| ownership rate | 0.0065 | — flat across the design, not decomposed | | |
+
+Three readings that matter more than the table:
+
+1. **`overbid_sigma` fell from 56% of the price-to-income variance to 26% — and 26% is still
+   above the threshold.** Phase D wrote this test down in advance and it comes back half
+   passed: the guessed dispersion no longer dominates the price level, and it has not been
+   demoted far enough to make the level reportable as a magnitude.
+2. **Arrears are a measured uncertainty, not an invented one.** 78% of their variance is
+   `essential_share`, whose range (0.34–0.71) is INE's own poverty-threshold spread between a
+   one-person household and two adults with two children. The model's arrears level is
+   therefore *conditional on where in that band a household's consumption floor sits*, which
+   is a statement about the evidence rather than about the model.
+3. **Two of the phase-D targets are governed by the parameter that was identified on them.**
+   `search_listings` explains 94% of the time-to-sale variance and 56% of the negotiation
+   margin's — and `m` was identified against exactly those two observables. That is not a
+   defect, it is what identification means, but it does mean neither can be reported as an
+   independent confirmation of the auction. They are the fit, not a test of the fit.
+
+### Step 4 — the variance rule, applied
+
+`model-spec §13.2`: a reported magnitude whose variance is more than 25% explained by an
+`assumed` (unsourced) parameter is downgraded to direction-only. Applied as written, without
+adjustment after seeing the numbers:
+
+| Quantity | Largest assumed share | Category after the rule |
+|---|---|---|
+| Price level, price-to-income, purchase effort | `overbid_sigma` 0.26 | **direction only** |
+| Rent level, tensioned/rural ratio, overburden | `overbid_sigma` 0.29–0.40 | **direction only** |
+| Transactions | `ask_markup` 0.89 — assumed that sellers post a markup, measured (6.2%) how big | **direction only** |
+| Tensioned market vacancy | `overbid_sigma` 0.37 | **direction only** |
+| Cash-purchase share | `overbid_sigma` 0.42 | **direction only** |
+| Negotiation margin, time to sale | `search_listings` 0.56 / 0.94 | **direction only**, and circular besides (§ above) |
+| Arrears | largest assumed share below 0.10; the 0.78 belongs to a measured range | **magnitude, conditional on the essential-consumption band** |
+| Ownership rate | flat across the design | **magnitude** |
+| Completion ratio | `base_starts_per_tick` 0.56, a sourced flow with a range | **magnitude, conditional on the starts band** |
+
+So after five phases the model reports **two magnitudes and everything else as a direction**.
+That is a worse-sounding result than "the price level is 7.78", and it is the honest one: the
+price level moves by ±10% across the range of a parameter nobody has measured, and saying so
+is the whole point of having the rule. What phase D bought is not a reportable price level —
+it is that the dependence is now 26% instead of 56%, that the mechanism producing the level is
+an auction rather than a dispersion parameter, and that the remaining exposure has a name and
+a way to close it: measure the dispersion of willingness-to-pay for identical dwellings.
+
+### Step 5 — ten seeds, because three were hiding things
+
+`model-spec §13.4`: nothing is reported on fewer than ten seeds after phase E. The validation
+fixture ran on three until today. Re-measured on ten (60 ticks, last 20 averaged):
+
+| Moment | 10 seeds | sd | band | |
+|---|---|---|---|---|
+| Price-to-income | 7.91 | 0.14 | 7.0–8.2 | pass |
+| Ownership rate | 0.716 | 0.003 | 0.70–0.74 | pass |
+| Transactions /yr | 3.70% | 0.12pp | 2.6–3.8% (test), 2.5–3.6% (sourced) | pass on the test's band, **0.1pp above the sourced one** |
+| Market-tenant overburden | 0.323 | 0.013 | 0.26–0.34 | pass |
+| Completion ratio | 0.547 | 0.036 | 0.40–0.70 | pass |
+| Gross yield, contract basis | 0.0685 | 0.0031 | 0.065–0.075 | pass |
+| Purchase effort | 0.373 | 0.006 | BdE 35–40% | pass |
+| Arrears | 0.0248 | 0.0027 | 0.010–0.040 | pass |
+| Sold inside the quarter | 0.481 | 0.026 | 0.43–0.63 | pass |
+| Bidders per listing | 3.47 | 0.14 | 1 < b ≤ 7 | pass |
+| Insider/outsider wedge | +0.045 | 0.032 | > 0 | pass, and the sd is most of the mean |
+| Foreclosure rate | 0.0003 | 0.0002 | 0.0010–0.0080 | fail (phase C's, unchanged) |
+| Negotiation margin | 0.031 | 0.002 | 0.04–0.12 | fail (phase D's, unchanged) |
+| Vacancy, secondary | 0.141 | 0.006 | 0.081–0.131 | fail (phase C's, unchanged) |
+
+Two things the three-seed basis was hiding. Transaction volume sits **above the sourced band**
+(3.70% against 2.5–3.6%) and inside only the widened band the test carries — the widening is
+documented in the test and predates this phase, but on ten seeds it is load-bearing, and the
+Sobol run says 89% of that moment's variance is `ask_markup`. And the insider/outsider wedge
+has a standard deviation of 0.032 around a mean of 0.045: it is positive on the average and
+not reliably positive on a single seed, so it is a direction that holds in expectation, which
+is weaker than the gate's wording suggests.
+
+## Phase E — the hold-out, run once (2026-09-14)
+
+Pre-registered in `docs/prereg/2026-09-14-holdout-2008-2013.md`, committed as
+`af1b60d` **before** the run. 10 seeds, 24 ticks, 2008Q1–2013Q4, every input a registered
+series, no parameter touched before or after.
+
+| Quantity | Predicted in advance | Measured | |
+|---|---|---|---|
+| Price, peak to trough | −30% … −45% | **−56.9% ± 2.2** | FAIL |
+| Transactions, end vs start | −40% … −85% | **+86.6% ± 16.8** | FAIL |
+| Arrears, peak | 4% … 9% | **2.2% ± 0.3** | FAIL |
+| Foreclosure flow, peak per year | 0.7% … 2.0% | **1.34% ± 0.24** | **PASS** |
+| Bank REO stock | builds | 47 units ≈ 94,000 dwellings | **PASS** |
+| Ownership rate | falls | −2.0pp | **PASS** |
+
+Three of six. The path, seed 1, quarterly:
+
+| | 2008Q1 | 2009Q1 | 2010Q1 | 2011Q1 | 2012Q1 | 2013Q1 | 2013Q4 |
+|---|---|---|---|---|---|---|---|
+| price (2008Q1 = 1) | 1.00 | 0.97 | 0.89 | 0.77 | 0.65 | 0.54 | 0.45 |
+| arrears | 0.0% | 0.3% | 0.8% | 0.9% | 1.3% | 2.1% | 1.9% |
+| foreclosures /yr | 0.0% | 0.3% | 0.9% | 0.3% | 0.0% | 1.3% | 0.9% |
+| negative equity | 2.9% | 2.6% | 2.9% | 3.9% | 6.5% | 9.8% | 11.9% |
+| vacancy | 11.7% | 13.6% | 14.9% | 16.4% | 17.6% | 18.4% | 18.3% |
+
+### What passed, and it is the one that was predicted to fail
+
+**The foreclosure flow.** Phases C and D both put in writing, before this run, that the model
+was expected to miss it low: a calm baseline produced ≈0.02%/yr of deliveries against an
+observed 0.10–0.16%, because owners with positive equity sell before the lender can take the
+home, and phase D's note said the mechanism that should close the gap in a bust is negative
+equity blocking that sale. It does. Negative equity spreads from 2.9% of mortgaged owners to
+**11.9%**, the escape route closes, and the peak flow reaches **1.34%/yr** against the ≈1.4%
+CGPJ's 93,636 filings imply. The mechanism was specified in phase C, completed in phase D and
+tested here on data neither phase had seen.
+
+Two qualifications, both against the model. The peak arrives in **2013**, three years after
+Spain's; and the cumulative count is ≈154,000 deliveries over six years against the roughly
+500,000 procedures CGPJ filed 2008–13, so the model reproduces the *rate at the peak* and
+about a third of the *total*.
+
+### What failed, and what each failure says
+
+**Prices overshoot: −57% against −30…−45%.** The expectation loop that phase D added to close
+finding 2 has no brake in a fall. Expected growth turns negative, the valuation anchor drops
+below the index, transactions confirm the drop, and the loop runs; nothing in the model plays
+the role of the nominal-rigidity floor, the seller who withdraws rather than realise a loss, or
+the bank that will not foreclose into a dead market. The reserve does hold some of it — that is
+what the 11.9% locked-in share is — but the price index is a transaction median, so the sales
+that do clear are the distressed ones, which drags it further. The honest statement is that the
+model's bust is more violent than Spain's, and by a fifth.
+
+**Transactions: the instrument was built wrong.** The measure compared the last two years of
+the window against its first, and the collapse happens *at* the start — tick 0 already carries
+2007Q4's euríbor and the crunch lands in the second quarter — so what it captured is the
+model's recovery as prices fall by half. Against the calm baseline the same run starts at 17
+transactions per tick against 96, i.e. −82%, inside the predicted band. That comparison is a
+diagnostic and not the result: the pre-registered test failed, and it failed because of how it
+was written, which is recorded rather than corrected.
+
+**Arrears under-produce: 2.2% peak against the BdE's 6.28%.** This one is informative next to
+the foreclosure pass. Under the three-instalment regime of the period the model converts
+arrears into deliveries in three quarters, so the *stock* of households behind on payments
+never accumulates while the *flow* of possessions matches. Spain's stock accumulated because
+the flow was slowed by things the model does not have: the Código de Buenas Prácticas
+restructurings, the 2012–13 eviction moratoria, and a court system that took years. Their
+absence was registered in phase C's referee pass as pushing arrears **up**; this run says the
+opposite, and the register is wrong on the sign. Both mechanisms shorten the time a household
+spends in arrears, which lowers the stock and raises the flow — the model has the second and
+not the first.
+
+### What the hold-out is evidence for, and what it is not
+
+It is evidence that the insolvency chain works in the regime it was built for: fed nothing but
+the period's rate path, joblessness, formation, completions, credit stop and foreclosure law,
+the model produces a foreclosure wave of the right order at the right rate, a bank-owned
+overhang, a spreading negative-equity lock-in and a falling ownership rate. None of those
+existed before phase C, and the price-formation mechanism that makes the lock-in bite arrived
+in phase D, after the calibration.
+
+It is not evidence that the model can predict a bust's depth. It over-predicts the price fall
+by a fifth and it gets the arrears stock wrong by a factor of three, and both failures point
+at the same missing thing: nothing in this model slows a market down once it turns —
+no forbearance, no moratoria, no court backlog, no seller who simply refuses.
+
+**Nothing has been changed since this run.** Under §13.4 the episode is spent: the next time
+it can be informative is against a model whose mechanisms were built without it, and that
+model no longer exists.
+
 ## Phase D — sale-side price formation (2026-09-14)
 
 The price used to be `ask × N(1, overbid_sigma)`: the ask times a guessed random number, with

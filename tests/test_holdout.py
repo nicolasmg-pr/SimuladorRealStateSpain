@@ -18,7 +18,7 @@ def test_euribor_path_is_the_registered_series():
     assert holdout.EURIBOR[2] == pytest.approx(0.05367)  # 2008Q3, the peak
     assert holdout.EURIBOR[21] == pytest.approx(0.00506)  # 2013Q2, the trough
     assert max(holdout.EURIBOR) == holdout.EURIBOR[2]
-    assert holdout.EURIBOR_2007Q4 == pytest.approx(0.04682)
+    assert pytest.approx(0.04682) == holdout.EURIBOR_2007Q4
 
 
 def test_jobless_path_is_the_household_series_not_the_individual_one():
@@ -30,7 +30,7 @@ def test_jobless_path_is_the_household_series_not_the_individual_one():
     assert len(holdout.JOBLESS) == 24
     assert max(holdout.JOBLESS) == pytest.approx(0.1502)  # 2013Q1
     assert holdout.JOBLESS.index(max(holdout.JOBLESS)) == 20
-    assert holdout.JOBLESS_2007Q4 == pytest.approx(0.0361)
+    assert pytest.approx(0.0361) == holdout.JOBLESS_2007Q4
     assert max(holdout.JOBLESS) < 0.20
 
 
