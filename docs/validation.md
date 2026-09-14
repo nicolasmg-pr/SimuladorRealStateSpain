@@ -6,7 +6,8 @@ that suite passes (engineering standard, `plan.md`).
 
 Revised 2026-09-08, fourth pass ("Shadow-anchor and boom-rent revision" below): the shadow
 rent's anchor is now exogenous, the hazard scale is re-fitted so all three rent-cap studies
-sit inside the 0–2 dial, and boom-time rent growth passes. **The suite carries no xfails.**
+sit inside the 0–2 dial, and boom-time rent growth passes. **The suite carried no xfails at that point**; phase C (14 Sep 2026) adds two, both dated
+and both naming the mechanism that has to close them — see "Phase C" below.
 
 Revised 2026-09-08, third pass ("Location-premium revision" below): the zone price ladder
 holds and the price-to-income ordering is restored, closing the model's oldest known gap.
@@ -804,6 +805,108 @@ still **see** it when choosing a zone, which is a different thing from charging 
 - A coastal zone. Non-resident purchases concentrate in Alicante, Málaga and Balears, and the
   model's three zones have no coastal type, which is why the overlay's emergent share is 2.2%
   against 6.5–8%.
+
+## Phase C — insolvency and forced sale (2026-09-14)
+
+The budget constraint binds from this pass. `engine._household_flows` used to write
+`wealth = max(0, wealth − payment)`: non-payment was absorbed, nothing defaulted, and no
+dwelling ever returned to the market against its owner's will. Everything below is measured
+on 5 seeds, 60 ticks, last 20 averaged, unless a line says otherwise.
+
+### Baseline, after
+
+| Moment | Before (main) | After | §9 band | |
+|---|---|---|---|---|
+| Price-to-income | 7.49 | **7.11 ± 0.18** | 7.0–8.2 | pass |
+| Market-tenant overburden | 0.338 | **0.323 ± 0.010** | 0.26–0.34 | pass |
+| Gross yield, contract basis | 0.070 | **0.069 ± 0.001** | 0.065–0.075 | pass |
+| Ownership rate | 0.712 | **0.711 ± 0.002** | 0.70–0.74 | pass |
+| Vacancy, national | 0.126 | **0.129 ± 0.004** | 0.10–0.15 | pass |
+| Vacancy, secondary | 0.131 | **0.135 ± 0.006** | 0.081–0.131 | **fail** |
+| Unemployment (households, all actives) | — | **0.0529 ± 0.0002** | input 0.0528 | tracks |
+| Arrears, share of mortgaged | — | **0.0291 ± 0.0022** | 0.010–0.040 | pass |
+| Foreclosure rate, /yr | — | **0.0001** | 0.0010–0.0080 | **fail** |
+
+### The two failures, and why neither is closed by tuning
+
+**Foreclosure flow, ≈0.01–0.02%/yr against an observed 0.10–0.16%/yr in calm years.** The
+model converts almost every statutory trigger into a voluntary sale: a distressed owner with
+positive equity lists, and in a market with rising prices the listing clears inside its
+window. What stops that in Spain is negative equity after a price fall, the discount an
+occupied dwelling carries, and the months a sale takes — the first two are phase D's price
+formation (spec §7.7) and the third is the bust itself. Lowering the band would be fitting
+the target to the model; the band is the data, and the gate is a dated strict xfail.
+
+**Secondary-zone vacancy, 13.5% against a Censo band topping out at 13.1%.** It sat at
+13.10% — the boundary — before this pass. The 0.3pp it moved is **market** vacancy (6.68%
+against 6.38%), not withheld stock: forced supply arrives while the credit lockout removes
+some of the buyers for it, so units spend longer empty. The ladder, the rural band and the
+national band all still hold, so only this leg is split out into its own xfailing test.
+
+### Three defects the new mechanism exposed
+
+1. **The opening mortgage book was never screened.** Initial balances were drawn as
+   `60,900 × lognormal(0, 0.5)` independently of income, so a household with a €15k income
+   could start the run owing €150k on a five-year tail — a payment of twice its income.
+   Invisible while non-payment was absorbed; with the constraint binding, those households
+   were in arrears on tick 1 and their forced listings moved the price level (price-to-income
+   6.93 against main's 7.49). The book now passes the same DSTI screen the bank applies to
+   every new loan, which is what it should always have done.
+2. **The income distribution was double-counting unemployment.** `income_median` is an
+   EFF/ECV measurement over a population that already contains unemployed households, so
+   drawing potential income at that median and then applying an unemployment path subtracted
+   the same loss twice — the realised distribution came out 3.0% (mean) and 3.6% (median)
+   below the model's own calibration target. `insolvency.potential_income_uplift` corrects it
+   analytically (1.034 at the baseline) rather than by fitting.
+3. **Distressed listing on the first missed instalment was wrong and the data said so.**
+   It put ≈28 forced listings in a calm market at all times, moved the price level 9% and
+   pushed price-to-income to 6.99. Most arrears spells cure — the exit hazard ends half of
+   them inside three quarters — and a household that expects to cure does not sell. The
+   trigger is now the **statutory** threat: the lender has demanded payment and warned of
+   early termination (Ley 5/2019 art. 24.1.c). The ask is the ordinary seller's; only the
+   reserve differs, and it is the debt.
+
+### The bust leg, as a direction check (not the hold-out)
+
+`LabourShock(0.15, exit 0.15)` + `CreditCrunch(−0.15 LTV, −0.07 DSTI, +2pp spread)` from
+tick 20, 3 seeds — the 2013 household-joblessness peak with a credit stop, but **not** the
+2008–13 hold-out, which is run once in phase E and is not touched here:
+
+| | calm | bust |
+|---|---|---|
+| Price-to-income | 7.11 | **5.46** |
+| Arrears | 2.9% | **3.6%** |
+| Foreclosure rate /yr | 0.01% | **0.09%** |
+| Ownership rate | 0.711 | **0.697** |
+| Vacancy, national | 0.129 | **0.140** |
+
+Directions are right and the magnitudes are not claimed: foreclosures rise nine-fold and
+still land an order of magnitude below the 0.7%/yr the BdE measured in 2014, for the reason
+given above. That is the gap phase D and phase E have to close, and it is on the record
+before either is run.
+
+### Referee pass — what a hostile economist would say
+
+- *"You chose the unemployment series that flatters you."* The opposite: the household-level
+  series (all actives unemployed, 5.28% now, 15.02% at the 2013 peak) is roughly half the
+  individual rate, and using the individual rate put arrears at 6.9% against a BdE doubtful
+  ratio of 1.6–3.4%. The choice is forced by the model's household being a single income
+  unit, and it is the conservative one for every headline this block produces.
+- *"Your household has one earner, so job loss is catastrophic."* Conceded, and it cuts both
+  ways: severity is overstated, frequency understated (two earners are two chances of a hit).
+  The EFF earner-count distribution would settle it and is not retrieved.
+- *"The judicial lag is a guess."* It is, and it is the only guessed element in the chain:
+  CGPJ publishes 8.5 months for all first-instance civil matters, which bounds it below, and
+  the 2–4 year estimate is practitioner-side. It is swept, never reported as a magnitude.
+- *"There is no forbearance."* True. The Código de Buenas Prácticas (RDL 6/2012, and the
+  2022–23 vulnerable-debtor codes) restructured a material share of distressed mortgages and
+  is not modelled. Its absence pushes arrears **up** and the model still sits inside the BdE
+  band, so the direction of the omission is stated rather than hidden.
+- *"REO is a free parameter."* The discount and release rate are the block's weakest values
+  and are labelled reduced form; the registered Sareb haircuts are against book value, not
+  market price. The bank's *acquisition* price is not free: it is the statutory 70% of
+  auction value (LEC art. 670.4). Phase E's Sobol run decides whether anything reportable
+  depends on the discount.
 
 ## Config guards — not validation targets (moved 2026-09-12)
 
