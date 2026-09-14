@@ -638,6 +638,128 @@ class CapResponseConfig:
 
 
 @dataclass(frozen=True)
+class LabourConfig:
+    """Income risk: an exogenous unemployment path, an endogenous incidence (model-spec §6c.1).
+
+    The rate is data. Who it lands on is the model's business — that is the whole reason this
+    block exists, because a mortgage defaults when a *particular* household loses its income,
+    not when an aggregate moves.
+    """
+
+    # THE EXOGENOUS PATH, and note carefully which rate it is: the share of households whose
+    # ACTIVE MEMBERS ARE ALL UNEMPLOYED, not the individual unemployment rate. The model's
+    # household is a single income unit, so the individual rate would be the wrong object —
+    # it counts a two-earner household that lost one job as fully hit. INE publishes the
+    # household-level series directly (EPA tabla 65276, "todos los activos son parados"):
+    # 2007Q2 3.15% → **2013Q1 15.02% (peak)** → 2026Q2 5.28%, quarterly since 2002. The
+    # individual rate on the same dates is roughly twice as high, and using it put the model's
+    # arrears at 6.9% of mortgaged households against a BdE doubtful ratio of 1.6–3.4%.
+    # The bust leg is the hold-out's input and arrives through `scenario.LabourShock`, never
+    # as a fitted value [INE EPA tabla 65276 — high]
+    jobless_rate: float = 0.0528
+    # Per-zone multiplier on the national rate, renormalised on household weights at use.
+    # MEASURED, and the direction is the surprising one: the metro is the LEAST exposed zone.
+    # 2006–2025 averages of DEG1/DEG2/DEG3 against the national rate; in the 2013 trough the
+    # spread is 24.2 / 27.3 / 28.7 against 26.1 national [Eurostat `lfst_r_urgau` — high].
+    # APPROXIMATION, declared: the gradient is measured on the INDIVIDUAL rate and applied to
+    # the household-level path above. Both are EPA products and their national paths move
+    # together, but nobody has published the household series by degree of urbanisation.
+    zone_multiplier: tuple[float, float, float] = (0.94, 1.06, 1.03)
+    # Probability a household leaves unemployment in a quarter. DERIVED FROM A MEASUREMENT,
+    # not guessed: with a constant hazard f the share of spells running past a year is
+    # (1−f)⁴, which is what the long-term-unemployment share reports — 32.1% (2025) ⇒ 0.25,
+    # 52.8% (2014 peak) ⇒ 0.15 [Eurostat `une_ltu_a` — high as a range]
+    exit_hazard: float = 0.25
+    exit_hazard_range: tuple[float, float] = (0.15, 0.25)
+    # Relative risk of job loss, bottom vs top income tercile. REDUCED FORM: the observable is
+    # education (ISCED 0-2 against 5-8 — 2.0 in 2007, 2.2 in 2013, 2.45 in 2025) and the model
+    # has income, so this is the education gradient carried across a correlated attribute. The
+    # stability of that ratio across boom and bust is what makes it usable at all
+    # [Eurostat `lfsa_urgaed` — high on the gradient, reduced form on the mapping]
+    incidence_relative_risk: float = 2.2
+    incidence_relative_risk_range: tuple[float, float] = (2.0, 2.45)
+    # Unemployment benefit [LGSS art. 270 — statute]: 70% of the regulatory base for the
+    # first 180 days (2 ticks), 60% after.
+    replacement_initial: float = 0.70
+    replacement_later: float = 0.60
+    replacement_switch_ticks: int = 2
+    # Benefit duration [LGSS art. 269 — statute]: 120 days at the minimum contribution record,
+    # 720 (24 months = 8 ticks) at 2,160 days contributed. The model uses the maximum, which
+    # is the generous end and therefore under-produces arrears.
+    benefit_max_ticks: int = 8
+    # €/yr. IPREM 2026 = €600/month × 12, frozen since 2022 (PGE 2023 rolled over). The
+    # benefit is capped at 175% of it and the post-benefit assistance floor is 80%
+    # [LGSS art. 270; IPREM 2026 — high]
+    iprem_annual: float = 7_200.0
+    benefit_cap_iprem: float = 1.75
+    # The cap is 175% of IPREM *plus the sixth for prorated extra payments*, which is why
+    # SEPE's published 2026 maximum without dependent children is €1,225/month and not
+    # €1,050 (600 × 1.75 × 7/6 = 1,225). Leaving the prorrata out would have made the model's
+    # benefit 14% meaner than the law allows [LGSS art. 270.3; SEPE published maximum]
+    iprem_prorrata: float = 7.0 / 6.0
+    assistance_floor_iprem: float = 0.80
+
+
+@dataclass(frozen=True)
+class InsolvencyConfig:
+    """Arrears, statutory foreclosure, and what the bank does with what it takes (§6c.2–6c.4).
+
+    The timing here is a statute, not an estimate: that is what makes this the best-identified
+    block in the model, and why the one element without a primary source (the judicial phase)
+    is a swept range rather than a point value.
+    """
+
+    # Consumption floor a household protects before servicing the mortgage, as a fraction of
+    # the population's MEDIAN income (not its own — a floor that scaled with own income would
+    # make the constraint non-binding by construction). INE's at-risk-of-poverty threshold is
+    # €12,220/yr for a one-person household and €25,663 for two adults with two children
+    # (2025), i.e. 0.34 and 0.71 of the model's €36,100 median. Defaulted to the conservative
+    # end: the model under-produces arrears rather than over-produces them
+    # [INE ECV tabla 79342 — high as a range]
+    essential_share: float = 0.34
+    essential_share_range: tuple[float, float] = (0.34, 0.71)
+    # Which statutory early-termination regime is in force. "ley5_2019" (default) = 12 unpaid
+    # instalments in the first half of the loan, 15 in the second [Ley 5/2019 art. 24].
+    # "ley1_2013" = 3 instalments [LEC art. 693 as amended] — the regime that governs the
+    # 2008–13 hold-out, which is why it is a switch and not a parameter.
+    foreclosure_regime: str = "ley5_2019"
+    trigger_instalments_first_half: int = 12
+    trigger_instalments_second_half: int = 15
+    trigger_instalments_legacy: int = 3
+    # Ley 5/2019 art. 24.1.c: the lender must demand payment giving at least one month. One
+    # tick is the shortest the quarterly clock can represent.
+    demand_notice_ticks: int = 1
+    # Quarters from trigger to possession on the judicial route. THE ONE UNSOURCED ELEMENT of
+    # the chain: CGPJ publishes 8.5 months for all first-instance civil matters (a lower
+    # bound) and only practitioner guides estimate the procedure itself at 2–4 years. Swept,
+    # never reported as a magnitude [law-firm guides — low]
+    judicial_lag_ticks: int = 10
+    judicial_lag_range: tuple[int, int] = (8, 16)
+    # Share of deliveries that happen voluntarily, without the judicial phase, and the share
+    # of ALL deliveries that are daciones en pago (debt-extinguishing). 2014, the only year
+    # with a published like-for-like split [BdE Circular 1/2013 note — high]
+    voluntary_delivery_share: float = 0.478
+    dacion_share_of_deliveries: float = 0.397
+    # What the creditor pays for the dwelling at auction: the statutory floor for a debtor's
+    # habitual residence [LEC art. 670.4 — statute]. Makes the bank's acquisition price
+    # accounting rather than a parameter.
+    award_share_of_value: float = 0.70
+    # Quarters a foreclosed household cannot obtain a mortgage. The legal ceiling on holding a
+    # default in a credit register is five years (20 ticks) [LOPDGDD art. 20.1.d]; using it as
+    # a behavioural horizon is REDUCED FORM — nobody measured how long banks actually refuse.
+    lockout_ticks: int = 20
+    lockout_ticks_range: tuple[int, int] = (8, 20)
+    # Bank-owned (REO) stock: the share of it listed each tick, and the discount to the zone
+    # price index it is listed at. THE WEAKEST PARAMETERS IN THE BLOCK — the registered
+    # anchors (Sareb's 2012 transfer haircuts, 31–63% on housing; the 2012 provisioning
+    # requirements) are haircuts against BOOK value, not market price, so they bound the range
+    # and do not set the value [Sareb/FROB — low; declared reduced form]
+    reo_release_share: float = 0.15
+    reo_discount: float = 0.15
+    reo_discount_range: tuple[float, float] = (0.10, 0.35)
+
+
+@dataclass(frozen=True)
 class SimConfig:
     """Full input to one run."""
 
@@ -651,6 +773,8 @@ class SimConfig:
     policy: PolicyConfig
     migration: MigrationConfig = field(default_factory=MigrationConfig)
     cap_response: CapResponseConfig = field(default_factory=CapResponseConfig)
+    labour: LabourConfig = field(default_factory=LabourConfig)
+    insolvency: InsolvencyConfig = field(default_factory=InsolvencyConfig)
     zones: tuple[ZoneConfig, ...] = field(default_factory=tuple)
 
     @classmethod
@@ -733,3 +857,11 @@ class SimConfig:
     def with_policy(self, **changes) -> SimConfig:
         """New config with policy fields replaced. Never mutates."""
         return replace(self, policy=replace(self.policy, **changes))
+
+    def with_credit(self, **changes) -> SimConfig:
+        """New config with credit fields replaced. Never mutates."""
+        return replace(self, credit=replace(self.credit, **changes))
+
+    def with_labour(self, **changes) -> SimConfig:
+        """New config with labour-market fields replaced. Never mutates."""
+        return replace(self, labour=replace(self.labour, **changes))

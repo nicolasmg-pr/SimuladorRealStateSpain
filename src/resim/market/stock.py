@@ -15,6 +15,7 @@ from ..config import ZoneType
 LARGE_INVESTOR_ID = -2
 PUBLIC_ID = -3
 DEVELOPER_ID = -4
+BANK_ID = -6  # repossessed (REO) stock the bank holds and releases at a markdown (§6c.4)
 
 
 class Tenure(Enum):
