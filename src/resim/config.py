@@ -525,6 +525,14 @@ class DeveloperConfig:
     base_starts_per_tick: int = 14  # ≈112k/yr real, 2024–25-like baseline flow [MIVAU — high]
     presale_share: float = 0.40  # pre-sales gate .30–.50 [developer §6 — high]
     new_build_premium: float = 1.15  # new-build price vs zone median [guess]
+    # Units already under construction at tick 0, by arrival tick: `initial_pipeline[i]`
+    # units complete at tick i+1, split across zones by household share. Empty in the
+    # baseline, where the run starts from a steady state. It exists for the 2008-13
+    # hold-out, whose defining initial condition is that Spain entered the bust with the
+    # 2005-08 pipeline still delivering — completions were 563,631 in 2008 against 43,230
+    # in 2013 [MIVAU tabla 3.2] — so a model that starts the episode with an empty
+    # pipeline cannot produce the glut that followed.
+    initial_pipeline: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)

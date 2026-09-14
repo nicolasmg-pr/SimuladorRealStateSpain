@@ -247,7 +247,29 @@ class Engine:
                 )
 
         self._assign_landlords(state)
+        self._load_initial_pipeline(state)
         return state
+
+    def _load_initial_pipeline(self, state: WorldState) -> None:
+        """Units already under construction at tick 0 (`DeveloperConfig.initial_pipeline`).
+
+        Empty in the baseline. The 2008-13 hold-out needs it: Spain entered the bust with the
+        2005-08 pipeline still delivering, and completions ran at 563,631 in 2008 against
+        43,230 in 2013 [MIVAU 3.2]. Without this the model would start the episode with no
+        overhang and would be answering an easier question than the one being asked.
+        """
+        cfg = state.config
+        schedule = cfg.developer.initial_pipeline
+        if not schedule:
+            return
+        shares = {z.zone: z.household_share for z in cfg.zones}
+        for offset, total in enumerate(schedule):
+            if total <= 0:
+                continue
+            for zone, share in shares.items():
+                n = int(round(total * share))
+                if n > 0:
+                    state.pipeline.append((offset + 1, zone, n, False))
 
     def _assign_landlords(self, state: WorldState) -> None:
         """Distribute rented + vacant units to owners per dossier shares.

@@ -38,6 +38,7 @@ from .agents import household as household_mod
 from .agents import landlord as landlord_mod
 from .config import SimConfig, ZoneType
 from .engine import Engine
+from .market import clearing as clearing_mod
 from .scenario import Scenario
 
 # parameter -> (low, high). Documented ranges where one exists, else ±30% around a calibrated
@@ -69,6 +70,24 @@ SPACE: dict[str, tuple[float, float]] = {
     "perceived_risk_markup": (1.5, 3.0),
     "price_index_smoothing": (0.2, 0.4),
     "tenant_move_prob": (0.04, 0.08),
+    # --- phase D, sale-side price formation (model-spec §5c) ------------------------------
+    "search_listings": (1.0, 10.0),  # rounded to an int inside _config_for
+    "ask_markup": (0.04, 0.12),
+    "seller_bargaining_power": (0.60, 0.95),
+    "auction_increment": (0.002, 0.010),
+    "momentum_gain": (1.5, 3.5),
+    "max_listing_ticks": (4.0, 8.0),
+    "selling_cost_share": (0.01, 0.03),
+    # --- phase C, insolvency (model-spec §6c) ---------------------------------------------
+    # The jobless PATH is data and is not here: screening it would measure the world's
+    # uncertainty, not the model's. What is here is everything the model had to assume.
+    "essential_share": (0.34, 0.71),
+    "exit_hazard": (0.15, 0.25),
+    "incidence_relative_risk": (2.0, 2.45),
+    "judicial_lag_ticks": (8.0, 16.0),
+    "lockout_ticks": (8.0, 20.0),
+    "reo_discount": (0.10, 0.35),
+    "reo_release_share": (0.05, 0.30),
 }
 NAMES: list[str] = list(SPACE)
 
@@ -88,6 +107,14 @@ OUTPUTS: list[str] = [
     "rent_level",
     "vacancy_market_t",
     "cash_share",
+    # phases C and D added mechanisms, so they added moments to decompose. The variance rule
+    # (model-spec §13.2) applies to these exactly as it does to the price level.
+    "purchase_effort",
+    "arrears",
+    "foreclosure_rate",
+    "sale_discount",
+    "sold_in_quarter",
+    "bidders",
 ]
 
 
@@ -106,6 +133,12 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         expectation_momentum=x["expectation_momentum"],
         overbid_sigma=x["overbid_sigma"],
         ask_decay=x["ask_decay"],
+        search_listings=int(round(x["search_listings"])),
+        ask_markup=x["ask_markup"],
+        seller_bargaining_power=x["seller_bargaining_power"],
+        auction_increment=x["auction_increment"],
+        max_listing_ticks=int(round(x["max_listing_ticks"])),
+        selling_cost_share=x["selling_cost_share"],
         small_landlord_premium=x["small_landlord_premium"],
         landlord_cost_share=x["landlord_cost_share"],
         landlord_zone_risk_premium=x["landlord_zone_risk_premium"],
@@ -144,30 +177,56 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         )
         for z in cfg.zones
     )
+    labour = dataclasses.replace(
+        cfg.labour,
+        exit_hazard=x["exit_hazard"],
+        incidence_relative_risk=x["incidence_relative_risk"],
+    )
+    insolvency = dataclasses.replace(
+        cfg.insolvency,
+        essential_share=x["essential_share"],
+        judicial_lag_ticks=int(round(x["judicial_lag_ticks"])),
+        lockout_ticks=int(round(x["lockout_ticks"])),
+        reo_discount=x["reo_discount"],
+        reo_release_share=x["reo_release_share"],
+    )
+    cap_response = dataclasses.replace(cfg.cap_response, hazard_scale=x["hazard_scale"])
     return dataclasses.replace(
-        cfg, market=market, population=population, developer=developer, zones=zones
+        cfg,
+        cap_response=cap_response,
+        market=market,
+        population=population,
+        developer=developer,
+        zones=zones,
+        labour=labour,
+        insolvency=insolvency,
     )
 
 
 def evaluate(x: dict[str, float], seed: int = 1, ticks: int = 40) -> dict[str, float]:
     """Run the model once at `x` and return the moments the analysis is judged on."""
     cfg = _config_for(x, seed, ticks)
-    # three behavioural constants live at module level; set and restore them around the run
+    # Behavioural constants that still live at module level; set and restore them around the
+    # run. `hazard_scale` is NOT among them any more — phase A moved it into
+    # `CapResponseConfig`, and this module went on patching a module attribute that no longer
+    # existed, so every sweep since has silently held it at its default. Fixed in phase E;
+    # the cap-response sweep in docs/experiments/rent-cap.md was unaffected because it moves
+    # the config field directly.
     saved = (
-        landlord_mod.HAZARD_SCALE,
         landlord_mod.CONGESTION_GAIN,
         household_mod.SEARCH_BURDEN_ESCALATION,
+        clearing_mod.MOMENTUM_GAIN,
     )
-    landlord_mod.HAZARD_SCALE = x["hazard_scale"]
     landlord_mod.CONGESTION_GAIN = x["congestion_gain"]
     household_mod.SEARCH_BURDEN_ESCALATION = x["search_burden_escalation"]
+    clearing_mod.MOMENTUM_GAIN = x["momentum_gain"]
     try:
         state = Engine(Scenario(name="sensitivity", baseline=cfg)).run()
     finally:
         (
-            landlord_mod.HAZARD_SCALE,
             landlord_mod.CONGESTION_GAIN,
             household_mod.SEARCH_BURDEN_ESCALATION,
+            clearing_mod.MOMENTUM_GAIN,
         ) = saved
     frame = metrics.to_frame(state)
     tail = frame.iloc[-16:]
@@ -189,7 +248,134 @@ def evaluate(x: dict[str, float], seed: int = 1, ticks: int = 40) -> dict[str, f
         "rent_level": float(tail.rent_national.mean()),
         "vacancy_market_t": float(tail.vacancy_market_tensioned.mean()),
         "cash_share": float(tail.cash_purchase_share.mean()),
+        "purchase_effort": float(tail.purchase_effort.mean()),
+        "arrears": float(tail.arrears_share.mean()),
+        "foreclosure_rate": float(tail.foreclosure_rate.mean()),
+        "sale_discount": float(tail.sale_discount_median.mean()),
+        "sold_in_quarter": float(tail.sold_within_quarter_share.mean()),
+        "bidders": float(tail.bidders_per_listing.mean()),
     }
+
+
+# The §9 bands the calibration window is judged on — 2014–2025 moments ONLY. The 2008–13
+# hold-out is sealed (model-spec §13.4) and appears nowhere in this table, which is the
+# point: a parameter fitted here has never seen the episode it will be tested on.
+CALIBRATION_BANDS: dict[str, tuple[float, float]] = {
+    "pti": (7.0, 8.2),
+    "ownership": (0.70, 0.74),
+    "transactions": (0.025, 0.036),
+    "completion_ratio": (0.40, 0.70),
+    "overburden": (0.26, 0.34),
+    "purchase_effort": (0.35, 0.40),
+    "arrears": (0.010, 0.040),
+    "foreclosure_rate": (0.0010, 0.0080),
+    "sold_in_quarter": (0.43, 0.63),
+    "sale_discount": (0.04, 0.12),
+    "bidders": (1.0, 7.0),
+    "pti_order_margin": (0.0, float("inf")),
+}
+
+
+def band_loss(moments: dict[str, float]) -> tuple[float, dict[str, float]]:
+    """Squared relative distance outside each band, summed. Zero inside every band.
+
+    A band loss rather than a distance to a point: the evidence gives ranges, and scoring
+    against a midpoint would invent precision the sources do not have and would drag the
+    model toward the centre of bands it is already inside.
+    """
+    per: dict[str, float] = {}
+    for name, (lo, hi) in CALIBRATION_BANDS.items():
+        value = moments.get(name, float("nan"))
+        if value != value:  # NaN: a moment with no observations this run
+            per[name] = 1.0
+            continue
+        scale_ = max(abs(lo), abs(hi) if hi != float("inf") else abs(lo), 1e-9)
+        if value < lo:
+            per[name] = ((lo - value) / scale_) ** 2
+        elif value > hi:
+            per[name] = ((value - hi) / scale_) ** 2
+        else:
+            per[name] = 0.0
+    return float(sum(per.values())), per
+
+
+def lhs(n: int, seeds: tuple[int, ...], ticks: int) -> dict:
+    """Latin-hypercube sweep over the free parameters, scored against the §9 bands.
+
+    This is the first step of the calibration protocol (model-spec §13.4): sample the space,
+    score each point on the calibration window, and report where the model wants to be. It
+    does NOT adopt anything — adoption is a decision recorded in docs/validation.md, because
+    "the sweep said so" is not a reason to move a parameter that has a source.
+    """
+    rng = np.random.default_rng(14092026)
+    k = len(NAMES)
+    # one stratified sample per parameter, independently shuffled: the Latin-hypercube design
+    cuts = (np.arange(n)[:, None] + rng.random((n, k))) / n
+    design = np.column_stack([rng.permutation(cuts[:, j]) for j in range(k)])
+
+    rows = []
+    for i in range(n):
+        point = scale(design[i])
+        losses, moments = [], []
+        for seed in seeds:
+            m = evaluate(point, seed, ticks)
+            loss, _ = band_loss(m)
+            losses.append(loss)
+            moments.append(m)
+        mean_moments = {o: float(np.mean([m[o] for m in moments])) for o in OUTPUTS}
+        rows.append(
+            {
+                "point": {name: float(point[name]) for name in NAMES},
+                "loss": float(np.mean(losses)),
+                "moments": mean_moments,
+            }
+        )
+    rows.sort(key=lambda r: r["loss"])
+
+    # the defaults, scored the same way, so "better than what we have" is answerable
+    default = {name: float(getattr_default(name)) for name in NAMES}
+    default_losses, default_moments = [], []
+    for seed in seeds:
+        m = evaluate(default, seed, ticks)
+        loss, per = band_loss(m)
+        default_losses.append(loss)
+        default_moments.append(m)
+    default_row = {
+        "point": default,
+        "loss": float(np.mean(default_losses)),
+        "moments": {o: float(np.mean([m[o] for m in default_moments])) for o in OUTPUTS},
+        "per_moment": per,
+    }
+    return {
+        "method": "lhs",
+        "n": n,
+        "seeds": list(seeds),
+        "ticks": ticks,
+        "evaluations": (n + 1) * len(seeds),
+        "default": default_row,
+        "rows": rows,
+    }
+
+
+def getattr_default(name: str) -> float:
+    """The shipped value of a swept parameter, for scoring the defaults on the same design."""
+    cfg = SimConfig.baseline(seed=1, ticks=4)
+    lookups: dict[str, float] = {
+        "hazard_scale": cfg.cap_response.hazard_scale,
+        "congestion_gain": landlord_mod.CONGESTION_GAIN,
+        "search_burden_escalation": household_mod.SEARCH_BURDEN_ESCALATION,
+        "momentum_gain": clearing_mod.MOMENTUM_GAIN,
+        "formation_metro_weight": cfg.population.formation_zone_weights[0],
+        "premium_secondary": cfg.zone(ZoneType.SECONDARY).location_premium,
+        "premium_rural": cfg.zone(ZoneType.RURAL).location_premium,
+        "withheld_tensioned": cfg.zone(ZoneType.TENSIONED).withheld_share,
+    }
+    if name in lookups:
+        return float(lookups[name])
+    for block in (cfg.market, cfg.population, cfg.developer, cfg.labour, cfg.insolvency):
+        if hasattr(block, name):
+            return float(getattr(block, name))
+    raise KeyError(name)
 
 
 def morris(trajectories: int, seed: int, ticks: int, levels: int = 4) -> dict:
@@ -334,7 +520,36 @@ def sobol(params: list[str], n: int, seed: int, ticks: int) -> dict:
     }
 
 
+def _report_lhs(payload: dict, top: int = 10) -> None:
+    default = payload["default"]
+    print(f"\ndefaults: loss {default['loss']:.4f}")
+    for name, value in sorted(default.get("per_moment", {}).items(), key=lambda kv: -kv[1]):
+        if value > 0:
+            print(f"   outside band: {name:18s} {default['moments'][name]:.4f}  loss {value:.4f}")
+    print(f"\nbest {top} of {payload['n']} sampled points")
+    for row in payload["rows"][:top]:
+        moved = {k: v for k, v in row["point"].items() if abs(v - getattr_default(k)) > 1e-9}
+        head = ", ".join(f"{k}={v:.3g}" for k, v in list(moved.items())[:6])
+        print(f"   loss {row['loss']:.4f}  pti {row['moments']['pti']:.2f}  {head} ...")
+    # crude marginal: mean loss in the lower and upper half of each parameter's range
+    print("\nwhere the sweep wants each parameter (mean loss, low half vs high half)")
+    for name in NAMES:
+        lo, hi = SPACE[name]
+        mid = 0.5 * (lo + hi)
+        low = [r["loss"] for r in payload["rows"] if r["point"][name] < mid]
+        high = [r["loss"] for r in payload["rows"] if r["point"][name] >= mid]
+        if not low or not high:
+            continue
+        print(
+            f"   {name:28s} low {np.mean(low):8.3f}   high {np.mean(high):8.3f}"
+            f"   {'LOW' if np.mean(low) < np.mean(high) else 'HIGH'}"
+        )
+
+
 def _report(payload: dict, top: int = 8) -> None:
+    if payload["method"] == "lhs":
+        _report_lhs(payload)
+        return
     for output, block in payload["results"].items():
         rows = block["indices"] if payload["method"] == "sobol" else block
         if payload["method"] == "sobol" and not block["interpretable"]:
@@ -353,18 +568,21 @@ def _report(payload: dict, top: int = 8) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("method", choices=("morris", "sobol"))
+    parser.add_argument("method", choices=("lhs", "morris", "sobol"))
     parser.add_argument("--trajectories", type=int, default=10, help="morris only")
     parser.add_argument("--n", type=int, default=128, help="sobol only")
     parser.add_argument(
         "--params", default=",".join(NAMES), help="sobol only: comma-separated subset"
     )
     parser.add_argument("--seed", type=int, default=1, help="fixed across the design")
+    parser.add_argument("--seeds", default="1,2,3", help="lhs only: comma-separated")
     parser.add_argument("--ticks", type=int, default=40)
     parser.add_argument("--out", type=Path, default=Path("runs"))
     args = parser.parse_args()
 
-    if args.method == "morris":
+    if args.method == "lhs":
+        payload = lhs(args.n, tuple(int(s) for s in args.seeds.split(",")), args.ticks)
+    elif args.method == "morris":
         payload = morris(args.trajectories, args.seed, args.ticks)
     else:
         payload = sobol(args.params.split(","), args.n, args.seed, args.ticks)
