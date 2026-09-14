@@ -54,17 +54,30 @@ class ZoneConfig:
     # and the residual is stated. It is `household_share` that should move when it is sourced.
     # [INE ECV table 60181 (ECV-2025); household-tenant §6 — high]
     tenant_share: float
-    # × national household income. SOURCED 2026-09-14 from INE ECV table 59952, *renta neta
-    # media por hogar* by grado de urbanización (densamente poblada / intermedia / poco
-    # poblada — the closest published object to this model's three zones): ECV-2025 gives
-    # 41,657 / 36,469 / 34,410 € against a national 38,994, i.e. 1.0683 / 0.9352 / 0.8824,
-    # renormalised here to this model's household shares so the weighted mean is exactly 1.0
-    # (`tests/test_config_guards.py`). Was a free guess of 1.15 / 1.00 / 0.80.
+    # × national household income. MEASURED ON THE MODEL'S OWN ZONES, 2026-09-14: all 8,131
+    # Spanish municipalities ranked by Censo-2021 households and cut at this model's 45/35/20
+    # shares (89 / 708 / 7,334 municipalities), then household-weighted mean income from the
+    # 54 INE ADRH municipal tables (income year 2023, ADRH reaches 99.93–100% of each zone).
+    # Raw ratios to the national figure: 1.0766 / 0.9621 / 0.8934.
     #
-    # Basis, stated because this project has been bitten by it: ECV *renta neta* is
-    # disposable household income after transfers and tax, a MEAN, and no median is published
-    # on this cross. It is not a wage. The gradient is what is being taken from it, not the
-    # level — the level anchor stays `PopulationConfig.income_median`.
+    # Those weight to **0.99989** — the identity holds without being forced, because the zones
+    # are defined to hit 45/35/20 and ratios computed inside that partition reconcile. The
+    # values below carry the residual ×1.000115 so the config guard is exact.
+    #
+    # Supersedes the ECV *grado de urbanización* gradient used from 2026-09-12 to 2026-09-14
+    # (1.0683 / 0.9352 / 0.8824). ECV measures DEGURBA density classes, and those classes are
+    # **54/31/15 of households, not 45/35/20** — recovered by solving ECV table 60181's four
+    # over-determined tenure rows, which fits them to ≤0.03 pp and independently reproduces
+    # ECV's national income anchor, held out of the fit, to €20 (0.05%). Mixing ECV cells with
+    # size-rank-shaped weights was the source of the residuals this model was declaring; that
+    # diagnosis is what these figures replace, not a measurement error in ECV.
+    #
+    # Basis: ADRH *renta neta media por hogar* — disposable household income after transfers
+    # and tax, a MEAN. Not a wage. The gradient is taken from it, not the level; the level
+    # anchor stays `PopulationConfig.income_median`. Year misalignment is declared, not
+    # corrected: tenure 2021, income 2023, population 2025.
+    #
+    # Was a free guess of 1.15 / 1.00 / 0.80 until 2026-09-12.
     income_multiplier: float
     price_multiplier: float  # × national median dwelling value [guess from €/m² press]
     gross_yield: float  # /yr, rent/price at init [idealista+BdE RBA, investor-small §6 — high]
@@ -542,7 +555,7 @@ class SimConfig:
                 zone=ZoneType.TENSIONED,
                 household_share=0.45,
                 tenant_share=0.237,  # ECV densa: 19.5 market + 4.2 below-market
-                income_multiplier=1.0851,  # ECV densamente poblada
+                income_multiplier=1.0767,  # ADRH, top-89 municipalities
                 price_multiplier=1.6,
                 gross_yield=0.052,  # 4.7–5.6
                 itp_rate=0.10,
@@ -560,7 +573,7 @@ class SimConfig:
                 zone=ZoneType.SECONDARY,
                 household_share=0.35,
                 tenant_share=0.186,  # ECV intermedia: 15.7 + 2.9
-                income_multiplier=0.9499,  # ECV nivel intermedio
+                income_multiplier=0.9622,  # ADRH, next 708
                 price_multiplier=0.9,
                 gross_yield=0.070,  # 6.5–7.5
                 itp_rate=0.08,
@@ -578,7 +591,7 @@ class SimConfig:
                 zone=ZoneType.RURAL,
                 household_share=0.20,
                 tenant_share=0.108,  # ECV poco poblada: 8.6 + 2.2 — was inferred
-                income_multiplier=0.8963,  # ECV poco poblada
+                income_multiplier=0.8935,  # ADRH, remaining 7,334
                 price_multiplier=0.5,
                 gross_yield=0.080,  # 7–9
                 itp_rate=0.06,

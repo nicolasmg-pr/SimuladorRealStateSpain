@@ -479,6 +479,70 @@ by adding an unsourced amenity term tuned until the gross flows look right**, wh
 phase B exists to remove; it needs §7.5's amenity term with its own identification — the same
 term that would make `location_premium` derivable rather than free.
 
+## Zone ladders measured on the model's own zones (2026-09-14)
+
+The ECV `grado de urbanización` gradient adopted two days earlier is superseded by one measured
+on the model's *own* zone definition: all 8,131 Spanish municipalities ranked by Censo-2021
+households and cut at 45/35/20.
+
+| zone | municipalities | households | share | `income_multiplier` | `tenant_share` measured |
+|---|---|---|---|---|---|
+| TENSIONED | 89 | 8,359,782 | 45.09% | **1.0766** | **0.2478** (100% measured) |
+| SECONDARY | 708 | 6,473,671 | 34.92% | **0.9621** | **0.1784** (23.2% measured) |
+| RURAL | 7,334 | 3,705,770 | 19.99% | **0.8934** | **0.1461** (0% measured) |
+
+**Both identities close without being forced.** The income ladder weights to 0.99989 — the
+renormalisation the previous gradient needed (×1.0157) becomes ×1.0001. The tenure ladder
+weights to 0.2032 against ECV's national 0.202, a +0.12 pp residual against the 0.87 pp the
+model was declaring.
+
+### Why the old residuals existed
+
+**ECV's DEGURBA classes are 54/31/15 of households, not 45/35/20.** Recovered by solving ECV
+table 60181's four over-determined tenure rows with sum-to-one imposed: 0.5416 / 0.3104 /
+0.1479, fitting all four rows to ≤0.03 pp and independently reproducing ECV's national *income*
+anchor — held out of the fit — to €20, or 0.05%.
+
+So the model was mixing DEGURBA cells with size-rank-shaped weights, and both declared
+residuals were that mismatch rather than measurement error in the cells. Only the income ladder
+is switched here; the tenure ladder has an open cell, below.
+
+### The RURAL tenure cell is not a measurement, and is not adopted
+
+Zero rural municipalities have published tenure. The 0.1461 is imputed from ECEPOV's single
+≤50k band, which holds **47.4% of Spain — 2.4× the zone it fills** — and that band publishes no
+internal size gradient, so only CCAA composition separates rural from the secondary zone's small
+towns. Re-splitting the band, pooled total held fixed:
+
+| RURAL assumption | RURAL | SECONDARY | national identity |
+|---|---|---|---|
+| as imputed | 0.1461 | 0.1784 | 0.2032 |
+| ECV *poco poblada*, all renting | 0.1368 | 0.1837 | 0.2032 |
+| ECV *poco poblada*, market rent only | 0.1089 | 0.1996 | 0.2032 |
+| flat across the band | 0.1561 | 0.1726 | 0.2031 |
+
+**The identity is invariant across all four**, so the national check cannot discriminate between
+them. Defensible range 0.109–0.156. The model's current 0.108 sits at the very bottom of it.
+
+The tenure ladder is therefore **not changed in this commit**. Picking a rural cell is a
+basis decision — size-rank Censo for two zones and DEGURBA ECV for the third is mixed-basis and
+has to be declared as such — and it is left open rather than made silently.
+
+### Effect
+
+One target moved: the cap's supply leg at elasticity 2 went from −10.1% to −7.85% contracts,
+failing the −9% assertion again. A ≈1 pp change in two zone income multipliers moved it 2.25 pp.
+That target has now moved five times in one phase (−13.6 → −7.3 → −1.6 → −10.1 → −7.85) and is
+not robustly passing in either direction; it is re-xfailed with that history on it rather than
+treated as a near miss.
+
+### A coherence defect in the size-rank cut, recorded
+
+The rank is by households, so metro commuter municipalities land in SECONDARY — Castelldefels,
+a *declared tensioned zone* renting at 27.1%, plus Tres Cantos, Sitges and Pozuelo — while Arona
+enters TENSIONED on size alone. A functional-urban-area cut would fix it. The MIVAU *Áreas
+Urbanas* list and a municipal DEGURBA classification are the two highest-value gaps remaining.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity

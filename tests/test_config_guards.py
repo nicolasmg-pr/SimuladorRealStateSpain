@@ -72,7 +72,8 @@ def test_zone_income_multipliers_average_to_the_national_anchor():
 def test_zone_income_gradient_matches_the_published_ladder():
     """The metro/rural income ratio must be the one ECV publishes, not a wider invented one.
 
-    ECV-2025: 41,657 / 34,410 = **1.211**. The model asserted 1.15 / 0.80 = 1.437 — it had the
+    ADRH on the model's own zone
+    cut: **1.205** (ECV DEGURBA gave 1.211). The model asserted 1.15 / 0.80 = 1.437 — it had the
     metro household earning 44% more than the rural one where the published figure is 21%, and
     the published ratio has been narrowing (1.29 in 2019 to 1.21 in 2025), not widening.
 
@@ -82,4 +83,4 @@ def test_zone_income_gradient_matches_the_published_ladder():
     cfg = SimConfig.baseline()
     by_zone = {z.zone: z.income_multiplier for z in cfg.zones}
     ratio = by_zone[ZoneType.TENSIONED] / by_zone[ZoneType.RURAL]
-    assert ratio == pytest.approx(1.211, abs=0.02), f"metro/rural income ratio is {ratio:.3f}"
+    assert ratio == pytest.approx(1.205, abs=0.02), f"metro/rural income ratio is {ratio:.3f}"
