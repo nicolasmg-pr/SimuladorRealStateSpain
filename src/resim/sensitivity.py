@@ -48,7 +48,11 @@ SPACE: dict[str, tuple[float, float]] = {
     "ask_decay": (0.02, 0.05),
     "buy_attempt_prob": (0.35, 0.65),
     "seeker_wealth_median": (10_000.0, 20_000.0),
-    "landlord_required_spread": (0.015, 0.025),
+    # §7.1 (2026-09-14): `landlord_required_spread` was split into a measured prime
+    # spread and the declared free premium. The premium is what a sweep should move —
+    # the prime spread is measured and `c` has its own sourced range.
+    "small_landlord_premium": (0.025, 0.055),
+    "landlord_cost_share": (0.20, 0.24),
     "landlord_zone_risk_premium": (0.010, 0.020),
     "hazard_scale": (0.4, 1.2),
     "congestion_gain": (0.02, 0.15),
@@ -102,7 +106,8 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         expectation_momentum=x["expectation_momentum"],
         overbid_sigma=x["overbid_sigma"],
         ask_decay=x["ask_decay"],
-        landlord_required_spread=x["landlord_required_spread"],
+        small_landlord_premium=x["small_landlord_premium"],
+        landlord_cost_share=x["landlord_cost_share"],
         landlord_zone_risk_premium=x["landlord_zone_risk_premium"],
         default_rate=x["default_rate"],
         perceived_risk_markup=x["perceived_risk_markup"],

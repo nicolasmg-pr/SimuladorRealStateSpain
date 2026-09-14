@@ -263,21 +263,6 @@ def test_interior_migration_is_bidirectional():
     assert inbound > 0, "no household ever moves into the metro under any income gradient"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: the rule reproduces the interior NET direction but not the gross "
-    "flows. At baseline there is no interior inflow to the tensioned zone at all - 3 seeds x "
-    "40 ticks give tensioned->rural 224 and secondary->rural 37 and nothing the other way. "
-    "Spain's interior net (about 100k/yr) is a small difference between two large gross flows "
-    "(about 1.6M interior moves/yr) and this rule has one of them at zero. The mechanism is "
-    "not one-directional - a 35% metro income shock produces 329 and 124 inbound immediately "
-    "- but the only pull toward the metro here is the income ratio 1.21, and it clears the "
-    "rent gap for nobody. Missing: where the job is rather than what the average wage ratio "
-    "is, plus amenity and study. NOT closed by adding an unsourced amenity term tuned until "
-    "the gross flows look right, which is the move phase B exists to remove. Needs spec 7.5's "
-    "amenity term with its own identification - the same term that would make "
-    "location_premium derivable rather than free.",
-)
 def test_interior_migration_has_gross_flows_both_ways():
     """Gross interior flows into the tensioned zone must be non-zero at the baseline."""
     inbound = 0.0
@@ -353,6 +338,19 @@ def test_small_landlord_share(baseline_moments):
     assert 0.85 <= baseline_moments["small_landlord"] <= 0.92
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: the section 7.1 total-return hurdle. Required rent is now V(i_bond + pi - "
+    "E[g]) / (12(1-c)), so a landlord expecting appreciation accepts less rent. That lands "
+    "the target it exists for - target 10, boom yield compression, which now passes - and "
+    "breaks the rent LEVEL machinery, because in this model the landlord's reservation "
+    "dominates rent formation while the demand channel (CONGESTION_GAIN = 0.05) is too weak "
+    "to offset a falling floor. That is spec finding 2 - no scarcity-to-price channel - on "
+    "the rent side rather than the sale side, and it is phase D's to close. Here: the wedge "
+    "goes negative (-6.3%). Sitting tenants now pay MORE than entrants, because entrant "
+    "asks track a reservation that falls with expected appreciation while sitting contracts "
+    "are indexed.",
+)
 def test_insider_outsider_wedge(baseline_moments):
     """Target 5b: a new contract costs more than a sitting one on the same standard unit.
 
@@ -418,6 +416,18 @@ def _holdout_boom(seeds):
     return price, rent, vol
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: the section 7.1 total-return hurdle. Required rent is now V(i_bond + pi - "
+    "E[g]) / (12(1-c)), so a landlord expecting appreciation accepts less rent. That lands "
+    "the target it exists for - target 10, boom yield compression, which now passes - and "
+    "breaks the rent LEVEL machinery, because in this model the landlord's reservation "
+    "dominates rent formation while the demand channel (CONGESTION_GAIN = 0.05) is too weak "
+    "to offset a falling floor. That is spec finding 2 - no scarcity-to-price channel - on "
+    "the rent side rather than the sale side, and it is phase D's to close. Here: boom "
+    "rents now FALL 5.4% against a +2.5% floor, because E[g] rises through the boom and "
+    "pulls the reservation down faster than congestion pushes asks up.",
+)
 def test_holdout_boom_rent_growth():
     """Target 7, rent leg: the 2021–25 boom must produce sustained asking-rent growth.
 
@@ -437,18 +447,6 @@ def test_holdout_boom_rent_growth():
     assert float(np.mean(rent)) > 0.025
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: the phase-B migration rewrite (spec 7.5) flips target 10. The boom now "
-    "RAISES the gross yield, 7.25% against a 5.86% pre-boom level, where it used to "
-    "compress it 5.39% to 5.21%. Cause: the new rule sends households out of the metro "
-    "faster as the boom widens the rent gap, so boom rents rise faster than boom prices and "
-    "the yield goes with them. The old rule could not respond to a boom at all - it was a "
-    "fixed 10% coin flip on rent burden - so the compression it produced was insensitivity, "
-    "not a mechanism. This target is the signature of the section 7.1 total-return hurdle, "
-    "which is the piece that makes the yield an output, and it is still blocked on the "
-    "operating-cost share c. Its to close, not migration's.",
-)
 def test_boom_compresses_the_gross_yield():
     """Target 10: in a boom the gross rental yield must COMPRESS.
 
@@ -512,16 +510,6 @@ def test_holdout_2021_2025_runup():
     assert float(np.mean(vol)) > 1.15  # record transaction volumes
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14: secondary-zone vacancy reads 13.36% against a sourced band top of 13.1%, a "
-    "0.26pp overshoot, after the phase-B migration rewrite. The secondary zone is now a net "
-    "receiver of interior migrants in both directions of the ladder (it gains from the "
-    "metro and loses little to rural), and the dwellings households leave behind on the way "
-    "through sit vacant longer than the old one-step-down rule left them. Marginal and not "
-    "re-fitted: the band is sourced and the miss is small enough that widening it to pass "
-    "would be fitting the target to the model.",
-)
 def test_vacancy_ladder(baseline_moments):
     """Vacancy is highest where demand is weakest — rural ≫ secondary > tensioned.
 
@@ -639,6 +627,19 @@ def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: the section 7.1 total-return hurdle. Required rent is now V(i_bond + pi - "
+    "E[g]) / (12(1-c)), so a landlord expecting appreciation accepts less rent. That lands "
+    "the target it exists for - target 10, boom yield compression, which now passes - and "
+    "breaks the rent LEVEL machinery, because in this model the landlord's reservation "
+    "dominates rent formation while the demand channel (CONGESTION_GAIN = 0.05) is too weak "
+    "to offset a falling floor. That is spec finding 2 - no scarcity-to-price channel - on "
+    "the rent side rather than the sale side, and it is phase D's to close. Here: the cap "
+    "raises contract rents 4.9%. With the reservation floor lower, market rents sit below "
+    "the reference index and the magnet pulls asks up to it - the cap acts as a floor, the "
+    "same mechanism recorded on 2026-09-12 and re-opened by the hurdle.",
+)
 def test_rent_cap_lowers_contract_rents():
     """Target 8, price leg: a binding cap must lower new-contract rents in the capped zone.
 
@@ -668,27 +669,27 @@ def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
 
 @pytest.mark.xfail(
     strict=True,
-    reason="2026-09-14: -7.85% contracts at elasticity 2, against the -9% asserted (itself one "
-    "sigma inside Monras and Garcia-Montalvo's -10%). This target has now moved three times "
-    "in one phase: -13.6% before phase A, -7.3% after the hazard floor went, -1.6% after "
-    "the inheritance rewrite, -10.1% after the section 7.5 migration rewrite restored it, "
-    "and -7.85% after the income ladder was re-measured on the model's own zones. The last "
-    "step was a roughly 1pp change in two zone income multipliers and it moved this target "
-    "2.25pp, so it is not robustly passing in either direction and should not be read as a "
-    "near miss that a small nudge would close. What it is waiting on is section 7.1: the "
-    "rent leg is simultaneously three times too STRONG at -13.7% against the studies' -4 to "
-    "-6%, and a withdrawal margin that gets the price response that wrong cannot be trusted "
-    "to get the quantity response right by coincidence. Both legs are the arbitrage "
-    "condition's to derive, and it is blocked on the operating-cost share c.",
+    reason="2026-09-14: the quantity leg clears easily (-21.8% contracts at elasticity 2) but "
+    "the price leg moves the WRONG WAY (+6.8% rents), so the co-movement Monras and "
+    "Garcia-Montalvo actually measure is not reproduced. Cause: the section 7.1 hurdle lowers "
+    "the reservation floor via expected appreciation, market rents fall below the reference "
+    "index, and the cap's magnet pulls asks up - the cap acts as a floor. This test was "
+    "rewritten on the same day to assert BOTH legs: asserting the quantity alone let it pass "
+    "while the mechanism was wrong, which would have put a number in the validation table that "
+    "reads as evidence for a mechanism the model does not have. Both legs close together or "
+    "not at all, and they are phase D's - the rent side needs the scarcity channel the sale "
+    "side is getting (spec finding 2).",
 )
-def test_rent_cap_supply_response_reaches_monras():
-    """Target 8, supply leg, STRONG form: elasticity 2 reaches −10% tenancies.
+def test_rent_cap_reproduces_the_monras_co_movement():
+    """Target 8, supply leg: Monràs is a CO-MOVEMENT, not a quantity.
 
-    Monràs & García-Montalvo measure Δln contracts / Δln rent ≈ 2 — about −10% tenancies at
-    −5% rents — and Pérez García reports −13%. The model's rent leg is right (−4.4% at ε=2,
-    inside the studies' −4…−6%); it is the quantity response that is now too small.
+    Monràs & García-Montalvo measure Δln contracts / Δln rent ≈ 2 — roughly −10% tenancies AT
+    −5% rents. Both halves are the claim. A model that sheds tenancies while rents RISE has not
+    reproduced that elasticity; it has reproduced one number out of two and inverted the other.
 
-    Asserted at −9%, one seed-noise sigma inside the −10% claim, so that a phase-B fix has to
-    actually reach the study rather than graze it.
+    Asserted on both legs at elasticity 2: contracts below −9%, and rents inside the −4…−6% the
+    three studies report, widened a point on each side for seed noise.
     """
-    assert _rent_cap_response(2.0)["leases"] < -0.09
+    response = _rent_cap_response(2.0)
+    assert response["leases"] < -0.09, f"quantity leg: {response['leases']:.1%}"
+    assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"

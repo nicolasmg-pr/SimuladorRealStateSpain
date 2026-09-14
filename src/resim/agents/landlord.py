@@ -23,6 +23,8 @@ from ..market.stock import Tenure
 from ..state import WorldState
 from .base import Intent, ListForRent, WithdrawRental
 
+TICKS_PER_YEAR = 4  # model ticks are quarters
+
 # how hard queue congestion pushes asking rents up: ask × (1 + gain × clip(applicants per
 # listing − 1, −0.5, 3)). THE parameter that decides whether rents can outrun incomes in a
 # boom, because it is the only channel through which scarcity, rather than income, reaches
@@ -49,16 +51,49 @@ CONGESTION_GAIN = 0.05
 def required_rent(state: WorldState, zone: ZoneType, value: float) -> float:
     """€/month a small landlord needs to keep a unit on the rental market.
 
-    Required gross yield = bond + 3–5pp spread (the spread already prices default
-    risk, investor-small §6); low-income zones add the BdE RBA risk-premium gradient.
-    Perceived-risk markup scales the spread, not the whole yield.
+    THE TOTAL-RETURN HURDLE (model-spec §7.1, phase B 2026-09-14):
+
+        r_req = V · (i_bond + π − E[g]) / (12 · (1 − c))
+
+    A landlord holds a dwelling for rent AND for what it will be worth. The required *total*
+    return is the bond plus a risk premium; whatever the price is expected to deliver on its
+    own is return the rent does not have to produce. The rent yield is therefore the residual,
+    grossed up for the costs that never reach the landlord's pocket.
+
+    What changed and why it matters: the old form was
+
+        required yield = bond + spread
+
+    with `spread` fitted to reproduce the observed 5.2 / 7.0 / 8.0 zone ladder. That pins the
+    yield to its own target, so the model could only ever return the ladder it was handed
+    (spec §2, finding 3), and `ZoneConfig.gross_yield` was an input pretending to be a
+    prediction. With E[g] in the expression the yield becomes an OUTPUT: it compresses when
+    appreciation is expected and widens when it is not, which is the one observable that says
+    whether this rule is right (model-spec §9 targets 9 and 10).
+
+    π is split into a measured prime spread and a declared small-landlord premium — see
+    `MarketConfig`; reusing the old 2pp would have re-pinned the yield under a new name,
+    because that 2pp *was* the observed yield minus the bond.
+
+    E[g] is the zone's expected price growth, annualised. It is the landlord's own
+    expectation, formed by the same EWMA the buyers use, so a boom is self-reinforcing on the
+    sale side and self-limiting on the rent side — which is the asymmetry the compression
+    target tests. Floored so a boom cannot produce a negative rent.
     """
     cfg = state.config
-    spread = cfg.market.landlord_required_spread
+    mk = cfg.market
+    pi = mk.prime_risk_spread + mk.small_landlord_premium
     if zone is not ZoneType.TENSIONED:
-        spread += cfg.market.landlord_zone_risk_premium  # BdE RBA gradient
-    risk_scaling = 1.0 + cfg.market.default_rate * (cfg.market.perceived_risk_markup - 1.0)
-    return value * (state.macro.bond_yield + spread * risk_scaling) / 12.0
+        pi += mk.landlord_zone_risk_premium  # BdE RBA gradient
+    # perceived default risk scales the PREMIUM, not the bond and not the whole yield: a
+    # landlord does not demand a higher risk-free rate, only more compensation for the risk
+    risk_scaling = 1.0 + mk.default_rate * (mk.perceived_risk_markup - 1.0)
+    expected_growth = TICKS_PER_YEAR * state.zones[zone].expected_price_growth
+    required_yield = max(
+        mk.min_required_yield,
+        state.macro.bond_yield + pi * risk_scaling - expected_growth,
+    )
+    return value * required_yield / (12.0 * (1.0 - mk.landlord_cost_share))
 
 
 def cap_level(state: WorldState, zone: ZoneType, quality: float) -> float | None:

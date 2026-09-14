@@ -322,9 +322,68 @@ class MarketConfig:
     # notary/registry etc., fraction of price, on top of ITP [Fotocasa triangulated — high]
     buyer_fees: float = 0.02
     # required gross yield over bond in the tensioned zone — observed spread there is
-    # ~2pp (yield 4.7–5.6 vs bond ~3); appreciation expectations substitute for yield
-    # [idealista/BdE RBA structure, investor-small §6 — medium]
-    landlord_required_spread: float = 0.02
+    # --- §7.1 total-return hurdle (phase B, 2026-09-14) -----------------------------------
+    # The landlord's required RENT yield is what is left of a required TOTAL return once
+    # expected appreciation is taken out, grossed up for the costs that never reach the
+    # landlord's pocket:
+    #
+    #     r_req = V · (i_bond + π − E[g]) / (12 · (1 − c))
+    #
+    # This is what makes the rental yield an OUTPUT. The old form pinned it: required yield =
+    # bond + a spread fitted to the observed ladder, so the model could only ever reproduce
+    # the yield it was given (spec §2, finding 3). Its own comment conceded the mechanism —
+    # "appreciation expectations substitute for yield" — without implementing it.
+    #
+    # π is split because only one half of it is measured, and fusing them would hide that.
+    #
+    # MEASURED. Prime residential yield against the sovereign: CBRE Q1-2026 Madrid 3.8% /
+    # Barcelona 4.0% against BdE's 10-year bond at 3.546% (Mar 2026, series `D_G0B1F0ZP`)
+    # ⇒ ≈ +25bp / +45bp. A point, not a series — no free historical prime-yield series exists
+    # (HTTP 403 on cbre.es and en.savills.es), so π is a constant with a zone gradient and
+    # NOT a cyclical term. Claiming a cyclical π would be claiming a series nobody publishes.
+    prime_risk_spread: float = 0.0035
+    # FITTED, and the one free parameter of §7.1 — declared rather than buried. What a small
+    # Spanish landlord demands over an institution holding prime multifamily: illiquidity, no
+    # diversification across tenants, and the eviction timeline. There is no independent
+    # estimate of it; the old `landlord_required_spread = 0.02` was the observed yield minus
+    # the bond, which is the quantity the hurdle is supposed to PREDICT, so reusing it would
+    # re-pin the yield under a new name. Identified instead by target 10: with E[g] in the
+    # formula the boom must compress the yield, and the size of that compression constrains
+    # this in a way a level fit cannot.
+    small_landlord_premium: float = 0.033
+    small_landlord_premium_range: tuple[float, float] = (0.025, 0.055)
+    # Operating costs as a share of gross rent, PRE-TAX, VACANCY EXCLUDED. Central 0.22 of a
+    # sourced 0.20–0.24 [AEAT cuenta de resultados del arrendamiento, FY2019–FY2024, selector
+    # `Vivienda habitual = Sí`]. Inside: comunidad, IBI, insurance, maintenance, management.
+    #
+    # NOT `1 − net/gross`, which is 41–45%: 15–18pp of that is the statutory 3%/yr building
+    # depreciation (art. 23.1.b LIRPF) and 1.4–4.2pp is mortgage interest. Both must stay out
+    # — depreciation double-counts E[g], interest double-counts the financing leg of
+    # `i_bond + π`.
+    #
+    # VACANCY IS EXCLUDED ON PURPOSE. AEAT's unit is the *vivienda equivalente* = ownership
+    # share × days in that use, so both sides are per euro actually received. The model
+    # already generates vacancy in `market/clearing.py`; folding the sourced 0.24–0.30
+    # vacancy-inclusive figure in here would charge it twice. The same source measures the
+    # missing piece if it is ever wanted explicitly: *días de alquiler medios* 347/365 (2024),
+    # Barcelona 352 / Madrid 351 / Teruel 339 / Extremadura 338.
+    #
+    # NO ZONE GRADIENT, deliberately, and this is counter-intuitive: `c` falls with rent
+    # level, not with urbanity. Madrid sits near the TOP of the CCAA spread (26.3%, on a
+    # 10.95% comunidad charge) and Balears at the bottom (18.8%). The legitimate zone
+    # difference is in vacancy, not in cost.
+    #
+    # QUALIFICATION, carried in docs/validation.md: every quantified figure for this traces
+    # back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so it rests on
+    # ONE institutional source against this project's ≥2 rule. DO 2432 also states 2pp off a
+    # ~5.5% RBA ⇒ ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same
+    # object while citing it; recorded unresolved, and neither figure IS `c`.
+    landlord_cost_share: float = 0.22
+    landlord_cost_share_range: tuple[float, float] = (0.20, 0.24)
+    # Floor on the required rent YIELD once appreciation is netted off. Without it a boom in
+    # which E[g] exceeds i_bond + π drives the required rent to zero and then negative: real
+    # in the sense that people do buy for capital gain alone, nonsense as a rent. [guess]
+    min_required_yield: float = 0.005
     # extra spread outside tensioned metros, range .01–.02: reproduces the observed
     # 5.2 / 7.0 / 8.0 zone yield ladder [BdE RBA gradient — medium]
     landlord_zone_risk_premium: float = 0.015

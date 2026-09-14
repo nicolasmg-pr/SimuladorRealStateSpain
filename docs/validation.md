@@ -543,6 +543,62 @@ a *declared tensioned zone* renting at 27.1%, plus Tres Cantos, Sitges and Pozue
 enters TENSIONED on size alone. A functional-urban-area cut would fix it. The MIVAU *Áreas
 Urbanas* list and a municipal DEGURBA classification are the two highest-value gaps remaining.
 
+## Phase-B §7.1: the total-return hurdle (2026-09-14)
+
+`agents/landlord.required_rent` becomes
+
+    r_req = V · (i_bond + π − E[g]) / (12 · (1 − c))
+
+The old form was `required yield = bond + spread` with the spread fitted to reproduce the
+observed zone ladder — the yield pinned to its own target (spec §2, finding 3). With E[g] in
+the expression it is an **output**.
+
+**π is split, because only half of it is measured.** `prime_risk_spread = 0.0035` is CBRE's
+Q1-2026 prime residential yield against BdE's 10-year bond (Madrid +25 bp, Barcelona +45 bp);
+`small_landlord_premium = 0.033` is **the one free parameter of §7.1, declared rather than
+buried**. The old 2 pp spread could not be reused: it *was* the observed yield minus the bond,
+i.e. the quantity the hurdle is meant to predict.
+
+**`c = 0.22`** of a sourced 0.20–0.24 [AEAT *cuenta de resultados del arrendamiento*,
+FY2019–FY2024, `Vivienda habitual = Sí`], pre-tax, **vacancy excluded** — AEAT's unit is the
+*vivienda equivalente* (ownership share × days in that use), and the model already generates
+vacancy, so the vacancy-inclusive 0.24–0.30 would charge it twice. No zone gradient, and that
+is counter-intuitive: `c` falls with rent level, not urbanity (Madrid 26.3%, Balears 18.8%).
+
+### What it fixed
+
+| target | before §7.1 | after |
+|---|---|---|
+| 10 — boom compresses the gross yield | ✗ xfail | **passes** |
+| vacancy ladder | ✗ xfail | **passes** |
+| interior migration has gross flows both ways | ✗ xfail | **passes** |
+| national entry yield (contract basis) | 7.09% | **7.00%**, mid-band of BdE's 6.5–7.5% |
+
+Target 10 is the identifying test — the compression is the signature of the hurdle, and it is
+what the free premium is identified on rather than a level fit.
+
+### What it broke, and the single reason
+
+**The model's rents are set by the landlord's reservation, not by demand.** Lower the floor —
+which is what expected appreciation does — and the whole rent path follows it down, because
+`CONGESTION_GAIN = 0.05` is too weak for scarcity to push back. Five targets are dated strict
+xfails on that one cause: boom rent growth (now −5.4% against a +2.5% floor), the
+insider/outsider wedge (now −6.3%, sitting tenants paying more than entrants), and three
+rent-cap tests where the cap now acts as a **floor** — market rents sit below the reference
+index and the magnet pulls asks up to it.
+
+This is spec finding 2 — *"no scarcity→price channel"* — **on the rent side rather than the
+sale side**. Phase D is already scoped to add it for sales; it has to do both.
+
+### The false positive that was not allowed to stand
+
+`test_rent_cap_supply_response_reaches_monras` **passes numerically and is held xfailed
+anyway.** The dial reads −9.8% contracts at ε=0 and −21.8% at ε=2, clearing the −9% assertion
+easily. But Monràs & García-Montalvo measure −10% tenancies **at −5% rents** — a co-movement —
+and the model gives −21.8% tenancies at **+6.8% rents**: same sign on quantity, opposite sign
+on price. Letting it go green would put a number in this table that reads as evidence for a
+mechanism the model does not have.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity
