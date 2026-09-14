@@ -599,6 +599,55 @@ and the model gives −21.8% tenancies at **+6.8% rents**: same sign on quantity
 on price. Letting it go green would put a number in this table that reads as evidence for a
 mechanism the model does not have.
 
+## Phase-B §7.4: cash-buyer anchors (2026-09-14)
+
+Finding 5 — *"two cash buyers bid against the index they help set: positive feedback with no
+nominal anchor"*. Both are re-anchored.
+
+**Large investor.** `budget = price_index × U(0.95, 1.05)` becomes a capitalised bid,
+`max_bid = 12·r·(1 − c) / y_req`. Anchoring to RENT breaks the loop: rents are set in a
+different market by different agents, so the investor now has an opinion about value its own
+purchases do not manufacture, and it stops buying when prices outrun rents — which is what a
+yield hurdle is supposed to mean and what the old form could not express. `(1 − c)` nets the
+rent down, the same cost share `required_rent` grosses up by in §7.1, because both agents are
+pricing the same cash flow.
+
+**Foreign overlay.** The arrival rate was `foreign_purchase_share × recent Spanish sales` — a
+declared-exogenous demand source made a function of the market it buys into, so a domestic
+slump cut foreign arrivals mechanically and the 8% share could never be falsified because it
+was an input. It is now a constant, and the budget prices off an exogenous path (the zone's
+initial level compounded at the nominal anchor × the observed non-resident €/m² premium)
+rather than off `ZoneState.price_index`.
+
+### Effect
+
+| | before §7.4 | after |
+|---|---|---|
+| price-to-income | 9.89 (post-§7.3) / — | **7.48**, inside 7.0–8.2 |
+| national entry yield | — | **7.00%**, mid-band of BdE's 6.5–7.5% |
+| non-resident share of purchases | 8% **by construction** | **2.28%**, a prediction and wrong |
+
+**The share becoming wrong is the point.** It was an input and could not be wrong; it is now
+produced by a constant stream and can be. The cause is identified: the budget anchor compounds
+at the model's 2%/yr nominal rate while model prices grow faster, so an exogenously-anchored
+buyer loses purchasing power through the run and is progressively outbid. A wealth-indexed path
+would fix it and needs an origin-country income or wealth index, **not retrieved**.
+
+It is **not** closed by raising `foreign_arrivals_per_tick` until the share returns: that
+restores the number by fitting the flow to the target it is supposed to predict, which is the
+defect §7.4 exists to remove. Registered as a dated strict xfail
+(`test_emergent_non_resident_share_matches_registradores`), along with the non-resident
+surcharge test, whose 25% threshold is measured against a base that has itself moved.
+
+### One target closed and re-opened, which is itself the finding
+
+`test_interior_migration_has_gross_flows_both_ways` closed under §7.1 — the hurdle lowered metro
+rents enough for inbound moves to clear the friction — and re-opened under §7.4 when the
+investor and foreign anchors moved metro prices back. **That it can be closed and re-opened by
+unrelated price-side changes is the evidence that it was being held shut by a coincidence rather
+than by a mechanism.** The underlying deficiency is unchanged: the only pull toward the metro is
+the income ratio, and what is missing is where the job is.
+
 ## Config guards — not validation targets (moved 2026-09-12)
 
 Two rows used to sit in the table above with a ✓: the zone-weighted national supply elasticity

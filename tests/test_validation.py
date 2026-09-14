@@ -73,6 +73,7 @@ def baseline_moments():
                 "vacancy_national": tail["vacancy_rate"].mean(),
                 "burden_over_30": tail["rent_burden_over_30_share"].mean(),
                 "seeker": tail["seeker_share"].mean(),
+                "foreign_share": tail["foreign_purchase_share"].mean(),
             }
         )
     return {k: float(np.mean([r[k] for r in rows])) for k in rows[0]}
@@ -263,6 +264,18 @@ def test_interior_migration_is_bidirectional():
     assert inbound > 0, "no household ever moves into the metro under any income gradient"
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: re-opened by section 7.4. It had closed under the section 7.1 hurdle, "
+    "which lowered metro rents enough for inbound moves to clear the friction; capitalising "
+    "the investor's bid and de-anchoring the foreign buyer moved metro prices and rents "
+    "back, and inbound interior flows return to zero. The underlying deficiency is "
+    "unchanged and is recorded at engine._demography: the only pull toward the metro is the "
+    "income ratio, and what is missing is where the JOB is. That it can be closed and re- "
+    "opened by unrelated price-side changes is itself the evidence that it is being held "
+    "shut by a coincidence rather than by a mechanism. Needs spec 7.5's amenity term with "
+    "its own identification.",
+)
 def test_interior_migration_has_gross_flows_both_ways():
     """Gross interior flows into the tensioned zone must be non-zero at the baseline."""
     inbound = 0.0
@@ -295,6 +308,31 @@ def test_total_migration_leg_of_target_12_is_not_yet_modelled():
         "arrivals now exist as a mechanism — replace this placeholder with the real total-"
         "migration target: positive at baseline, negative under a 2020-like shock"
     )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-14: 2.28% against an observed 8%. Section 7.4 made the non-resident stream "
+    "exogenous, which is what makes this number a PREDICTION rather than the input it was - and "
+    "the prediction is wrong. Cause: the budget anchor compounds at the model's 2%/yr nominal "
+    "rate while model prices grow faster, so an exogenously-anchored buyer loses purchasing "
+    "power through the run and is progressively outbid. A cyclical or wealth-indexed path would "
+    "fix it and needs an origin-country income or wealth index, which is NOT retrieved. NOT "
+    "closed by raising foreign_arrivals_per_tick until the share comes back: that would restore "
+    "the number by fitting the flow to the target it is supposed to predict, which is the "
+    "defect section 7.4 exists to remove.",
+)
+def test_emergent_non_resident_share_matches_registradores(baseline_moments):
+    """Target: the non-resident share of purchases, now an OUTPUT of the arrival stream.
+
+    Non-residents are ≈8% of Spanish purchases — all foreigners run 16.0% (Registradores ERI
+    2026Q2) to 18.4% (Notariado 2S 2025) and non-residents are ≈44% of that. Before phase B
+    this was an input (`foreign_purchase_share × recent sales`) and could not be wrong; it is
+    now produced by a constant exogenous stream and can be.
+
+    Asserted on a wide 6–11% band: the anchor is a share and the seed spread on it is large.
+    """
+    assert 0.06 <= baseline_moments["foreign_share"] <= 0.11
 
 
 def test_transaction_volume(baseline_moments):

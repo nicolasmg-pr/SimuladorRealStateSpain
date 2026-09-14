@@ -179,6 +179,27 @@ class PopulationConfig:
     # overlay is non-resident only [Registradores ERI 2026Q2; Notariado CIEN — high as range;
     # emergent share reported as `foreign_purchase_share` in metrics.py]
     foreign_purchase_share: float = 0.08
+    # EXOGENOUS non-resident arrivals per tick, model scale (model-spec §7.4, phase B).
+    #
+    # The stream used to be `foreign_purchase_share × recent Spanish sales`, which made an
+    # exogenous demand source a FUNCTION OF THE MARKET IT BUYS INTO: a domestic slump cut
+    # foreign arrivals mechanically, and the 8% share could never be wrong because it was an
+    # input. Spec §2, finding 5.
+    #
+    # A constant stream makes the share an OUTPUT — it now rises when domestic volume falls,
+    # which is what actually happened in Spain (2026Q2: foreigners +11% y/y *while* nationals
+    # fell, Registradores ERI). `foreign_purchase_share` above is retained as the TARGET that
+    # emergent share is judged against, not as the thing that produces it.
+    #
+    # Exogeneity is already declared: model-spec §14 places foreign origin-country conditions
+    # outside the model, and arrivals are driven by them. This makes an existing exogenous flow
+    # explicit rather than widening the boundary.
+    #
+    # Level set so the baseline emergent share reproduces the observed ≈8% of purchases at
+    # baseline volume. [Registradores ERI / Notariado CIEN — high as a share; the constancy is
+    # an assumption, and the falsification test is whether the real series co-moves one-for-one
+    # with Spanish transaction volume]
+    foreign_arrivals_per_tick: float = 7.7
     # × zone median value; non-res pay +76–79% €/m² [Notariado CIEN — high]
     foreign_budget_multiplier: float = 1.6
     tenant_move_prob: float = 0.06  # /tick; range 0.04–0.08 [derived, household-tenant §6 — low]

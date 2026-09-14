@@ -610,14 +610,20 @@ class Engine:
                 case SetCredit():
                     bundle.credit = intent
 
-        # foreign non-resident overlay (exogenous demand stream, model-spec §3)
+        # Foreign non-resident overlay (model-spec §3, §7.4).
+        #
+        # PHASE B: the arrival rate is a constant, not a share of recent Spanish sales. It used
+        # to read `foreign_purchase_share × recent sales`, which made a declared-exogenous
+        # demand source a function of the market it buys into — a domestic slump cut foreign
+        # arrivals mechanically, and the 8% share could never be falsified because it was an
+        # input (spec §2, finding 5). With a constant stream the share is an OUTPUT and rises
+        # when domestic volume falls, which is what Spain actually shows (2026Q2: foreigners
+        # +11% y/y while nationals fell).
         cfg = state.config
-        recent = sum(state.tick_events.get("sales_by_zone", {}).values())
-        lam = cfg.population.foreign_purchase_share * max(recent, 3)
+        lam = cfg.population.foreign_arrivals_per_tick
         for zcfg in cfg.zones:
             if not zcfg.foreign_overlay:
                 continue
-            zs = state.zones[zcfg.zone]
             # transaction-tax wedge for a cash buyer: the baseline rate is already inside the
             # observed premium, so only a CHANGE (general delta or the non-resident surcharge)
             # moves the budget [model-spec §8, transaction-tax.md §5]
@@ -629,7 +635,18 @@ class Engine:
                     MakeOffer(
                         agent_id=FOREIGN_ID,
                         zone=zcfg.zone,
-                        budget=zs.price_index
+                        # Budget on an EXOGENOUS path, not on the domestic index. The old form
+                        # multiplied `zs.price_index`, so a cash buyer big enough to move the
+                        # index bid a multiple of the index it moved — the same unanchored
+                        # feedback the large investor had. The anchor is now the zone's INITIAL
+                        # price level carried forward at the model's nominal growth anchor,
+                        # times the observed non-resident €/m² premium (3,063 vs 1,713 €/m²,
+                        # Notariado CIEN). Origin-country conditions are declared exogenous
+                        # (model-spec §14), so a path that does not read the Spanish index is
+                        # the honest form; a cyclical one would need an origin-country income
+                        # index, which is NOT retrieved, so the path is the nominal anchor and
+                        # says so.
+                        budget=self._foreign_anchor(state, zcfg)
                         * cfg.population.foreign_budget_multiplier
                         * float(self.market_rng.uniform(0.8, 1.2))
                         * wedge,
@@ -637,6 +654,17 @@ class Engine:
                     )
                 )
         return bundle
+
+    def _foreign_anchor(self, state: WorldState, zcfg) -> float:
+        """Exogenous €-level a non-resident buyer prices off, model-spec §7.4.
+
+        The zone's INITIAL price level compounded at the nominal anchor. It deliberately never
+        reads `ZoneState.price_index`: the whole point is that this buyer's willingness to pay
+        is formed abroad and does not respond to what Spanish prices have done, so the model
+        can be asked whether foreign demand is propping prices up rather than assuming it.
+        """
+        base = state.config.stock.median_value * zcfg.price_multiplier
+        return base * (1.0 + state.config.market.long_run_growth) ** state.tick
 
     # -- 5 ------------------------------------------------------------------
 
