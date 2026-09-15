@@ -2298,6 +2298,180 @@ Defects found and fixed. Each was verified by measurement before and after, not 
   unresolved, and the project standard requires ≥2 independent sources per behavioural rule.
   Inventing an elasticity here would have manufactured the result.
 
+## Phase G — the valuation anchor and the sourced `overbid_sigma` (2026-09-15)
+
+Branch `source-overbid-sigma`. The KB-refresh audit named this the highest-value evidence work
+left on the model. It was, and not for the reason the audit gave.
+
+### What the parameter is, and what the evidence says
+
+`overbid_sigma` has been idiosyncratic taste since phase D, and the counterpart of that is
+exact: the dispersion of log sale prices for the same dwelling, net of location × period.
+Three independent studies measure it (`sources.md`, five new rows):
+
+| Source | Data | Per-sale dispersion |
+|---|---|---|
+| Kotova & Zhang | US zipcodes 2012–16, house + zipcode-month fixed effects | mean **16.8%**, p10 11.2, p90 22.6 |
+| Giacoletti, *RFS* 34(8) 2021 | California resales 1989–2013 | **6.8–12.4%** |
+| Landvoigt, Piazzesi & Schneider, *AER* 2015 | San Diego 1999–2007 | **6.2–9.8%** |
+| BdE DO 2508 (2025) | 1,032,960 Spanish sales, census-section × quarter FE, R² 85.70% | bounds the *share*, not the level |
+
+The last two publish RETURN dispersions, which carry the error twice; the per-sale figures
+above are theirs ÷ √2. **Band adopted 6–17%, central 10%** (§9 target 16, `metrics.price_dispersion`).
+
+**No Spanish estimate exists.** INE's IPV estimates residual variances by category and
+publishes none; the Registradores' IPVVR runs Calhoun's three-stage weighting on **1,274,958
+sale pairs** — whose variance function *is* this quantity — and publishes only the index.
+Registered as a negative result rather than filled with a guess.
+
+The model measured **2.3%**.
+
+### Raising it moved the level, not the dispersion
+
+| σ | dispersion | price-to-income | discount | sold in the quarter |
+|---|---|---|---|---|
+| 0.02 (shipped) | 2.3% | 7.81 | 3.1% | 0.48 |
+| 0.10 | 6.0% | 9.53 | 1.0% | 0.40 |
+| 0.30 | 9.2% | 10.01 | 0.9% | 0.39 |
+
+Two candidate causes were prototyped and **refuted**, and both are kept because they bound the
+mechanism: correcting each price by the expected order statistic of its own auction (κ(n), then
+κ(n, m)) made the level worse and then absurd, because the realised price is clipped by the
+budget, the reserve and the ask; and a user-cost ceiling never binds, sitting at ≈40 years of
+rent against a price of ≈15.
+
+The cause is that `value = price_index × quality × taste` has no nominal anchor and the index
+is the median of *winning* prices. The selection premium was capitalised every tick. At σ=0.02
+the loop is invisible; at the measured σ it runs to the credit ceiling.
+
+### §5c.6, and the bill it presented
+
+Two indices: `price_index` stays realised (reported, expectations, the landlord hurdle);
+`valuation_index` reprices each sale at an average taste draw by running the same auction twice
+through the same rule. Level becomes σ-invariant — 6.38 / 6.40 / 6.44 across σ = 0.02 / 0.15 /
+0.30 — and the suite goes red by seven, because the old calibration was absorbing the premium.
+
+Then the diagnostic that decided the rest of the phase. The same supply experiment, before and
+after (3 seeds, 60 ticks):
+
+| starts/tick | before, p/inc | growth | after §5c.6 | growth |
+|---|---|---|---|---|
+| 8 | 8.56 | +4.24%/yr | 6.69 | +1.31%/yr |
+| 20 | 7.19 | +2.25%/yr | 6.51 | +1.13%/yr |
+
+**Phase D's scarcity-to-price channel was the taste order statistic.** Halving construction
+used to add 2.0pp to annual price growth and now adds 0.18pp; the bidder count moved (4.0 →
+5.8) and the price did not follow. Finding 2 of the redesign spec re-opens here.
+
+### §5c.7 — the channel, rebuilt on budgets
+
+`stretch = t/(t+k)` on the gap between the dwelling's worth and the buyer's credit limit, with
+`t` the buyers per listing. Scarcity now reaches the price through income, LTV and DSTI. The
+supply experiment recovers: p/inc +2.2 to +3.0 and growth +2.1 to +2.8pp across the same
+starts range, against the old model's +1.37 and +2.0pp.
+
+### The refit
+
+LHS over five parameters (96 points), then six (128 points) once §5c.7 existed, two seeds each,
+scored on dispersion / discount / above-ask / time-to-sale with the §9 gates as weighted guard
+rails; then focused grids. Shipped:
+
+| parameter | was | now | identified on |
+|---|---|---|---|
+| `overbid_sigma` | 0.02 | **0.20** | the sourced 6–17% dispersion band (delivers 8.0%) |
+| `tightness_half_saturation` | — | **260** | the price-income wedge; searched 4–1400 |
+| `ask_markup` | 0.08 | **0.12** | the realised discount, at the top of its sourced range |
+| `seller_bargaining_power` | 0.85 | **0.25** | arithmetic: a one-bidder price θ of the way from reserve to ask gives a discount of (1−θ)·d, so 0.85 could not reach 6.2% at any markup |
+| `search_listings` | 2 | **1** | see the frontier below |
+| `buy_attempt_prob` | 0.50 | **0.64** | transaction volume; top of its guessed range, declared |
+
+Ten-seed suite: **no failures**, and the level is σ-invariant over the sourced band (p/inc 8.09
+/ 8.14 / 8.28 at σ = 0.10 / 0.20 / 0.30). Below σ ≈ 0.05 it is not — p/inc 5.19 at σ = 0.01 —
+and that is recorded rather than hidden: the model is not meant to run there.
+
+### The frontier, and the four regressions
+
+`search_listings` buys one sourced observable with another, and no third setting escapes it:
+
+| | price-to-income | discount | sales above ask | boom rent |
+|---|---|---|---|---|
+| m=1, k=260 (shipped) | 8.07 | 3.9% | 20% | +1.2%/yr |
+| m=2, k=1400 | 8.07 | 2.0% | 39% | +4.2%/yr |
+| m=2, k=1000, markup 0.16 | 8.96 | 3.4% | 24% | +4.2%/yr |
+
+Fotocasa puts sales above ask at 9% of negotiating sellers; the Tecnocasa discount is 6.2%; the
+boom's sourced rent leg is +8–11%/yr. m=1 keeps two of the three closer and loses the third.
+
+Four tests are now **strict xfails labelled as phase-G regressions**, each with the diagnosis in
+its reason string rather than a widened band:
+
+1. **Boom rent growth** +1.17%/yr against a +2.5% gate — the frontier above.
+2. **Wider search no longer slows the market** (m=6 sells 37.3% inside the quarter against
+   m=1's 34.7%, where phase D swept 75% → 21%). The old ordering was produced by the same
+   selection §5c.6 removed; §5c.2 needs rewriting against the days-on-market distribution.
+3. **The rent cap's rent leg** reads −21% against −4…−6%, and is now *mechanical*: identical at
+   hazard 0.3 / 0.5 / 0.7 and at elasticity 0 / 1 / 2. What moved is the distance between market
+   rents and the reference index, which updates at 0.1/tick behind them. A reference-rent
+   specification question.
+4. **Loss aversion deepens the fall** (−69.7% against −66.9%) instead of cushioning it, because
+   §5c.6 moved θ to 0.25, so a one-bidder sale prices near the reserve and a higher ask now only
+   withholds the dwelling. Closing it means the reserve, not the ask, carrying §5d.1.
+
+### Sobol after phase G (2026-09-15) — 390 + 1,536 evaluations
+
+Morris first, 10 trajectories over the 39 free parameters, then Saltelli on the eight
+survivors plus the two parameters this phase owns. The runner now takes `--jobs`; the design is
+evaluated in a process pool and the numbers do not depend on it (every point is a deterministic
+run of its own config at the one fixed seed).
+
+**`overbid_sigma` is out of the screening entirely** — it does not reach the Morris top eight
+on any moment. Total-order indices on the moments that matter:
+
+| Moment | CV | first | second | third | `overbid_sigma` | `tightness_half_saturation` |
+|---|---|---|---|---|---|---|
+| price-to-income | 0.092 | `ask_markup` 0.42 | `price_index_smoothing` 0.26 | `momentum_gain` 0.24 | **0.057** | 0.041 |
+| purchase effort | 0.092 | `ask_markup` 0.42 | `price_index_smoothing` 0.26 | `momentum_gain` 0.24 | **0.057** | 0.041 |
+| transactions | 0.123 | `ask_markup` 0.68 | `momentum_gain` 0.18 | `price_index_smoothing` 0.18 | 0.050 | — |
+| rent level | 0.157 | `small_landlord_premium` 0.68 | `ask_markup` 0.35 | `price_index_smoothing` 0.16 | 0.130 | 0.134 |
+| tensioned market vacancy | 0.405 | `small_landlord_premium` 0.93 | `momentum_gain` 0.17 | `ask_markup` 0.15 | 0.103 | 0.100 |
+| rent overburden | 0.041 | `small_landlord_premium` 0.69 | `ask_markup` 0.64 | `price_index_smoothing` 0.56 | 0.374 | 0.402 |
+| arrears | 0.177 | **`essential_share` 0.96** | `ask_markup` 0.10 | `overbid_sigma` 0.08 | 0.083 | — |
+| ownership | 0.0067 | flat across the design, not decomposed | | | | |
+
+Phase E put 26% of the price level's variance on `overbid_sigma` and called that the reason the
+level could not be reported as a magnitude. It is now **5.7%**, and the parameter is sourced
+besides. The phase did what it was for.
+
+**The variance rule (§13.2), applied as written and not adjusted after seeing the numbers.**
+The verdict does not change — two magnitudes, everything else direction-only — but the reason
+does, and that is the useful part:
+
+| Quantity | Largest assumed share | After the rule |
+|---|---|---|
+| Price level, price-to-income, purchase effort | `ask_markup` 0.42 | direction only |
+| Transactions | `ask_markup` 0.68 | direction only |
+| Rent level, overburden, tensioned vacancy | `small_landlord_premium` 0.68–0.93 | direction only |
+| Cash-purchase share, zone price ratio, completion ratio, foreclosure rate | assumed shares 0.29–0.78 | direction only |
+| Arrears | largest assumed below 0.10; the 0.96 is a measured band | magnitude, conditional on the essential-consumption band |
+| Ownership rate | flat | magnitude |
+
+**The evidence queue is therefore rewritten.** The KB refresh named `overbid_sigma` and
+`landlord_required_spread` as the two highest-value measurements. Both are closed — one
+measured here, one split into sourced parts in phase B — and what now blocks every price-like
+magnitude is, in order: `ask_markup` (assumed that sellers post a markup; the 6.2% realised
+margin is measured, the posting convention is not), `price_index_smoothing` (a guess, and not
+yet a row in `assumptions.md`), and `small_landlord_premium` (declared fitted, §7.1's one free
+parameter). None of them is the dispersion parameter this phase spent its time on, which is how
+a variance rule is supposed to work.
+
+### What this phase did not do
+
+Sobol **has** been re-run (above). What the phase did not do: close the four regressions,
+re-identify the rent-cap block against the new price side, or source `ask_markup` and
+`price_index_smoothing`, which is where the variance rule now points. The 2008–13 episode is spent
+(§13.11) and was not touched. The four regressions are open, and three of them are
+specification questions rather than calibration ones.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

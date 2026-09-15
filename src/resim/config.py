@@ -235,8 +235,10 @@ class PopulationConfig:
     # max of accepted rent/income screening [household-tenant §6 — medium]
     max_rent_burden_hi: float = 0.40
     # /tick, prob a constraint-passing tenant/seeker tries to buy; the credit screen does the
-    # rationing [guess; calibrated]
-    buy_attempt_prob: float = 0.50
+    # rationing [guess; calibrated — 0.64 of a searched 0.35–0.65 at the phase-G refit, which
+    # is the top of its range and is declared as such: it carries transaction volume, and the
+    # phase-G block clears fewer sales per tick than the one it replaced]
+    buy_attempt_prob: float = 0.64
     # € initial wealth of new households incl. family transfers (30–40% of FTBs get help,
     # household-owner §6) [guess]
     seeker_wealth_median: float = 15_000.0
@@ -374,14 +376,43 @@ class MarketConfig:
     # like this dwelling — applied to the value they put on it, which is a real friction that
     # cannot set the level on its own. Whether it stays under the 25% variance threshold is
     # phase E's Sobol question [guess; range 0.02–0.06]
-    overbid_sigma: float = 0.02
+    # MEASURED as of phase G (2026-09-15), where it was a guess: the idiosyncratic
+    # per-sale dispersion of log sale prices is 6–17% [Kotova & Zhang, US zipcodes
+    # 2012–16, house fixed effects, mean 16.8%; Giacoletti RFS 2021, 6.8–12.4%;
+    # Landvoigt-Piazzesi-Schneider AER 2015, 6.2–9.8% — the last two published as
+    # RETURN dispersions, which carry the error twice]. No Spanish estimate is
+    # published; the absence is a registered row in docs/sources.md. This parameter is
+    # the taste sd that DELIVERS that dispersion once the auction, the budget cap and
+    # the ask have had their say — 0.20 gives 8.0% against the sourced band (§9 target
+    # 16). It no longer moves the price level: §5c.6 separated the two
+    overbid_sigma: float = 0.20
+    # --- §5c.7 market tightness in the bid (phase G, 2026-09-15) ---------------------------
+    # Buyers per listing at which a buyer bids HALFWAY between what the dwelling is worth to
+    # an average buyer and the most its credit line allows. The mechanism is the option value
+    # of carrying on searching: in a slack market losing an auction costs a week, so nobody
+    # stretches; in a tight one losing costs a year, so buyers bid toward their limit and the
+    # market clears against the BUDGET distribution — which is income and credit, both
+    # sourced, rather than a taste draw. Phase G exists because the channel that used to do
+    # this was the taste order statistic being capitalised into the anchor (§5c.6): with the
+    # anchor fixed, halving construction moved price growth by 0.18pp/yr where the old model
+    # moved it by 2.0pp. REDUCED FORM, identified on the 2014–25 price-income wedge and on
+    # the cross-zone price ratio (fitted 2026-09-15: 260 against a searched 4–320, so the
+    # stretch is small per tick — ≈5% of the gap to the credit limit at the model's own
+    # buyers-per-listing — and works by compounding into the anchor, bounded by budgets)
+    tightness_half_saturation: float = 260.0
     # How many affordable listings a buyer actually looks at before bidding. Reduced form,
     # identified against two observables the model did not use before: the days-on-market
     # distribution [idealista/data 2T 2026 — 26% inside a month, 53% inside a quarter, 89%
     # inside a year] and bidders per dwelling [Tecnocasa: seven interested parties, double
     # two years earlier]. m = 1 is the pre-phase-D model, and it produced bidding wars for
     # the wrong reason: buyers did not look [range 1–10]
-    search_listings: int = 2
+    # Phase G refit: 1. Phase D set this to 2 arguing that m = 1 "produced bidding wars for
+    # the wrong reason: buyers did not look". Under the taste-neutral anchor the opposite
+    # holds — m = 2 concentrates bids on the same well-priced listings and pushes sales above
+    # the ask to 31–39% against 20% at m = 1, while costing price-to-income (8.9 vs 8.1). The
+    # two observables m was identified on still pass at m = 1 (3.4 bids per listing against
+    # Tecnocasa's ≤7; 46% sold inside the quarter against idealista's 43–63%)
+    search_listings: int = 1
     search_listings_range: tuple[int, int] = (1, 10)
     # What an ordinary seller posts ABOVE what it expects to get. Spanish sellers build the
     # negotiation margin into the ask — the practitioner rule of thumb is 15–20% over the
@@ -390,7 +421,7 @@ class MarketConfig:
     # number: the markup is the posting convention, and the discount that comes out of it is
     # an OUTCOME of competition, not an input — high in a slack market, negative (sales above
     # ask) when several buyers converge on one listing [range 0.04–0.12]
-    ask_markup: float = 0.08
+    ask_markup: float = 0.12
     # --- §5d.1 nominal loss aversion (2026-09-15) -----------------------------------------
     # A seller facing a nominal loss asks for a fraction of that loss back. MEASURED, and by
     # the canonical study: Genesove & Mayer (QJE 2001) find asking prices 25–35% of the gap
@@ -410,8 +441,14 @@ class MarketConfig:
     # Seller's share of the surplus when there is only ONE bidder and the price is a bilateral
     # negotiation rather than an auction. The block's one free parameter, declared reduced
     # form and calibrated so the realised discount reproduces the measured 6.2% mean; the
-    # SHAPE of the discount distribution is then a prediction, not an input
-    seller_bargaining_power: float = 0.85
+    # SHAPE of the discount distribution is then a prediction, not an input.
+    #
+    # Phase G (2026-09-15) moved it 0.85 → 0.25, and the arithmetic says why it had to. With
+    # the reserve floored at ask × (1 − d), d ∈ 0.04–0.12, a one-bidder price θ of the way
+    # from reserve to ask gives a discount of (1 − θ)·d ≈ 2.2% at θ = 0.85 — the model could
+    # not reach the sourced 6.2% at any markup, and the old value was reproducing the ask, not
+    # the negotiation. It is identified on the discount and nothing else
+    seller_bargaining_power: float = 0.25
     # Selling costs the seller must cover out of the price before the loan is repaid
     # (notary, registry, plusvalía, agency) — the reserve's debt leg is debt + this
     # [guess, order of magnitude from buyer_fees]

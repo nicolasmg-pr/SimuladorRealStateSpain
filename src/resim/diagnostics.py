@@ -272,6 +272,25 @@ CRITERIA: tuple[Criterion, ...] = (
         "así que «dentro del trimestre» es `== 0`, no `<= 1`.",
     ),
     Criterion(
+        key="price_dispersion",
+        target="16",
+        label="Dispersión idiosincrásica del precio de venta",
+        measure=lambda f: _tail_mean(f, "price_dispersion"),
+        band=(0.06, 0.17),
+        sourced="6–17% por venta (central 10%)",
+        fmt=".1%",
+        registered=Registered.GATED,
+        source="Kotova & Zhang (códigos postales EE.UU. 2012–16, efectos fijos de vivienda, "
+        "media 16,8%); Giacoletti, RFS 2021 (6,8–12,4%); Landvoigt-Piazzesi-Schneider, AER "
+        "2015 (6,2–9,8%). No existe estimación española publicada: el INE y los Registradores "
+        "calculan la magnitud y publican sólo el índice",
+        reads="Es contra lo que se identifica `overbid_sigma`, que hasta la fase G era una "
+        "conjetura. Mide la desviación típica del log del precio de venta una vez quitados "
+        "zona × trimestre y la calidad observable.",
+        note="El modelo leía **2,3%** antes de la fase G y lee 8,0% después. Subir el "
+        "parámetro movía el NIVEL y no la dispersión hasta que §5c.6 separó los dos índices.",
+    ),
+    Criterion(
         key="sale_discount_median",
         target="13c",
         label="Margen de negociación (oferta → cierre)",
@@ -283,11 +302,14 @@ CRITERIA: tuple[Criterion, ...] = (
         source="Cátedra Tecnocasa-UPF (2S 2025); Fotocasa, Experiencia en compraventa 2024",
         reads="Es una **salida**, no una entrada: el vendedor publica con margen y la subasta "
         "decide cuánto queda de él. Por eso se gatilla.",
-        note="**Falla al nacer**: 3,0% contra 4–12%. El mercado del modelo está más "
-        "competido que el español — 3,6 pujas por anuncio y 17% de ventas por encima del "
-        "precio de salida, frente al 9% de vendedores que suben el precio en la encuesta de "
-        "Fotocasa. Cerrarlo es cuestión de la demanda (`buy_attempt_prob`, una conjetura "
-        "declarada), no de la subasta que este objetivo existe para probar.",
+        note="**Sigue fallando tras la fase G**: 3,9% contra 4–12%, desde el 3,0% con que "
+        "nació. El peso de negociación bajó de 0,85 a 0,25 porque la aritmética lo obliga "
+        "—con la reserva en `ask × (1 − d)`, un precio a θ del camino da un descuento de "
+        "(1−θ)·d— y aun así el mercado del modelo está más competido que el español: 20% de "
+        "ventas por encima del precio de salida frente al 9% de vendedores que lo suben en "
+        "la encuesta de Fotocasa. Es una frontera medida, no un ajuste pendiente: con "
+        "`search_listings`=2 el descuento cae al 2,0% y las ventas por encima del ask suben "
+        "al 39%, a cambio de la pierna de rentas del boom (docs/validation.md, fase G).",
     ),
     Criterion(
         key="arrears_share",

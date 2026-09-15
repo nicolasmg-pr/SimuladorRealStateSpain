@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
@@ -45,7 +46,10 @@ from .scenario import Scenario
 # guess. Keep this table and docs/model-spec.md §7 consistent.
 SPACE: dict[str, tuple[float, float]] = {
     "expectation_momentum": (0.5, 0.9),
-    "overbid_sigma": (0.02, 0.06),
+    # phase G: the range that delivers the sourced 6–17% per-sale dispersion
+    "overbid_sigma": (0.10, 0.35),
+    # phase G §5c.7, the scarcity channel's one free parameter
+    "tightness_half_saturation": (120.0, 1400.0),
     "ask_decay": (0.02, 0.05),
     "buy_attempt_prob": (0.35, 0.65),
     "seeker_wealth_median": (10_000.0, 20_000.0),
@@ -72,8 +76,9 @@ SPACE: dict[str, tuple[float, float]] = {
     "tenant_move_prob": (0.04, 0.08),
     # --- phase D, sale-side price formation (model-spec §5c) ------------------------------
     "search_listings": (1.0, 10.0),  # rounded to an int inside _config_for
-    "ask_markup": (0.04, 0.12),
-    "seller_bargaining_power": (0.60, 0.95),
+    "ask_markup": (0.08, 0.16),
+    # phase G: identified on the measured discount, which needs a LOW weight
+    "seller_bargaining_power": (0.15, 0.60),
     "auction_increment": (0.002, 0.010),
     "momentum_gain": (1.5, 3.5),
     "max_listing_ticks": (4.0, 8.0),
@@ -132,6 +137,7 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         cfg.market,
         expectation_momentum=x["expectation_momentum"],
         overbid_sigma=x["overbid_sigma"],
+        tightness_half_saturation=x["tightness_half_saturation"],
         ask_decay=x["ask_decay"],
         search_listings=int(round(x["search_listings"])),
         ask_markup=x["ask_markup"],
@@ -378,32 +384,71 @@ def getattr_default(name: str) -> float:
     raise KeyError(name)
 
 
-def morris(trajectories: int, seed: int, ticks: int, levels: int = 4) -> dict:
+
+def _eval_one(job: tuple[dict[str, float], int, int]) -> dict[str, float]:
+    """Pool worker: one design point. Module level because a Pool must pickle it."""
+    point, seed, ticks = job
+    return evaluate(point, seed, ticks)
+
+
+def _eval_many(
+    points: list[dict[str, float]], seed: int, ticks: int, jobs: int
+) -> list[dict[str, float]]:
+    """Evaluate a design, in parallel when asked. Results are identical either way: every
+    point is a deterministic run of its own config at the same fixed seed (the common-random-
+    numbers rule above), so process order cannot change a number."""
+    jobs_ = max(1, jobs)
+    if jobs_ == 1:
+        return [evaluate(point, seed, ticks) for point in points]
+    with Pool(processes=jobs_) as pool:
+        return pool.map(_eval_one, [(point, seed, ticks) for point in points], chunksize=1)
+
+
+def _morris_trajectory(job: tuple[int, int, int, int, int]) -> tuple[list[list[float]], int]:
+    """One Morris trajectory, k+1 runs walked in sequence. Trajectories are independent of
+    each other, which is where the parallelism is; the walk inside one is not."""
+    index, trajectories, seed, ticks, levels = job
+    delta = levels / (2.0 * (levels - 1))
+    k = len(NAMES)
+    rng = np.random.default_rng((20260908, index))
+    point = rng.choice([0.0, 1.0 - delta], size=k)
+    previous = evaluate(scale(point), seed, ticks)
+    per_param: list[list[float]] = [[] for _ in range(k)]
+    order = rng.permutation(k)
+    effects: dict[str, list[list[float]]] = {o: [[] for _ in range(k)] for o in OUTPUTS}
+    for i in order:
+        step = delta if point[i] <= 1.0 - delta + 1e-9 else -delta
+        moved = point.copy()
+        moved[i] = float(np.clip(point[i] + step, 0.0, 1.0))
+        taken = moved[i] - point[i]
+        current = evaluate(scale(moved), seed, ticks)
+        for output in OUTPUTS:
+            effects[output][i].append((current[output] - previous[output]) / taken)
+        point, previous = moved, current
+    del per_param
+    return effects, k + 1
+
+def morris(trajectories: int, seed: int, ticks: int, levels: int = 4, jobs: int = 1) -> dict:
     """Elementary-effects screening: `trajectories` × (k+1) runs.
 
     One parameter moves per step along a random path through the grid, so each parameter gets
     `trajectories` elementary effects. Reports mu_star (mean |effect|, how much it matters) and
     sigma (spread, i.e. interaction or non-linearity).
     """
-    delta = levels / (2.0 * (levels - 1))  # 2/3 at 4 levels
     k = len(NAMES)
-    rng = np.random.default_rng(20260908)
     effects: dict[str, list[list[float]]] = {o: [[] for _ in range(k)] for o in OUTPUTS}
     evaluations = 0
-    for _ in range(trajectories):
-        point = rng.choice([0.0, 1.0 - delta], size=k)
-        previous = evaluate(scale(point), seed, ticks)
-        evaluations += 1
-        for i in rng.permutation(k):
-            step = delta if point[i] <= 1.0 - delta + 1e-9 else -delta
-            moved = point.copy()
-            moved[i] = float(np.clip(point[i] + step, 0.0, 1.0))
-            taken = moved[i] - point[i]
-            current = evaluate(scale(moved), seed, ticks)
-            evaluations += 1
-            for output in OUTPUTS:
-                effects[output][i].append((current[output] - previous[output]) / taken)
-            point, previous = moved, current
+    jobs_list = [(i, trajectories, seed, ticks, levels) for i in range(trajectories)]
+    if jobs > 1:
+        with Pool(processes=jobs) as pool:
+            walked = pool.map(_morris_trajectory, jobs_list, chunksize=1)
+    else:
+        walked = [_morris_trajectory(job) for job in jobs_list]
+    for per_trajectory, runs in walked:
+        evaluations += runs
+        for output in OUTPUTS:
+            for i in range(k):
+                effects[output][i].extend(per_trajectory[output][i])
     results = {}
     for output in OUTPUTS:
         rows = [
@@ -427,7 +472,7 @@ def morris(trajectories: int, seed: int, ticks: int, levels: int = 4) -> dict:
     }
 
 
-def sobol(params: list[str], n: int, seed: int, ticks: int) -> dict:
+def sobol(params: list[str], n: int, seed: int, ticks: int, jobs: int = 1) -> dict:
     """Saltelli first-order and total-order indices over `params`, n·(k+2) runs.
 
     Parameters outside `params` sit at their midpoint, so the indices are shares of the
@@ -448,7 +493,7 @@ def sobol(params: list[str], n: int, seed: int, ticks: int) -> dict:
         return scale(point)
 
     def run_all(matrix: np.ndarray) -> list[dict[str, float]]:
-        return [evaluate(expand(row), seed, ticks) for row in matrix]
+        return _eval_many([expand(row) for row in matrix], seed, ticks, jobs)
 
     f_a, f_b = run_all(a_sub), run_all(b_sub)
     f_ab = []
@@ -578,14 +623,17 @@ def main() -> None:
     parser.add_argument("--seeds", default="1,2,3", help="lhs only: comma-separated")
     parser.add_argument("--ticks", type=int, default=40)
     parser.add_argument("--out", type=Path, default=Path("runs"))
+    parser.add_argument(
+        "--jobs", type=int, default=1, help="processes; results do not depend on it"
+    )
     args = parser.parse_args()
 
     if args.method == "lhs":
         payload = lhs(args.n, tuple(int(s) for s in args.seeds.split(",")), args.ticks)
     elif args.method == "morris":
-        payload = morris(args.trajectories, args.seed, args.ticks)
+        payload = morris(args.trajectories, args.seed, args.ticks, jobs=args.jobs)
     else:
-        payload = sobol(args.params.split(","), args.n, args.seed, args.ticks)
+        payload = sobol(args.params.split(","), args.n, args.seed, args.ticks, jobs=args.jobs)
 
     args.out.mkdir(exist_ok=True)
     path = args.out / f"sensitivity_{args.method}_{payload['evaluations']}.json"

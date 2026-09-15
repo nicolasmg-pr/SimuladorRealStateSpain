@@ -398,6 +398,137 @@ check that says the level is being set by something real. Whether `overbid_sigma
 the 25% variance threshold is phase E's Sobol question, and the answer is reported either
 way.
 
+### 5c.6 The valuation anchor: what buyers value off, and what sellers post off (2026-09-15)
+
+Sourcing `overbid_sigma` (docs/sources.md, 2026-09-15) exposed a defect in the block phase D
+built, and the defect is more interesting than the parameter.
+
+**The parameter.** Its empirical counterpart is exact: the dispersion of log sale prices for
+the same dwelling, net of location × period. Three independent studies measure it — Kotova &
+Zhang (US zipcodes 2012–16, repeat-sales × hedonic with house fixed effects: mean **16.8%**
+per sale, p10 11.2, p90 22.6), Giacoletti (*RFS* 2021, California: **6.8–12.4%** per sale) and
+Landvoigt, Piazzesi & Schneider (*AER* 2015, San Diego: **6.2–9.8%**). Their conversions differ
+and matter: a round trip carries the error twice, so a published *return* dispersion is √2
+times the per-sale one. **Band adopted: 6–17% per sale, central 10%** (§9 target 16). No
+Spanish estimate exists — INE's IPV and the Registradores' IPVVR (Calhoun's variance function
+on 1,274,958 sale pairs) both estimate the quantity and publish only the index — and the
+absence is registered rather than papered over.
+
+**The defect.** The model measured **2.3%**, and raising the parameter did not widen the
+distribution: it moved the price level, from a price-to-income of 7.8 to 10.0, which is the
+credit ceiling. The reason is that a buyer's valuation was `price_index × quality × taste`,
+the index is the median of *winning* prices, and an auction selects its winner on a high
+draw. The selection premium was therefore capitalised into the next tick's valuations, every
+tick, with nothing nominal to stop it. At σ = 0.02 the loop was invisible; at the measured σ
+it runs until credit binds. So the parameter was not a dispersion knob that happened to move
+the level — it was holding the level down by being too small.
+
+Two candidate repairs were prototyped and **refuted** before this one was adopted, and both
+refutations are kept because they bound what the mechanism can be:
+
+- correcting each transacted price by the expected order statistic of its own auction (κ(n),
+  then κ(n, m) to include the search draw) made the level *worse* and then absurd — a
+  closed-form correction cannot know that the realised price was clipped by the budget, the
+  reserve or the ask;
+- a user-cost ceiling (transacted rent capitalised at the mortgage rate plus maintenance minus
+  expected growth) never binds: it sits at ≈ 40 years of rent against a price of ≈ 15.
+
+**The mechanism.** Two indices, kept apart on purpose:
+
+| | basis | who uses it |
+|---|---|---|
+| `ZoneState.price_index` | realised transaction prices | every reported indicator, expectations, the landlord hurdle's `V` |
+| `ZoneState.valuation_index` | the same sales **repriced at an average taste draw** | buyers' valuations, and sellers' asks |
+
+The neutral price is not a formula applied to the outcome. Each auction is run **twice**
+through the same `auction_price` rule: once with the bids as drawn, once with the same
+bidders' valuations recomputed at ε = 1, with the budget cap, the reserve, the ask and the
+bargaining weight all still binding where they bound. That is why it survives the three
+clipping mechanisms that defeated the closed-form correction, and it is carried on the
+`Trade` as `neutral_price` rather than reconstructed later.
+
+Sellers post off the neutral index too. Posting off the realised one re-opens the same loop
+through the ask, measurably: the level goes back to moving with σ (price-to-income 6.6 → 8.3 →
+9.1 across σ = 0.02 / 0.15 / 0.30).
+
+**What this buys, beyond the parameter.** The ask markup carried two numbers that could not
+both be true: the practitioner rule of thumb of **15–20% over the expected price** and the
+realised gap between ask and sale of **6.2%** [Cátedra Tecnocasa-UPF 2S 2025]. Under a neutral
+anchor the difference between them *is* the selection premium, so the model can now reproduce
+both at once, and doing so is the test of the block rather than a calibration convenience.
+
+**Falsification.** If the neutral-anchored price level still moves with `overbid_sigma` by
+more than seed noise, this section is wrong. Measured on arrival: 6.38 / 6.40 / 6.44 across
+σ = 0.02 / 0.15 / 0.30, against 7.81 / 9.53 / 10.01 before. Re-measured in the shipped block
+(with §5c.7): 8.09 / 8.14 / 8.28 across σ = 0.10 / 0.20 / 0.30 — flat over the sourced band.
+**Below the band it is not flat** (5.19 at σ = 0.01): with almost no idiosyncratic variation
+prices collapse toward the reserve. The claim holds where the evidence puts the parameter, and
+nowhere else, which is the honest scope of it.
+
+**What the variance rule says afterwards.** Sobol on 1,536 evaluations puts `overbid_sigma`
+at **5.7%** of the variance in price-to-income (phase E: 26%; phase D: 56%) and
+`tightness_half_saturation` at 4.1%. The price level is still direction-only, but now because
+of `ask_markup` (0.42) and `price_index_smoothing` (0.26) — which is the rule working as
+intended: it moved the evidence queue rather than blessing the parameter that was measured.
+
+**Shipped values (phase-G refit, docs/validation.md).** `overbid_sigma` 0.20 (delivers 8.0%
+dispersion), `ask_markup` 0.12, `seller_bargaining_power` 0.25, `search_listings` 1,
+`tightness_half_saturation` 260, `buy_attempt_prob` 0.64. The bargaining weight moved because
+of arithmetic rather than taste: with the reserve floored at ask × (1 − d), a one-bidder price
+θ of the way from reserve to ask gives a discount of (1 − θ)·d, so at θ = 0.85 the model could
+not reach the measured 6.2% at any markup.
+
+**The frontier this block cannot cross, recorded because it is a property and not an
+accident.** `search_listings` trades the boom's rent leg against the negotiation observables:
+m = 1 gives price-to-income 8.07, a 3.9% discount, 20% of sales above ask and +1.2%/yr boom
+rent; m = 2 gives 8.07, 2.0%, 39% and +4.2%/yr. Raising the markup to pull m = 2's above-ask
+share down puts the level out of band (8.96). m = 1 ships; the boom rent leg is a registered
+strict xfail rather than a widened gate.
+
+### 5c.7 Market tightness in the bid — the scarcity channel, rebuilt (2026-09-15)
+
+§5c.6 cost the model something it was not entitled to. With the valuation anchor de-biased,
+the same supply experiment that used to move prices barely moves them:
+
+| starts/tick | price-to-income, before §5c.6 | growth | after §5c.6 | growth |
+|---|---|---|---|---|
+| 8 (scarce) | 8.56 | +4.24%/yr | 6.69 | +1.31%/yr |
+| 14 (baseline) | 7.81 | +3.16%/yr | 6.61 | +1.24%/yr |
+| 20 (ample) | 7.19 | +2.25%/yr | 6.51 | +1.13%/yr |
+
+Halving construction used to add 2.0pp to annual price growth; with the anchor fixed it adds
+0.18pp. **Phase D's claim that "competition enters through the bidder count" was the taste
+order statistic being capitalised, not scarcity** — the bidder count did move (4.0 → 5.8) and
+the price did not follow it. Finding 2 of the redesign spec is therefore re-opened by this
+phase, and closed here by a different mechanism.
+
+**The mechanism.** A buyer who loses an auction searches again, and what losing costs depends
+on how many buyers there are per listing. In a slack market losing costs a tick; in a tight one
+it costs a year, so the buyer stretches toward the most its credit line allows:
+
+```
+tightness = buyers in this zone this tick / listings in this zone this tick
+stretch   = tightness / (tightness + k)
+bid       = base + stretch · max(0, budget − base),  base = min(budget, anchor · quality · ε)
+```
+
+At `stretch → 0` the bid is the dwelling's worth to this buyer; at `stretch → 1` it is the
+credit limit, and the market clears against the **budget distribution** — income, LTV and
+DSTI, all sourced. That is the point: scarcity now reaches the price through the credit
+constraint rather than through a dispersion parameter, which is what the redesign asked for
+and what the sale block has never actually had.
+
+`k`, the buyers-per-listing at which a buyer bids halfway to its limit, is **reduced form** and
+declared as such. It is identified on the 2014–25 price-income wedge and on the cross-zone
+price ratio, jointly with `overbid_sigma`, the ask markup, the bargaining weight and `m`
+(§9 targets 2, 2b, 13, 16). Range 4–90 buyers per listing.
+
+**Falsification.** Two ways this dies. If the supply experiment above still fails to move
+prices at any `k` inside the range, the channel is not in the bid and the model is missing
+something else. If matching the wedge requires a `k` so low that buyers bid their credit limit
+in a *slack* market, the mechanism is doing the work of a fitted constant and should be
+labelled one.
+
 ## 5d. What stops a falling market (2026-09-15)
 
 The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model
@@ -920,6 +1051,13 @@ pass is allowed to mean.
     retrieval list), which is what would say where inside the bracket a model with no
     buy-to-let entry margin should sit. Phase B specifies the AEAT-basis sibling column
     (rented units only) and decides which basis the gate is set against.
+16. **Idiosyncratic sale-price dispersion**: the sd of log sale price net of zone × tick and
+   observable quality, **6–17% per sale, central 10%** [Kotova & Zhang, US zipcodes 2012–16,
+   mean 16.8%; Giacoletti *RFS* 2021, 6.8–12.4%; Landvoigt-Piazzesi-Schneider *AER* 2015,
+   6.2–9.8% — the last two published as RETURN dispersions, ÷√2 here]. No Spanish estimate is
+   published and the absence is a registered row in `sources.md`. This is what
+   `overbid_sigma` is identified against (§5c.6); the model read 2.3% before phase G and
+   8.0% after.
 15. **Foreclosure flow and arrears** [BdE Circular 1/2013; BdE table 4.13; CGPJ; INE EH]:
     live since **phase C**, measured on two legs, because the two published bases are not the
     same quantity and conflating them is how this target would be faked.

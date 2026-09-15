@@ -68,6 +68,7 @@ from .state import (
     SaleListing,
     WorldState,
     ZoneState,
+    ask_basis,
 )
 
 HOUSEHOLDS_AGENT_ID = -10
@@ -126,6 +127,7 @@ class Engine:
             rent = price * zcfg.gross_yield / 12.0
             state.zones[zcfg.zone] = ZoneState(
                 price_index=price,
+                valuation_index=price,
                 rent_index=rent,
                 reference_rent=rent * (1.0 - cfg.policy.cap_reference_discount),
                 shadow_rent=rent,
@@ -822,7 +824,7 @@ class Engine:
             state.rent_listings.pop(w.unit_id, None)
             if w.destination == "sale":
                 zs = state.zones[unit.zone]
-                value = zs.price_index * unit.quality
+                value = ask_basis(zs) * unit.quality
                 ask = loss_averse_ask(
                     base_ask=value * (1.0 + cfg.market.ask_markup),
                     paid=unit.last_sale_price,
@@ -913,11 +915,26 @@ class Engine:
                 for t in trades
                 if state.stock.units[t.unit_id].zone is zone
             ]
+            # The same sales on a TASTE-NEUTRAL basis (model-spec §5c.6): what each would
+            # have closed at had the price-setting bidders drawn an average taste. An
+            # auction selects its winner on a high draw, so the realised index carries a
+            # selection premium; buyers anchoring on it would capitalise that premium every
+            # tick and `overbid_sigma` would set the growth rate of prices rather than their
+            # dispersion. Sellers still post off the realised index — they observe sales.
+            zone_neutral = [
+                (t.neutral_price or t.price) / state.stock.units[t.unit_id].quality
+                for t in trades
+                if state.stock.units[t.unit_id].zone is zone
+            ]
             sales_by_zone[zone] = len(zone_trades)
             old_p = zs.price_index
             if zone_trades:
                 zs.price_index = (1 - s) * old_p + s * float(np.median(zone_trades))
             zs.price_growth.append(zs.price_index / old_p - 1.0)
+            if zone_neutral:
+                zs.valuation_index = (1 - s) * zs.valuation_index + s * float(
+                    np.median(zone_neutral)
+                )
 
             # the agent-visible rent index is ASKING-based (idealista-like): the
             # transacted median is composition-fragile (rich tenants exiting to

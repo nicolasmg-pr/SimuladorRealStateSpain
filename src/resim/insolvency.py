@@ -33,7 +33,7 @@ from .agents.bank import NET_INCOME_FACTOR
 from .config import ZoneType
 from .market.clearing import loss_averse_ask, seller_reserve
 from .market.stock import BANK_ID, Tenure
-from .state import HouseholdState, HouseholdStatus, SaleListing, WorldState
+from .state import HouseholdState, HouseholdStatus, SaleListing, WorldState, ask_basis
 
 # Ley 5/2019 art. 25: default interest is the remuneratory rate + 3 percentage points, and
 # it may NOT be capitalised into the principal — hence a separate arrears balance.
@@ -375,9 +375,7 @@ def offer_forbearance(
     if rng.random() >= ins.forbearance_takeup:
         return False
     hh.forbearance_ticks_left = (
-        ins.forbearance_grace_severe_ticks
-        if not hh.employed
-        else ins.forbearance_grace_mild_ticks
+        ins.forbearance_grace_severe_ticks if not hh.employed else ins.forbearance_grace_mild_ticks
     )
     # the clock stops where it is: arrears are frozen, not forgiven, and the statutory
     # foreclosure trigger cannot mature while the plan is running
@@ -513,7 +511,7 @@ def list_distressed(state: WorldState, hh: HouseholdState) -> bool:
     # not a discount off the ask — so the haste shows up as a sale at the reserve, or as no
     # sale at all in negative equity, rather than as a lower asking price dragging the index.
     zs = state.zones[unit.zone]
-    value = zs.price_index * unit.quality
+    value = ask_basis(zs) * unit.quality
     ask = loss_averse_ask(
         base_ask=value * (1.0 + zs.expected_price_growth) * (1.0 + state.config.market.ask_markup),
         paid=unit.last_sale_price,
@@ -573,7 +571,8 @@ def release_reo(state: WorldState, rng: np.random.Generator, events: TickInsolve
     chosen = rng.choice(len(held), size=n, replace=False)
     for i in chosen:
         unit = held[int(i)]
-        ask = state.zones[unit.zone].price_index * unit.quality * (1.0 - ins.reo_discount)
+        zsu = state.zones[unit.zone]
+        ask = ask_basis(zsu) * unit.quality * (1.0 - ins.reo_discount)
         # the bank took the dwelling at the statutory 70% of auction value and has no loan
         # against it, so only the negotiation-margin leg of the reserve binds
         state.sale_listings[unit.id] = SaleListing(

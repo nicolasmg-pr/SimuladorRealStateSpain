@@ -69,6 +69,14 @@ class Trade:
     ticks_listed: int = 0  # age of the listing when it matched — time-to-sale diagnostic
     ask: float = 0.0  # what it was listed at — the discount (ask − price)/ask is a §5c target
     bidders: int = 0  # how many bids the listing drew — competition, measured not assumed
+    # What this sale would have closed at had the price-setting bidders drawn an average
+    # taste (ε = 1), everything else — budgets, reserve, ask, bargaining weight — unchanged.
+    # The agent-visible price index is updated on THIS, not on `price` (model-spec §5c.6):
+    # the winner of an auction is selected on a high draw, so an index built on winners
+    # carries a selection premium, and feeding that back as next tick's valuation anchor
+    # turns `overbid_sigma` into a growth rate. `price` stays the transaction price and is
+    # what every reported indicator uses.
+    neutral_price: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -156,7 +164,9 @@ def clear_sales(
         if not listings:
             continue
         zs = state.zones[zone]
-        zone_price = zs.price_index
+        # buyers value off the taste-neutral index, sellers post off the realised one
+        # (model-spec §5c.6)
+        zone_price = zs.valuation_index or zs.price_index
         # What a buyer thinks the dwelling will be worth, not only what it is worth today.
         # This is where expectations reach the SALE PRICE (model-spec §5c.1, §6): the
         # valuation anchor is the index lifted by expected growth, so excess demand raises
@@ -172,6 +182,12 @@ def clear_sales(
                 MOMENTUM_CAP,
             )
         )
+        # Market tightness: buyers chasing each listing this tick, in this zone. The option
+        # value of searching again falls as this rises, so bids move toward the credit limit
+        # (model-spec §5c.7). This is the scarcity-to-price channel, and it runs through
+        # BUDGETS — income and credit — not through anybody's taste draw.
+        tightness = len(zone_offers) / max(len(listings), 1)
+        stretch = tightness / (tightness + cfg.market.tightness_half_saturation)
         # Each buyer samples m affordable listings and bids on the one with the most surplus
         # (what the dwelling is worth to them, minus what it costs). m < ∞ is the friction:
         # with m = 1 (the pre-phase-D rule) buyers bid at random and bidding wars happened
@@ -191,22 +207,25 @@ def clear_sales(
             # taste: how much THIS buyer happens to like each dwelling. The demoted
             # `overbid_sigma` (model-spec §5c.1) — dispersion over value, not over price
             taste = rng.normal(1.0, cfg.market.overbid_sigma, sample_size)
-            best, best_surplus, best_value = None, -np.inf, 0.0
+            best, best_surplus, best_value, best_neutral = None, -np.inf, 0.0, 0.0
             for k, pick in enumerate(picks):
                 lst = affordable[int(pick)]
                 unit = state.stock.units[lst.unit_id]
-                value = min(
-                    offer.budget,
-                    zone_price * unit.quality * float(taste[k]) * (1.0 + momentum),
-                )
+                fundamental = zone_price * unit.quality * (1.0 + momentum)
+                base = min(offer.budget, fundamental * float(taste[k]))
+                # stretch toward the credit limit as the market tightens (§5c.7)
+                value = base + stretch * max(0.0, offer.budget - base)
                 surplus = value - lst.ask
                 if surplus > best_surplus:
                     best, best_surplus, best_value = lst, surplus, value
+                    # the same bid with an average taste draw, budget cap still applied
+                    neutral_base = min(offer.budget, fundamental)
+                    best_neutral = neutral_base + stretch * max(0.0, offer.budget - neutral_base)
             if best is None:
                 continue
             # the bid is what the dwelling is worth to this buyer, capped by the budget the
             # credit screen left them. What they actually PAY is set by the auction below
-            bids[best.unit_id].append((best_value, offer))
+            bids[best.unit_id].append((best_value, offer, best_neutral))
 
         # a household buys at most one home per tick. Negative agent ids are *aggregates*
         # (the foreign overlay, the large investor): each of their offers is a distinct
@@ -216,17 +235,31 @@ def clear_sales(
         for unit_id, unit_bids in bids.items():
             lst = state.sale_listings[unit_id]
             unit_bids = [
-                (b, o) for b, o in unit_bids if not (o.agent_id >= 0 and o.agent_id in taken_buyers)
+                (b, o, nb)
+                for b, o, nb in unit_bids
+                if not (o.agent_id >= 0 and o.agent_id in taken_buyers)
             ]
             if not unit_bids:
                 continue
             unit_bids.sort(key=lambda t: -t[0])
-            best_bid, best_offer = unit_bids[0]
+            best_bid, best_offer, best_neutral = unit_bids[0]
             if best_bid < lst.reserve:
                 continue
             price = auction_price(
                 highest=best_bid,
                 runner_up=unit_bids[1][0] if len(unit_bids) > 1 else None,
+                ask=lst.ask,
+                reserve=lst.reserve,
+                cfg=cfg,
+            )
+            # the same auction with the taste draws of both price-setting bidders replaced by
+            # the average one. Run through the SAME rule, so the reserve, the ask, the
+            # bargaining weight and the budget cap all still bind where they bound before —
+            # which is why this cannot be written as a closed-form correction (model-spec §5c.6)
+            neutral_bids = sorted((nb for _, _, nb in unit_bids), reverse=True)
+            neutral_price = auction_price(
+                highest=neutral_bids[0],
+                runner_up=neutral_bids[1] if len(neutral_bids) > 1 else None,
                 ask=lst.ask,
                 reserve=lst.reserve,
                 cfg=cfg,
@@ -243,6 +276,7 @@ def clear_sales(
                     ticks_listed=lst.ticks_listed,
                     ask=lst.ask,
                     bidders=len(unit_bids),
+                    neutral_price=neutral_price,
                 )
             )
             if best_offer.agent_id >= 0:
