@@ -529,6 +529,41 @@ something else. If matching the wedge requires a `k` so low that buyers bid thei
 in a *slack* market, the mechanism is doing the work of a fitted constant and should be
 labelled one.
 
+### 7.1b What the small-landlord premium can be justified by (2026-09-15)
+
+`small_landlord_premium` is §7.1's one free parameter and the Sobol run makes it the most
+expensive one left: it explains **0.65 of the rent level, 0.75 of tensioned market vacancy and
+0.62 of overburden**, so the whole rent side is direction-only while it is unsourced. It cannot
+be measured the obvious way — the observed yield minus the bond is the quantity the hurdle
+exists to predict — so it is bounded here by pricing its components separately.
+
+| Leg | What prices it | Per year, as a share of value |
+|---|---|---|
+| Tenant default and eviction | Rent-default insurance, **3–5% of annual rent** (one comparator 5–8%), underwritten by DAS, ARAG, Mutua de Propietarios, Caser, Mapfre. An insurer's premium is what an undiversified owner pays to shed a risk a diversified one need not insure. × a 6.6% contract yield | **0.20–0.33pp** (0.33–0.53pp on the wider quote) |
+| Illiquidity | Selling costs 4–7% of value (agency 3–5%, notary/registry/plusvalía 1–2%), amortised over the average holding period — **15 years 256 days** [Registradores, ERI 2020, on 251,269 sales; the 2009 minimum was 7 years 106 days] | **0.25–0.45pp** (0.55–0.96pp at the 2009 horizon) |
+| Undiversified idiosyncratic price risk | The per-sale log-price dispersion this project sourced for §9 target 16, 6–17%, incurred twice per round trip and annualised as 2σ²/H, priced at risk aversion γ ∈ 2–5 and a wealth share w ∈ 0.3–0.6 | **0.03–0.37pp** at H = 15.7 (0.07–0.58pp at H = 10) |
+| **Sum** | | **0.5–1.2pp**, and ≈2pp only under the shortest horizon and the widest insurance quote |
+
+**The model needs 3.0pp.** Below 2.5pp two §9 targets fail — the insider/outsider wedge turns
+negative and the boom stops compressing the yield (target 10, the one §7.1 identifies this
+parameter on) — so the value was moved 0.033 → **0.030** and the declared range narrowed from
+0.025–0.055 to **0.020–0.030**, the overlap of the old fit with the derivation. The suite is
+green there, and the rural gross yield, the model's oldest failing target, improves from 15.6%
+to 13.1%.
+
+**The residual is the finding, and it is not being papered over.** Roughly 1.8–2.5pp of the
+shipped premium has no component behind it. Three candidates, none priced here: regulatory risk
+after Ley 12/2023 (cap exposure, the gran-tenedor thresholds, tenure-security extensions), the
+occupation tail (a landlord-side survey puts a quarter of landlords in litigation over it, and
+the selection in that number is obvious), and the small landlord's own management time, which
+may already sit inside `landlord_cost_share` and must not be counted twice. Until one of them is
+priced, the parameter stays **unsourced for the variance rule** and the rent level, tensioned
+vacancy and overburden stay direction-only.
+
+**Falsification.** A Spanish estimate of the required return of small landlords, from a survey
+or from a revealed-preference study, outside 2.0–3.0pp. Or a component that closes the residual
+and is shown not to be double-counting `landlord_cost_share`.
+
 ### 5c.8 The tick is a quarter, the market is not (2026-09-15)
 
 Three registered failures had one cause, and it was the clearing calendar.

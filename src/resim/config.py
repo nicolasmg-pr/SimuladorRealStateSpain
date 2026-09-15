@@ -519,7 +519,19 @@ class MarketConfig:
     # (HTTP 403 on cbre.es and en.savills.es), so π is a constant with a zone gradient and
     # NOT a cyclical term. Claiming a cyclical π would be claiming a series nobody publishes.
     prime_risk_spread: float = 0.0035
-    # FITTED, and the one free parameter of §7.1 — declared rather than buried. What a small
+    # PARTIALLY DERIVED as of 2026-09-15 (model-spec §7.1b), and still the most expensive
+    # parameter in the model: Sobol puts 0.65 of the rent level, 0.75 of tensioned market
+    # vacancy and 0.62 of overburden on it. Its components price at 0.5–1.2pp — tenant default
+    # at the rent-default insurance price (3–5% of rent), illiquidity over the 15-year-256-day
+    # average holding period [Registradores ERI 2020], and undiversified idiosyncratic price
+    # risk from the §9 target-16 dispersion band — against the 3.0pp the model needs. Below
+    # ≈2.5pp the insider/outsider wedge inverts and the boom stops compressing the yield. The
+    # residual, 1.8–2.5pp, is declared unexplained; candidates are regulatory risk after Ley
+    # 12/2023, the occupation tail and management time (which may already be inside
+    # `landlord_cost_share`). Until one of them is priced this stays unsourced for §13.2.
+    #
+    # Previously: FITTED, and the one free parameter of §7.1 — declared rather than
+    # buried. What a small
     # Spanish landlord demands over an institution holding prime multifamily: illiquidity, no
     # diversification across tenants, and the eviction timeline. There is no independent
     # estimate of it; the old `landlord_required_spread = 0.02` was the observed yield minus
@@ -527,8 +539,8 @@ class MarketConfig:
     # re-pin the yield under a new name. Identified instead by target 10: with E[g] in the
     # formula the boom must compress the yield, and the size of that compression constrains
     # this in a way a level fit cannot.
-    small_landlord_premium: float = 0.033
-    small_landlord_premium_range: tuple[float, float] = (0.025, 0.055)
+    small_landlord_premium: float = 0.030
+    small_landlord_premium_range: tuple[float, float] = (0.020, 0.030)
     # Operating costs as a share of gross rent, PRE-TAX, VACANCY EXCLUDED. Central 0.22 of a
     # sourced 0.20–0.24 [AEAT cuenta de resultados del arrendamiento, FY2019–FY2024, selector
     # `Vivienda habitual = Sí`]. Inside: comunidad, IBI, insurance, maintenance, management.

@@ -2648,6 +2648,50 @@ parameter; **`buy_attempt_prob`** carries the ownership rate (0.36) and the zone
 is governed by the weight it is identified against, which is circular by construction and cannot
 be fixed by measuring anything.
 
+## `small_landlord_premium`: bounded by its components, and the residual named (2026-09-15)
+
+The Sobol run after §5c.8 leaves one parameter holding the whole rent side: 0.65 of the rent
+level, 0.75 of tensioned market vacancy, 0.62 of overburden. §7.1 declares it free, and it
+cannot be measured the obvious way — the observed yield minus the bond is what the hurdle is
+supposed to predict, so reusing it would re-pin the quantity. So it is bounded by pricing the
+things it is supposed to compensate:
+
+| Leg | Priced by | pp of value per year |
+|---|---|---|
+| Tenant default and eviction | rent-default insurance, 3–5% of annual rent (one comparator 5–8%) × a 6.6% contract yield | 0.20–0.33 |
+| Illiquidity | selling costs 4–7%, amortised over the **15-year-256-day** average holding period [Registradores ERI 2020, 251,269 sales; 2009 minimum 7y 106d] | 0.25–0.45 |
+| Undiversified idiosyncratic price risk | the §9 target-16 dispersion (6–17% per sale), twice per round trip, annualised, at γ ∈ 2–5 and a wealth share 0.3–0.6 | 0.03–0.37 |
+| **Sum** | | **0.5–1.2**, ≈2.0 at the shortest horizon and widest quote |
+
+**The model needs 3.0.** The behaviour at lower values, five seeds:
+
+| premium | rent (€/mo) | contract yield | rural yield | overburden | tensioned market vacancy | p/inc |
+|---|---|---|---|---|---|---|
+| 0.010 | 1,318 | 6.44% | 11.9% | 0.259 | 2.3% | 7.61 |
+| 0.020 | 1,373 | 6.52% | 13.4% | 0.296 | 2.3% | 7.86 |
+| 0.025 | — | — | — | — | — | two §9 targets fail |
+| **0.030 (shipped)** | 1,438 | **6.57%** | 13.1% | **0.318** | 3.1% | **8.13** |
+| 0.033 (before) | 1,523 | 6.93% | 15.6% | 0.327 | 4.0% | 8.11 |
+
+At 0.025 the insider/outsider wedge inverts and the boom stops compressing the yield — target
+10, the one §7.1 identifies this parameter on. So the value moves **0.033 → 0.030** and the
+declared range narrows from 0.025–0.055 to **0.020–0.030**: the overlap of the old fit with the
+derivation. The suite is green there, and the rural gross yield — the model's oldest failing
+target — improves from 15.6% to 13.1% against a sourced 7–9%.
+
+**What this does not do.** Roughly 1.8–2.5pp of the shipped premium still has no component
+behind it, so the parameter stays unsourced for §13.2 and **the rent level, tensioned vacancy
+and overburden stay direction-only**. The gain is that the parameter is now bounded by evidence
+instead of free, its range is a third of what it was, and the residual has a name and a size.
+
+Three candidates for that residual, none priced here: regulatory risk after Ley 12/2023 (cap
+exposure, gran-tenedor thresholds, tenure-security extensions); the occupation tail, where the
+only figure available is a landlord-side survey putting a quarter of landlords in litigation and
+the selection in it is obvious; and the small landlord's own management time, which may already
+sit inside `landlord_cost_share` — AEAT's cost line includes management — and must not be
+counted twice. Pricing one of them without double-counting is the next piece of evidence work on
+the rent side.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
