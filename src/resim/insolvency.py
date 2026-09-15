@@ -31,7 +31,7 @@ import numpy as np
 
 from .agents.bank import NET_INCOME_FACTOR
 from .config import ZoneType
-from .market.clearing import seller_reserve
+from .market.clearing import loss_averse_ask, seller_reserve
 from .market.stock import BANK_ID, Tenure
 from .state import HouseholdState, HouseholdStatus, SaleListing, WorldState
 
@@ -48,6 +48,7 @@ class TickInsolvency:
     unemployed: int = 0
     mortgaged: int = 0
     in_arrears: int = 0
+    forborne: int = 0
     deliveries: int = 0
     distressed_listings: int = 0
     daciones: int = 0
@@ -247,9 +248,31 @@ def service_mortgage(
     """
     cfg = state.config
     ins = cfg.insolvency
-    payment = hh.mortgage_payment
     rate = state.macro.mortgage_rate / 4.0
 
+    if hh.forbearance_ticks_left > 0:
+        # Código de Buenas Prácticas grace period: capital amortisation suspended, interest
+        # at euríbor − 0.10pp, arrears frozen rather than cured (§5d.2). The loan still
+        # counts as doubtful, which is what the BdE's own classification did to restructured
+        # mortgages and a large part of why the ratio stayed high after deliveries peaked.
+        grace_rate = max(0.0, (cfg.credit.euribor - ins.forbearance_rate_discount) / 4.0)
+        payment = hh.mortgage_balance * grace_rate
+        consumption = NET_INCOME_FACTOR * income_eff / 4.0 - saving
+        compressible = max(0.0, consumption - ins.essential_share * median_income / 4.0)
+        if hh.wealth + compressible + 1e-9 < payment:
+            # even interest-only is out of reach: the plan has failed, which the law
+            # anticipates (the dación/quita route opens) and the foreclosure clock resumes
+            hh.forbearance_ticks_left = 0
+            hh.arrears_instalments += INSTALMENTS_PER_TICK
+            hh.arrears_balance += payment
+            return False
+        hh.wealth -= min(hh.wealth, payment)
+        hh.forbearance_ticks_left -= 1
+        if hh.forbearance_ticks_left == 0:
+            _exit_forbearance(hh, state)
+        return True
+
+    payment = hh.mortgage_payment
     essential = ins.essential_share * median_income / 4.0
     consumption = NET_INCOME_FACTOR * income_eff / 4.0 - saving
     compressible = max(0.0, consumption - essential)
@@ -289,6 +312,80 @@ def service_mortgage(
 # ---------------------------------------------------------------- foreclosure
 
 
+def _exit_forbearance(hh: HouseholdState, state: WorldState) -> None:
+    """Grace over: the term is extended and the instalment recomputed (model-spec §5d.2).
+
+    The law extends the loan to at most forty years from origination, which is what makes the
+    restructuring a restructuring rather than a postponement — the household leaves with a
+    smaller payment than it entered with.
+    """
+    cfg = state.config
+    ins = cfg.insolvency
+    if hh.mortgage_balance <= 0.0:
+        hh.mortgage_ticks_left = 0
+        hh.mortgage_payment = 0.0
+        return
+    elapsed = max(0, cfg.credit.term_years * 4 - hh.mortgage_ticks_left)
+    remaining = max(4, min(hh.mortgage_ticks_left + 20, ins.forbearance_max_term_ticks - elapsed))
+    r = state.macro.mortgage_rate / 4.0
+    annuity = r / (1.0 - (1.0 + r) ** -remaining) if r > 0 else 1.0 / remaining
+    hh.mortgage_ticks_left = remaining
+    hh.mortgage_payment = hh.mortgage_balance * annuity
+
+
+def offer_forbearance(
+    hh: HouseholdState, state: WorldState, income_eff: float, rng: np.random.Generator
+) -> bool:
+    """The Código de Buenas Prácticas, applied at the first missed quarter (model-spec §5d.2).
+
+    The law's own gates, in the law's order: the household must be behind but not yet past the
+    auction announcement; it must be inside the **umbral de exclusión** — income at most three
+    times the annual IPREM on fourteen payments *and* an instalment above half its net income,
+    which is a poverty gate rather than a distress gate; the restructured payment must not
+    exceed 50% of household income (otherwise the plan is refused and the dación route opens);
+    one restructuring per loan.
+    Five years of grace where the household has lost its income, two otherwise — the model's
+    proxy for "the mortgage effort rose by half or more", and declared as a proxy.
+
+    Take-up is the reduced-form leg: the CBP reached roughly a fifth of the distressed flow.
+    """
+    ins = state.config.insolvency
+    if hh.forbearance_used or hh.forbearance_ticks_left > 0:
+        return False
+    if hh.mortgage_ticks_left <= 0 or hh.arrears_instalments <= 0:
+        return False
+    if hh.delivery_tick is not None:  # the auction is on the way: too late, by statute
+        return False
+    # the umbral de exclusión, both legs, in the law's own terms
+    if income_eff > ins.forbearance_income_limit_iprem * ins.iprem_annual_14:
+        return False
+    net_quarterly = NET_INCOME_FACTOR * income_eff / 4.0
+    if hh.mortgage_payment <= ins.forbearance_burden_threshold * net_quarterly:
+        return False
+    grace_rate = max(0.0, (state.config.credit.euribor - ins.forbearance_rate_discount) / 4.0)
+    restructured = hh.mortgage_balance * grace_rate
+    if restructured > ins.forbearance_viability_share * income_eff / 4.0:
+        return False  # the law's viability test, failed
+    # ONE draw per household, taken the first quarter it is eligible, not one per tick.
+    # The law describes a single application answered within a month, and a per-tick hazard
+    # compounds into something the scheme never reached: at 20% per quarter a household in
+    # arrears for a year would take it up 59% of the time, against the CBP's roughly one in
+    # five of the distressed flow.
+    hh.forbearance_used = True
+    if rng.random() >= ins.forbearance_takeup:
+        return False
+    hh.forbearance_ticks_left = (
+        ins.forbearance_grace_severe_ticks
+        if not hh.employed
+        else ins.forbearance_grace_mild_ticks
+    )
+    # the clock stops where it is: arrears are frozen, not forgiven, and the statutory
+    # foreclosure trigger cannot mature while the plan is running
+    hh.foreclosure_tick = None
+    hh.delivery_tick = None
+    return True
+
+
 def advance_foreclosure(hh: HouseholdState, state: WorldState, rng: np.random.Generator) -> None:
     """Move one household along the statutory clock. Does not deliver — `deliver` does.
 
@@ -296,6 +393,11 @@ def advance_foreclosure(hh: HouseholdState, state: WorldState, rng: np.random.Ge
     Curing the arrears cancels the whole thing, which is what art. 693.3 allows.
     """
     ins = state.config.insolvency
+    if hh.forbearance_ticks_left > 0:
+        # a restructured loan is not on the foreclosure track while the plan holds
+        hh.foreclosure_tick = None
+        hh.delivery_tick = None
+        return
     if hh.arrears_instalments <= 0:
         hh.foreclosure_tick = None
         hh.delivery_tick = None
@@ -411,11 +513,14 @@ def list_distressed(state: WorldState, hh: HouseholdState) -> bool:
     # not a discount off the ask — so the haste shows up as a sale at the reserve, or as no
     # sale at all in negative equity, rather than as a lower asking price dragging the index.
     zs = state.zones[unit.zone]
-    ask = (
-        zs.price_index
-        * unit.quality
-        * (1.0 + zs.expected_price_growth)
-        * (1.0 + state.config.market.ask_markup)
+    value = zs.price_index * unit.quality
+    ask = loss_averse_ask(
+        base_ask=value * (1.0 + zs.expected_price_growth) * (1.0 + state.config.market.ask_markup),
+        paid=unit.last_sale_price,
+        value=value,
+        # a distressed owner is still an owner-occupier facing a nominal loss, and the
+        # reserve below is what stops the loss aversion from blocking a forced sale outright
+        alpha=state.config.market.loss_aversion_owner,
     )
     debt = hh.mortgage_balance + hh.arrears_balance
     # phase D made this the general rule (model-spec §5c.3): every seller's reserve is the

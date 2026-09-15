@@ -106,6 +106,23 @@ def auction_price(
     return float(min(max(step, reserve), highest))
 
 
+def loss_averse_ask(*, base_ask: float, paid: float, value: float, alpha: float) -> float:
+    """What a seller facing a nominal loss asks instead (model-spec §5d.1).
+
+    Genesove & Mayer (QJE 2001): owners facing a nominal loss set asking prices 25–35% of the
+    gap between the expected selling price and what they paid *above* what they would
+    otherwise ask, and their dwellings show a much lower sale hazard. The list-price effect is
+    twice as large for owner-occupants as for investors, which is why `alpha` differs by
+    seller type rather than being one number.
+
+    Inert in a rising market: `paid <= value` gives back exactly `base_ask`. That is what
+    makes this addable after a calibration done on a rising window — it cannot have been
+    fitted to it, and it cannot move it.
+    """
+    loss = max(0.0, paid - value)
+    return base_ask + alpha * loss
+
+
 def seller_reserve(*, ask: float, debt: float, discount: float, cfg) -> float:
     """The lowest price a seller can accept (model-spec §5c.3).
 

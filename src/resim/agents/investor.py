@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..config import ZoneType
+from ..market.clearing import loss_averse_ask
 from ..market.stock import LARGE_INVESTOR_ID, Tenure
 from ..state import WorldState
 from .bank import itp_wedge
@@ -61,7 +62,13 @@ class LargeInvestor:
                     key=lambda u: u.tenure is not Tenure.VACANT,
                 )
                 for u in sellable[:n_list]:
-                    ask = zs.price_index * u.quality * (1.0 + state.config.market.ask_markup)
+                    value = zs.price_index * u.quality
+                    ask = loss_averse_ask(
+                        base_ask=value * (1.0 + state.config.market.ask_markup),
+                        paid=u.last_sale_price,
+                        value=value,
+                        alpha=state.config.market.loss_aversion_investor,
+                    )
                     intents.append(
                         ListForSale(
                             agent_id=self.id,

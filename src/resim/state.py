@@ -53,6 +53,12 @@ class HouseholdState:
     # the trigger
     delivery_tick: int | None = None
     credit_lockout_ticks: int = 0  # quarters left without access to mortgage credit
+    # --- forbearance, Código de Buenas Prácticas (model-spec §5d.2) ---
+    # quarters of grace left, during which the payment is interest only and the arrears
+    # counter is frozen. The law allows one restructuring per loan, so `forbearance_used`
+    # is what stops a household cycling through it.
+    forbearance_ticks_left: int = 0
+    forbearance_used: bool = False
     # U(0,1) drawn once from the engine's seeded Generator when the household is created.
     # Means-tested eligibility (rent subsidy) compares it against the eligible share, so
     # decide() stays pure AND reproducible — Python's hash() is salted per process and

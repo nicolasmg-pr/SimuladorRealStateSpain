@@ -391,6 +391,19 @@ class MarketConfig:
     # an OUTCOME of competition, not an input — high in a slack market, negative (sales above
     # ask) when several buyers converge on one listing [range 0.04–0.12]
     ask_markup: float = 0.08
+    # --- §5d.1 nominal loss aversion (2026-09-15) -----------------------------------------
+    # A seller facing a nominal loss asks for a fraction of that loss back. MEASURED, and by
+    # the canonical study: Genesove & Mayer (QJE 2001) find asking prices 25–35% of the gap
+    # between expected sale price and original purchase price higher, realised prices 3–18%
+    # of it higher, and a much lower sale hazard — with the list-price effect **twice as
+    # large for owner-occupants as for investors**, which is why there are two values here.
+    #
+    # It is INERT in a rising market: with the dwelling worth more than it cost, the loss is
+    # zero and the ask is unchanged. That is what makes it safe to add after a calibration
+    # done on a rising window — and it is checked rather than assumed (docs/validation.md).
+    loss_aversion_owner: float = 0.30
+    loss_aversion_owner_range: tuple[float, float] = (0.25, 0.35)
+    loss_aversion_investor: float = 0.15
     # Ascending-auction increment, as a fraction of the runner-up's bid: what it takes to
     # outbid them. Institutional minimum, not a behavioural parameter [guess; range .002–.01]
     auction_increment: float = 0.005
@@ -803,6 +816,33 @@ class InsolvencyConfig:
     # anchors (Sareb's 2012 transfer haircuts, 31–63% on housing; the 2012 provisioning
     # requirements) are haircuts against BOOK value, not market price, so they bound the range
     # and do not set the value [Sareb/FROB — low; declared reduced form]
+    # --- §5d.2 forbearance, the Código de Buenas Prácticas (2026-09-15) -------------------
+    # RDL 6/2012's annex, as the Banco de España's guide states it: capital amortisation
+    # suspended for five years where the mortgage effort rose ≥1.5× or the household is
+    # specially vulnerable, two years otherwise; term extended to at most 40 years from
+    # origination; interest during grace at euríbor − 0.10%; refused if the restructured
+    # payment would exceed 50% of household income; available only before the auction is
+    # announced. All of that is statute, not parameter [BdE Cliente Bancario — high]
+    forbearance_grace_severe_ticks: int = 20  # five years
+    forbearance_grace_mild_ticks: int = 8  # two years
+    forbearance_max_term_ticks: int = 160  # forty years from origination
+    forbearance_viability_share: float = 0.50  # of household income, the law's own test
+    # The umbral de exclusión, verbatim [RDL 6/2012 art. 3, BdE Cliente Bancario]: household
+    # income at most **three times the annual IPREM on fourteen payments** (3 × €8,400 =
+    # €25,200) AND a mortgage instalment above **50% of net income**. It is a poverty gate,
+    # not a distress gate, and that is the point — leaving it out put 2.4% of all mortgaged
+    # households into a restructuring in a calm baseline, against a scheme that reached
+    # 45,697 families in five years nationally.
+    iprem_annual_14: float = 8_400.0
+    forbearance_income_limit_iprem: float = 3.0
+    forbearance_burden_threshold: float = 0.50
+    forbearance_rate_discount: float = 0.001  # euríbor − 0.10pp during the grace period
+    # The one reduced-form leg: how many eligible households actually get it. The CBP's own
+    # counts — 45,697 families in five years, 14,730 operations in 2016 — against roughly
+    # 50,000 dwelling deliveries a year put the reach at 15–25% of the distressed flow
+    # [Comisión de Control del CBP — medium]
+    forbearance_takeup: float = 0.20
+    forbearance_takeup_range: tuple[float, float] = (0.10, 0.30)
     reo_release_share: float = 0.15
     reo_discount: float = 0.15
     reo_discount_range: tuple[float, float] = (0.10, 0.35)
