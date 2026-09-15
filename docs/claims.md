@@ -266,10 +266,14 @@ foreclosure law of the period — the national price index falls **−56.9% ± 2
 over six years, negative equity reaches **11.9%** of mortgaged owners, and the foreclosure flow
 reaches the order CGPJ measured.
 
-**Verdict: contradicted.** With the qualification that makes it honest: the model *overshoots*
-the observed −30…−45%, so the right reading is "housing can fall by a third or more, and this
-model falls harder than Spain did". The hold-out is spent (`docs/holdout-2008-2013.md`) and
-cannot be re-run to tune that.
+**Verdict: contradicted.** With two qualifications that make it honest. The model
+*overshoots* the observed −30…−45%, so the right reading is "housing can fall by a third or
+more, and this model falls harder than Spain did". And the episode is now **spent twice over**:
+the model gained two brakes on 2026-09-15 because that run showed they were missing
+(`model-spec §5d`), so it is in-sample on 2008–13 and the re-run is a diagnostic rather than
+evidence (`model-spec §13.11`). The verdict survives, because it rests on the *direction* of a
+fall the model produces from inputs alone — but nobody should quote −57% as a prediction, and
+with the brakes it reads −59%.
 
 ---
 

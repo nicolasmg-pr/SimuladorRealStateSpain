@@ -40,4 +40,27 @@ one.
 
 ## Result (filled in after the run)
 
-See `docs/validation.md`, "The brakes, and what the burned episode says about them".
+Run 2026-09-15 at commit `9ca8bba`, 10 seeds, `runs/holdout_2008_2013_10seeds.json`.
+
+| Quantity | 14 Sep (no brakes) | 15 Sep (brakes) | Predicted | |
+|---|---|---|---|---|
+| Price fall | −56.9% ± 2.2 | **−59.0% ± 0.8** | smaller fall | **prediction failed** |
+| Transactions (end/start) | +86.6% | +82.8% | lower | weakly right, instrument still broken |
+| Arrears, peak | 2.2% ± 0.3 | **3.5% ± 0.3** | higher | **right** |
+| Foreclosure flow, peak | 1.34% ± 0.24 | 1.30% ± 0.26 | lower | right, inside noise |
+| Forborne share, peak | did not exist | **0.74% ± 0.16** ≈ 34,000 families | > 0 | **right, and the right order**: the CBP reached 45,697 families in five years |
+
+**The price prediction failed and the reason matters.** This comparison is across two model
+versions, and the versions differ by more than the brakes: forbearance's take-up draw needed a
+new RNG stream, which re-randomises every run. A 2.1pp move against a 0.8–2.2pp seed spread
+cannot be attributed to loss aversion at all. The clean attribution is the toggle test in
+`tests/test_brakes.py`, same version, brake on and off in a synthetic bust: the fall is
+**−68.8% with it against −72.5% without**, and transactions are **10.8 per tick against 63**.
+The mechanism does what Genesove & Mayer describe. What it does not do is close a 12pp gap
+against the observed −30…−45%.
+
+**The forbearance predictions were right on all three legs**, and the arrears gap against the
+BdE's 6.28% peak halved — 2.2% → 3.5%.
+
+Nothing was changed after this run either. The episode's verdict against the observed bands is
+still three of six, and it is still not evidence about this model.
