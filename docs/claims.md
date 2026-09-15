@@ -12,11 +12,17 @@ able to answer, for a given public claim, three questions:
 
 ## The rules this ledger obeys
 
-- **Directions, not magnitudes.** After phase E the variance rule (`model-spec §13.9`) leaves
-  the model with exactly two reportable magnitudes — the ownership rate and arrears — and
-  everything else as a direction. So no row below claims a percentage as the model's estimate.
-  Where a number appears it is *the measurement of this model's response*, and it is labelled
-  as such, never as a forecast about Spain.
+- **Directions first, and now a few magnitudes.** The variance rule (`model-spec §13.2`) has
+  moved twice since this ledger was written. Phase E left exactly two reportable magnitudes;
+  after §5c.8 and the sourcing of `ask_markup`, `price_index_smoothing` and `overbid_sigma`
+  the set is **price-to-income and the price level, transactions, completions, arrears, time
+  to sale and bids per listing**, each conditional on the sourced parameter bands. What is
+  *not* reportable is the **rent side** — the rent level, tensioned vacancy and overburden all
+  rest on `small_landlord_premium`, a parameter §7.1b can justify only a third of — plus the
+  ownership rate, the zone price ratio and the cash share, which rest on `buy_attempt_prob`
+  and `search_listings`. **Every rent number below is therefore a direction with a size
+  attached for transparency, not an estimate**, and every number anywhere in this file is the
+  measurement of this model's response, never a forecast about Spain.
 - **Ten seeds, and the sign count is shown.** Every model response here is the mean over
   seeds 1–10, 60 ticks, measured from tick 24 (the lever lands at tick 8), against the same
   seed's baseline. `9/10` means nine of ten seeds moved in the reported direction; anything
@@ -29,6 +35,21 @@ able to answer, for a given public claim, three questions:
   part of the range the evidence admits, and the row says which part) · *unidentifiable*
   (neither this model nor the registered evidence can settle it).
 
+## Re-run against the current model (2026-09-15)
+
+Every number below was re-measured after phases G and §5c.8 changed the sale block — the
+valuation anchor, the scarcity channel and the clearing calendar. The instrument is now a
+module rather than a hand-run: `uv run python -m resim.levers --jobs 10`, artefact
+`runs/levers_10seeds.json`, ten seeds, lever at tick 8, window from tick 24.
+
+**What moved, and it is not decimals.** The rent cap's rent leg deepened (−15.4% → −24.1%
+transacted) and its price leg halved (−15.3% → −10.3% tensioned); the credit crunch roughly
+doubled on volume (−9.7% → −18.6%); the transaction tax acquired a rental spillover it did not
+have (+2.9% on tensioned rents, 8/10); the demand subsidy's rent effect went from noise to
++2.2% (8/10); and the tourist restriction's rent effect shrank to −1.6% (3/10), which moves it
+*into* the academic range for Barcelona instead of above it. Two verdicts are affected in
+substance (F-4, F-9) and one carries a new caveat that did not exist before (F-5).
+
 ## Summary
 
 | # | Claim | Verdict |
@@ -36,12 +57,12 @@ able to answer, for a given public claim, three questions:
 | F-1 | A 100% tax on non-EU buyers frees up housing | conditional — real channel, effect an order of magnitude below the problem |
 | F-2 | Mobilising the 3.8M empty homes fixes the shortage | contradicted, on the geography |
 | F-3 | Spain is 700,000 homes short, so building closes the gap | first half supported, second half unidentifiable on this horizon |
-| F-4 | Tourist flats are why rents rose | conditional — right sign, wrong order of magnitude |
-| F-5 | The Catalan rent cap works: new contracts fell 4.7% | supported in direction, model overshoots the size |
+| F-4 | Tourist flats are why rents rose | conditional — right sign, and the re-run brings the size inside the academic estimate |
+| F-5 | The Catalan rent cap works: new contracts fell 4.7% | supported in direction; the size is inflated by a registered defect |
 | F-6 | The Catalan rent cap destroyed supply: listings −72% | direction supported, the −72% is a basis error |
 | F-7 | Public housing lowers rents | supported for rents and access; sale prices do not fall |
 | F-8 | Cutting ITP for young buyers improves access | conditional — much of it capitalises into price |
-| F-9 | The ICO guarantees help young people buy | unsupported at the modelled scale |
+| F-9 | The ICO guarantees help young people buy | unsupported, and mildly counterproductive: rents +2.2% |
 | F-10 | Housing always goes up | contradicted by the model's own hold-out |
 | F-11 | *(implicit in all of the above)* housing policy is what moves housing | contradicted — credit conditions move it more than any lever here |
 
@@ -62,16 +83,21 @@ removing them to relieve prices, and that a tax removes them rather than being a
 
 | | response | seeds |
 |---|---|---|
-| national price | −1.3% | 9/10 |
-| transactions | +0.3% | 6/10 → **no effect** |
-| tensioned contract rent | −1.1% | 5/10 → **no effect** |
+| national price | −2.4% | 9/10 |
+| tensioned price | −3.3% | 10/10 |
+| transactions | −1.7% | 9/10 |
+| tensioned contract rent | +0.2% | 5/10 → **no effect** |
+
+The channel roughly doubled when the sale block was rebuilt (§5c.6–§5c.8): with prices
+anchored to budgets rather than to a selection premium, removing a segment of unconstrained
+cash demand bites harder. It is still about two percent.
 
 Validation records the mechanism separately: the surcharge cuts non-resident purchases by
 about **45%, not 100%**, because the +60–79% price premium those buyers pay absorbs half the
 wedge before it bites.
 
 **Verdict: conditional.** The channel is real and the sign is right, but the model's price
-response is about one percent — an order of magnitude below the affordability gap the claim
+response is about two percent — an order of magnitude below the affordability gap the claim
 invokes. The claim's own premise is also weaker than stated: non-residents are 7.9–8.1% of
 purchases [Registradores, Notariado], and "principalmente para especular" is an assertion
 about motive that no registered series measures.
@@ -95,9 +121,12 @@ moves it into the market.
 
 | | response | seeds |
 |---|---|---|
-| vacancy rate | −1.1% | 8/10 |
-| tensioned contract rent | +2.6% | 6/10 → **no effect** |
-| national price | +0.2% | 6/10 → **no effect** |
+| vacancy rate | −0.5% | 6/10 → **no effect** |
+| tensioned contract rent | +0.9% | 7/10 → weak, wrong sign for the claim |
+| national price | −0.0% | 5/10 → **no effect** |
+
+Weaker than in phase F, when the vacancy leg at least moved 8/10. On the current model the
+lever moves **nothing** at ten seeds.
 
 And the model's vacancy geography, which is gated against the Censo: vacancy runs **rural
 19.0% > secondary 14.1% > tensioned**, because that is where the INE ladder puts it.
@@ -145,17 +174,21 @@ returning it lowers rents by the amount the debate assumes.
 
 | | response | seeds |
 |---|---|---|
-| tensioned contract rent | −3.5% | 9/10 |
-| vacancy rate | +10.2% | 10/10 |
-| new leases | +1.1% | 5/10 → **no effect** |
+| tensioned contract rent | −1.6% | 7/10 down |
+| tensioned asking rent | −0.8% | 6/10 down |
+| vacancy rate | +9.2% | 10/10 |
+| new leases | +1.2% | 6/10 → **no effect** |
 
 **What the data says.** The VUT stock *fell* 15.4% between August 2024 (403,267) and May 2026
 (341,001) while rents went on setting records. The best-identified academic estimate for
 Barcelona is **+1.9% on average, up to +7% in the densest neighbourhoods**.
 
-**Verdict: conditional — right sign, wrong order of magnitude as a causal claim.** Removing
-seasonal units does lower rents in the model, by a few percent, concentrated where the
-seasonal share is high. It cannot be the main driver of a 46% five-year rent rise, and the
+**Verdict: conditional — right sign, and after the re-run the model's size AGREES with the
+evidence rather than exceeding it.** The response fell from −3.5% to **−1.6%**, which sits
+inside Segú's Barcelona estimate of +1.9% on average (up to +7% in the densest neighbourhoods)
+instead of above it. That is the one place in this ledger where a model change moved a reading
+toward its source without being aimed at it. Removing seasonal units lowers rents by one to two
+percent, concentrated where the seasonal share is high. It cannot be the main driver of a 46% five-year rent rise, and the
 observed VUT contraction running alongside continued rent growth is the cleanest available
 falsification of the strong version.
 
@@ -170,9 +203,18 @@ falsification of the strong version.
 
 | | ε = 1 | ε = 2 | seeds |
 |---|---|---|---|
-| tensioned contract rent | **−15.4%** | −14.1% | 10/10 |
-| new leases | −23.2% | −33.6% | 10/10 |
-| rent overburden | −6.0% | −0.7% | 10/10 · 5/10 |
+| tensioned contract rent | **−24.1%** | −22.8% | 10/10 |
+| new leases | −20.7% | −33.2% | 10/10 |
+| rent overburden | −5.0% | −1.6% | 10/10 |
+| tensioned price | −10.3% | −11.5% | 10/10 |
+
+**A caveat that did not exist in phase F, and it is a defect rather than a finding.** The rent
+leg deepened from −15.4% to −24.1% with §5c.8, and `test_rent_cap_reproduces_the_monras_co_movement`
+is an open registered failure because of it: the leg is now *mechanical*, identical at hazard
+0.3, 0.5 and 0.7 and at supply elasticity 0, 1 and 2, so no behavioural dial produces it. What
+produces it is the distance between market rents and the reference index the cap is written
+against, which updates at 0.3/tick behind them. **Until that is fixed the size of this row is
+not the model's opinion, it is an artefact**, and only the sign and the ordering should be read.
 
 **Verdict: supported in direction, and the model overshoots the size.** Its cap covers the
 whole tensioned zone where Spain's covers ≈42% of it, and the measured −15% against Barcelona's
@@ -209,14 +251,15 @@ versus entry yields.
 
 | | response | seeds |
 |---|---|---|
-| new leases | **+10.4%** | 10/10 |
-| rent overburden | **−5.5%** | 10/10 |
-| tensioned contract rent | −4.4% | 9/10 |
-| construction starts | +38.5% | 10/10 |
-| national price | **+0.8%** | 9/10 |
+| new leases | **+10.6%** | 10/10 |
+| rent overburden | **−4.4%** | 10/10 |
+| tensioned contract rent | −2.7% | 8/10 down |
+| construction starts | +37.9% | 10/10 |
+| national price | **+1.4%** | **10/10** |
 
 **Verdict: supported for rents and access — and note what it does not do.** Sale prices do
-not fall; they tick *up*, because the programme competes for the same builders and land while
+not fall; they tick *up*, and after the re-run that is unanimous across seeds (10/10, +1.4%)
+rather than 9/10, because the programme competes for the same builders and land while
 adding households who stay in the rental market. Anyone arguing public housing as a
 house-price policy is arguing for something the model does not produce; as a rental-access
 policy it is the strongest lever in this table on overburden.
@@ -229,11 +272,16 @@ policy it is the strongest lever in this table on overburden.
 > — July 2026
 
 **What the model says**, reading the transaction-tax lever symmetrically (+2pp measured):
-prices **−1.7% (9/10)** and transactions **−1.7% (8/10)**. A cut of the same size therefore
-raises prices by roughly the same order and volume with it.
+prices **−1.6% (10/10 down)**, transactions **−4.3% (9/10 down)**, and — new since the block
+was rebuilt — tensioned rents **+2.9% (8/10 up)**. A cut of the same size therefore raises
+prices by roughly the same order, raises volume by more than phase F showed, and *lowers*
+rents, because the households it moves into ownership stop bidding for tenancies.
 
-**Verdict: conditional — half of it capitalises.** The buyer keeps only the part of the cut that is not capitalised into
-the price, and the model says a substantial part is. It is a transfer to sellers in
+**Verdict: conditional — much of it capitalises, and the rental spillover is new.** The buyer
+keeps only the part of the cut that is not capitalised into the price, and the model says a
+substantial part is. The re-run adds a second channel the phase-F reading did not have: the
+tenure switch it induces shows up in rents, which is an argument for the policy that its
+advocates do not make and its critics do not answer. It is a transfer to sellers in
 proportion to how tight the market is — which is the standard theoretical prediction, and the
 model reproduces it rather than testing it.
 
@@ -241,13 +289,16 @@ model reproduces it rather than testing it.
 
 ## F-9 · "The ICO guarantees help young people buy"
 
-**What the model says.** The demand-subsidy lever: price **+0.5% (7/10)**, ownership rate
-**−0.03% (5/10, no effect)**, transactions **no effect**. Validation adds why: with the 2026
+**What the model says.** The demand-subsidy lever: price **+0.5% (8/10)**, ownership rate
+**−0.08% (6/10 → no effect)**, transactions **+0.7% (7/10)**, and tensioned rents **+2.2%
+(8/10 up)** — the last of these is new since the re-run and it points the wrong way for the
+claim: the instrument leaves renters paying more while moving nobody across the ownership line. Validation adds why: with the 2026
 wealth cap of €150,000, about **1% of tenants** are excluded by it — the cap is nearly inert —
 and the LTV lift reaches a small eligible group whose bids rise with it.
 
-**Verdict: unsupported at the modelled scale.** What the instrument does in this model is lift
-prices slightly and move almost nobody across the ownership line. The access effect the
+**Verdict: unsupported at the modelled scale, and after the re-run mildly counterproductive.**
+What the instrument does in this model is lift prices slightly, lift rents by more, and move
+almost nobody across the ownership line. The access effect the
 literature attributes to guarantee schemes (0.35–0.45) is registered in the dossiers and the
 model does not reproduce it, which is a mark against the model as much as against the claim —
 `buy_attempt_prob` and the eligible share are both guesses.
@@ -283,27 +334,29 @@ Ranked by how much each lever moves the national price, over ten seeds:
 
 | lever | price | transactions | seeds |
 |---|---|---|---|
-| rent cap (ε=2) | **−10.7%** | −2.4% | 10/10 |
-| rent cap (ε=1) | −9.8% | −1.2% | 10/10 |
-| **credit crunch** | **−6.6%** | **−9.7%** | 10/10 |
-| transaction tax +2pp | −1.7% | −1.7% | 9/10 |
-| non-resident surcharge | −1.3% | no effect | 9/10 |
-| tourist restriction | −0.4% | no effect | 6/10 |
-| demand subsidy | +0.5% | no effect | 7/10 |
-| public housing | +0.8% | no effect | 9/10 |
-| vacancy tax | +0.2% | no effect | 6/10 |
+| **credit crunch** | **−6.8%** | **−18.6%** | 10/10 |
+| rent cap (ε=2) | −6.8% | −9.3% | 10/10 |
+| rent cap (ε=1) | −5.9% | −8.3% | 10/10 |
+| non-resident surcharge | −2.4% | −1.7% | 9/10 |
+| transaction tax +2pp | −1.6% | −4.3% | 10/10 · 9/10 |
+| tourist restriction | −0.1% | no effect | 6/10 |
+| vacancy tax | −0.0% | no effect | 5/10 |
 | land release | 0.0% | no effect | 5/10 |
+| demand subsidy | +0.5% | +0.7% | 8/10 · 7/10 |
+| public housing | +1.4% | no effect | 10/10 |
 
-Two of the three largest movers are not house-price policies. The credit crunch — a change in
-lending standards, which no housing ministry sets — moves prices and volumes more than every
-tax, subsidy and zoning lever in the table combined, and it is the only one that moves rents
-**up** (+7.8%, 10/10) as frustrated buyers stay in the rental market. The rent cap's price
-effect is a side-effect of a rental policy.
+**The re-run sharpened this row rather than softening it.** The credit crunch is now the
+largest price mover outright — it was third — and its volume effect roughly doubled, to
+−18.6%. It is still the only lever that moves rents **up** (+7.6%, 10/10) as frustrated buyers
+stay in the rental market, and it is still the one no housing ministry sets. The rent cap ties
+it on price, but that is a rental policy whose price effect is a side-effect, and its size is
+currently inflated by the registered defect F-5 records.
 
 **Verdict: contradicted.** The honest summary of the whole ledger: **the levers that dominate
-public argument are, in this model, the small ones.** That is a direction-only statement, it rests on a model whose
-price level is not itself reportable as a magnitude, and it is still the most useful thing
-here — because it is a claim about *relative* size, which is exactly what a model that
+public argument are, in this model, the small ones.** As of 2026-09-15 the price level *is*
+reportable as a magnitude (§13.2, after §5c.8), so this row no longer rests on a model that
+cannot speak about prices at all — but it remains a statement about *relative* size, which is
+what it was always for — because it is a claim about *relative* size, which is exactly what a model that
 refuses to give point forecasts can still support.
 
 ---
@@ -315,6 +368,8 @@ refuses to give point forecasts can still support.
   scalar index (`model-spec §10`). Half the Catalan cap debate is about exactly that.
 - It cannot price a bust it has already been tested on: the hold-out is spent.
 - It cannot adjudicate motive ("para especular"), which no registered series measures.
-- And its price level is direction-only until someone measures the dispersion of
-  willingness-to-pay for identical dwellings (`model-spec §13.9`). Every magnitude in this
+- Its **rent** side is direction-only: `small_landlord_premium` explains 0.65 of the rent
+  level and 0.75 of tensioned vacancy, and §7.1b can justify only 0.5–1.2pp of the 3.0pp the
+  model uses. The price level stopped being direction-only on 2026-09-15 (§13.2). Every
+  magnitude in this
   file is a property of the model, not an estimate of Spain.
