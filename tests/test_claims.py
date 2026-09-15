@@ -58,10 +58,19 @@ def test_every_lever_the_ledger_cites_still_exists(ledger):
 
 
 def test_the_ledger_states_the_reporting_rule(ledger):
-    """Phase E left two reportable magnitudes. A ledger that forgets that is a forecast sheet."""
-    assert "§13.9" in ledger or "13.9" in ledger
+    """A ledger that forgets the reporting contract is a forecast sheet.
+
+    Updated 2026-09-15: the rule itself moved. Phase E left two reportable magnitudes and the
+    guard pinned their names; after §5c.8 the set is larger and the RENT side is what is now
+    direction-only, so pinning "ownership rate and arrears" would pin a statement that is no
+    longer true. What the guard checks is what cannot go stale: that the ledger cites the rule,
+    says which side of the model may not be reported as a magnitude, and names the parameter
+    that decides it.
+    """
+    assert "§13.2" in ledger or "13.2" in ledger
     assert "direction" in ledger.lower()
-    assert "ownership rate" in ledger.lower() and "arrears" in ledger.lower()
+    assert "small_landlord_premium" in ledger, "the rent side's binding parameter is unnamed"
+    assert "conditional on the sourced parameter bands" in ledger
 
 
 def test_seed_counts_are_shown_for_model_responses(ledger):

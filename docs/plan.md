@@ -118,6 +118,18 @@ Note: the scaffold has `agents/landlord.py` + `agents/investor.py`; Phase 4 deci
 - Each lever from Phase 3 becomes a `scenario.Intervention`; run baseline vs scenario across the parameter-range ensemble; report **effect distributions per zone type**, not point predictions.
 - First experiment: a Catalonia-style rent cap. Credibility test: the model must be able to span the range of the three empirical studies by moving the exposed supply-response parameter.
 
+- [x] Claims ledger re-run against the current model (`docs/claims.md`, `src/resim/levers.py`,
+  2026-09-15). The eleven published readings were computed in phase F, before the valuation
+  anchor, the scarcity channel and the clearing calendar changed, so they no longer described
+  the model. The sweep is now a module — `uv run python -m resim.levers --jobs 10` — instead of
+  a hand-run whose artefact was gitignored. **Two verdicts move in substance**: F-4, where the
+  tourist restriction's rent effect fell from −3.5% to −1.6% and thereby moved *inside* the
+  Barcelona academic estimate instead of above it, and F-9, where the ICO guarantees now raise
+  rents 2.2% (8/10) while still moving nobody across the ownership line. **F-5 gains a caveat**:
+  the cap's rent leg deepened to −24.1% and is a registered defect, not a reading. And F-11
+  sharpens — the credit crunch is now the largest price mover outright and its volume effect
+  doubled to −18.6%.
+
 ## Progress tracking
 
 Mark phases done here; details and dates in commit history.
