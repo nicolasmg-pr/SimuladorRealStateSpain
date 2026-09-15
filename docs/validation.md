@@ -2605,18 +2605,25 @@ with `ask_markup`, `price_index_smoothing`, `overbid_sigma`, `small_landlord_pre
 | Price-to-income, purchase effort | 0.115 | `momentum_gain` 0.109 | **magnitude** |
 | Price-to-income ladder margin | 0.293 | `momentum_gain` 0.131 | **magnitude** |
 | Transactions | 0.115 | `search_listings` 0.199 | **magnitude** |
-| Rent level | 0.144 | `momentum_gain` 0.143 | **magnitude** |
-| Tensioned market vacancy | 0.427 | `momentum_gain` 0.134 | **magnitude** |
+| Rent level | 0.144 | `small_landlord_premium` 0.654 | direction only |
+| Tensioned market vacancy | 0.427 | `small_landlord_premium` 0.751 | direction only |
 | Completion ratio | 0.203 | `expectation_momentum` 0.135 | **magnitude** |
 | Arrears | 0.191 | `search_listings` 0.090 | **magnitude** |
 | Foreclosure rate | 0.840 | `search_listings` 0.140 | magnitude, on a CV that large |
 | Sold inside the quarter | 0.238 | `search_listings` 0.125 | **magnitude** |
 | Bidders per listing | 0.179 | `buy_attempt_prob` 0.189 | **magnitude** |
-| Ownership rate | 0.008 | flat across the design | magnitude |
-| Rent overburden | 0.041 | `search_listings` 0.364 | direction only |
+| Ownership rate | 0.008 | `buy_attempt_prob` 0.358 — but the moment is flat (CV 0.008) | direction only, on the rule as written |
+| Rent overburden | 0.041 | `small_landlord_premium` 0.619 | direction only |
 | Zone price ratio T/R | 0.186 | `buy_attempt_prob` 0.336 | direction only |
 | Cash-purchase share | 0.114 | `search_listings` 0.408 | direction only |
 | Negotiation margin | 0.308 | `seller_bargaining_power` 0.317 | direction only, and circular — it is identified on this |
+
+**CORRECTION, made before this section was committed.** The first pass of this table counted
+`small_landlord_premium` as sourced and promoted the rent level and tensioned vacancy with it.
+It is not sourced: §7.1 declares it the block's one **free** parameter, fitted on target 10.
+Counted correctly it explains 65% of the rent level and 75% of tensioned vacancy, and both stay
+direction-only. The error flattered the model, which is the direction errors of this kind
+always run in, and it is recorded here rather than quietly fixed.
 
 **The price level is a reportable magnitude for the first time in the project's history**, and
 the three conditions that make it one are worth stating plainly because they are what a critic
@@ -2633,10 +2640,13 @@ should attack:
 3. `momentum_gain` at 0.109 is the largest genuinely unsourced share. It was 0.24 before §5c.8.
    If a future change lifts it back above 0.25, the magnitude goes away again, and it should.
 
-Direction-only survives where an admitted guess still dominates: `search_listings` on overburden
-and the cash share, `buy_attempt_prob` on the zone price ratio, and the negotiation margin on
-the weight it is identified against. Sourcing `buy_attempt_prob` and settling `search_listings`
-against the days-on-market distribution under the new block is what the queue now points at.
+Direction-only survives where an unsourced parameter still dominates, and the queue is now
+explicit about which one: **`small_landlord_premium`** carries the whole rent side (0.65 of the
+rent level, 0.75 of tensioned market vacancy, 0.62 of overburden) and is §7.1's declared free
+parameter; **`buy_attempt_prob`** carries the ownership rate (0.36) and the zone price ratio
+(0.34); **`search_listings`** carries the cash-purchase share (0.41); and the negotiation margin
+is governed by the weight it is identified against, which is circular by construction and cannot
+be fixed by measuring anything.
 
 ## Known gaps
 

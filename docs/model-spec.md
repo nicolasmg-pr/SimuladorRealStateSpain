@@ -577,8 +577,10 @@ before. Under §13.2 that makes price-to-income a **reportable magnitude** — t
 project — conditional on the ask-markup band, which explains 61% of it: **8.13, and 7.2–9.1
 across the parameter ranges the evidence admits**. The verdict follows the consistency check
 on `ask_markup` that this section closed; it was refused the day before, when that check
-failed. Overburden, the cash share, the zone price ratio and the negotiation margin stay
-direction-only (docs/validation.md).
+failed. The **rent side stays direction-only** — `small_landlord_premium`, §7.1's declared free
+parameter, explains 0.65 of the rent level and 0.75 of tensioned vacancy — and so do the
+ownership rate, the zone price ratio, the cash share and the negotiation margin
+(docs/validation.md).
 
 **Falsification.** If the sub-period count has to leave 3 to hold the margin — 1 or 6 rather
 than the calendar — then it is a fitted parameter wearing a calendar's clothes and must be
