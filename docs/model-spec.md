@@ -1105,8 +1105,19 @@ result is reported:
    is not — do not size a rent-inflation claim on it [validation.md S4].
 8. **Rent-cap credibility test** (Phase 7 gate): sweeping supply-response elasticity
    0→2 must span Jofre-Monseny (rents −4…−5%, tenancies 0), Monràs (−5%, −10%), and
-   Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4]. **Status
-   2026-09-08: met, with all three studies INSIDE the dial** (validation.md S3, 5 seeds):
+   Pérez García (≈0 robust price effect, −13% tenancies) worlds [rent-cap §4]. **Status 2026-09-15: NOT MET, after §5b.1 split the cap
+   into its two statutes** (`docs/experiments/rent-cap.md`, ten seeds). Under Ley 11/2020 —
+   the law the three studies evaluate — the rent leg moves **0.8pp across the whole dial**
+   (−19.3% at ε=0 to −18.5% at ε=2) because the cap's level, not the behavioural parameter,
+   sets it; the quantity leg spans +21% to −49% and does reach Monràs's −10% at ε≈1. Under the
+   law in force two of the three studies can be reproduced (Jofre-Monseny at ε≈0, Pérez García
+   at ε≈1.5) but that is a different instrument and is not evidence about theirs. Closing the
+   gate means calibrating how far the reference index sits below market per regime — measured
+   at 16% here against published implied cuts of −10…−15% (Catalan index) and −20% (state
+   index). **Until then the SIZE of any rent-cap rent effect is not quotable, only its sign.**
+
+   *Superseded status, 2026-09-08: met, with all three studies INSIDE the dial* (validation.md
+   S3, 5 seeds):
    elasticity 0 → rents −4.9%, contracts +0.9%; elasticity 1.5 → −8.7%; elasticity 2 → rents
    −4.2%, contracts −13.6% ± 2.8, so Monràs's −10% falls between 1.5 and 2 and Pérez García's
    −13% at 2 — where the earlier fit needed ≈2.7 and was documented as out of range. Both legs

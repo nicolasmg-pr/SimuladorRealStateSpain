@@ -1,12 +1,105 @@
-# Experiment 1 — Catalonia-style rent cap (Phase 7)
+# Experiment 1 — rent cap (Phase 7)
 
-> **Status 2026-09-08 (final pass): gate met, all three studies inside the dial.** The table
-> below is the original 2026-08-07 measurement, kept for provenance only. Two later revisions
-> supersede it (`docs/validation.md` T1–T7, S1–S5): the tensioned-tightness fix restored the
-> supply leg, and the shadow-anchor revision then re-fitted the exit hazard so Monràs's −10%
-> and Pérez García's −13% both fall inside the 0–2 elasticity range, where the earlier fit
-> needed ≈2.7. **Quote the table in "Re-measurement 2026-09-08, final" at the end of this
-> file.**
+> **Status 2026-09-15: re-run on the current model, and the Phase-7 credibility gate is NO
+> LONGER MET.** Everything below the "Provenance" rule near the end is superseded. The gate
+> asked whether one exposed parameter can span the three Catalan studies; with the cap split
+> into the two statutes Spain actually has (`model-spec §5b.1`), it cannot. The reason is
+> identified and is not the behaviour dial: under the law those studies evaluate, the rent leg
+> is set by **how far the reference index sits below market**, and moves 0.8pp across the
+> whole elasticity range. This file records that rather than the previous "gate met".
+
+## Design
+
+- Baseline vs `RentCap(start_tick=20, cap_reference_discount=0.05, compliance=0.85)` on the
+  tensioned-metro zone, 40 ticks, **ten seeds**, outcomes averaged over the 16 post-cap ticks
+  (≈4 years). Ten seeds since `model-spec §13.4`; the original ran three.
+- The exposed disagreement parameter `supply_response_elasticity ∈ {0, 0.5, 1, 1.5, 2}`.
+- **Both statutory regimes**, because they are different instruments (`model-spec §5b.1`):
+  - **Ley 11/2020** (Catalonia 2020–22, `index_binds_all=True`) — the reference index binds
+    every landlord. *This is the world the three studies measure.*
+  - **Ley 12/2023** (in force, the model's default) — the index binds grandes tenedores; every
+    other landlord is held to its own previous contract plus IRAV, or to nothing where there is
+    no contract in the last five years. Individuals hold 85–92% of the Spanish rental stock.
+- **Not pre-registered.** The predictions for this re-run were not written down first, because
+  the levers sweep had already been run when the regime split landed (`docs/prereg/`). It is a
+  re-measurement of a registered experiment, and it is labelled as one.
+
+## Results — Ley 11/2020, the regime the studies evaluate (10 seeds)
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | Δ sale prices | Δ overburden | seasonal units gained |
+|---|---|---|---|---|---|---|
+| 0.0 | −19.3% | −17.7% | **+20.9%** | −2.9% | −1.4% | 0 |
+| 0.5 | −19.3% | −17.6% | +8.6% | −3.5% | −1.0% | +20 |
+| 1.0 | −19.3% | −17.6% | −11.2% | −3.5% | −1.3% | +41 |
+| 1.5 | −19.3% | −17.5% | −32.3% | −3.6% | −0.8% | +62 |
+| 2.0 | −18.5% | −16.8% | **−49.4%** | −3.6% | −0.4% | +74 |
+
+Contract rents fall 10/10 seeds at every setting. **The rent leg is flat**: 0.8pp across the
+whole dial, because under this statute the cap level is the reference index and the index is
+not behavioural. The quantity leg is the dial: +21% to −49%.
+
+## Results — Ley 12/2023, the law in force (10 seeds)
+
+| elasticity | Δ contract rents | Δ asking rents | Δ new tenancies | Δ sale prices | Δ overburden | seasonal units gained |
+|---|---|---|---|---|---|---|
+| 0.0 | −3.5% (8/10 down) | −13.3% | +9.0% | −3.1% | −2.5% | 0 |
+| 0.5 | −1.9% (6/10) | −10.9% | +4.1% | −3.5% | −2.1% | +12 |
+| 1.0 | −0.3% (3/10) | −7.9% | −2.7% | −3.4% | −2.3% | +26 |
+| 1.5 | +3.2% (2/10) | −3.3% | −11.8% | −3.7% | −2.6% | +40 |
+| 2.0 | **+7.6%** (1/10) | +3.0% | −21.8% | −3.4% | −2.1% | +50 |
+
+Here the rent leg is the dial and it **crosses zero**: with the index binding one landlord in
+ten, withdrawal outruns the cap somewhere around elasticity 1. **These numbers are not
+reportable** (`model-spec §5b.1`): the exit hazard behind them was identified when the index
+bound every landlord, and nothing has re-identified it for a regime where it binds a tenth of
+the market. They are published because the gap between the two columns *is* the finding.
+
+## Credibility gate (plan.md Phase 7): does one parameter span the three studies?
+
+| Study | What it found | Where the model puts it |
+|---|---|---|
+| Jofre-Monseny, Martínez-Mazza & Segú (2023) | rents −4/−5%, **no** supply effect | Ley 11/2020: nowhere — rents −19% at every setting. Ley 12/2023 at ε≈0: **−3.5% rents, +9% tenancies** ✓ but under the wrong statute |
+| Monràs & García-Montalvo (2022/23) | rents −5%, new contracts −10% | Ley 11/2020 at ε≈1 gets the contracts (−11.2%) and misses the rents by 4× (−19.3%). Ley 12/2023 gets neither pair jointly ✗ |
+| Pérez García (2026) | contracts −13%, price effect not robust | Ley 12/2023 at ε≈1.5: **−11.8% contracts, +3.2% rents (2/10 down)** ✓ |
+
+**Verdict: the gate is not met.** Within the statute the studies evaluate, one parameter spans
+their *quantity* findings and none of their *price* findings; the price leg is pinned by the
+cap's level. Two of the three can be reproduced under the current statute, which is not
+evidence about the one they measured.
+
+What closes it is named and is not this experiment's to fix: the model's reference index sits
+**16% below market rents at activation**, against published implied cuts of −10…−15% for the
+Catalan index and −20% on average for the state one. Calibrating that distance per regime is a
+§5b specification decision, and until it is made the *size* of any rent-cap rent effect in this
+model should not be quoted — only its sign and its ordering.
+
+## Side effects, emergent and not imposed anywhere
+
+- **Evasion into the seasonal segment scales with the dial** in both regimes: +74 units in the
+  tensioned zone at ε=2 under Ley 11/2020, +50 under the current law. Nobody wrote a rule
+  saying landlords flee to temporary lets; it falls out of the exit split.
+- **Sale prices fall ≈3–3.6% under both regimes and at every elasticity** — the one leg that
+  is insensitive to both the statute and the dial. Capped rents lower the landlord's
+  reservation value, and the sale side inherits it through §7.1.
+- **Overburden barely moves** (−0.4% to −2.6%): the tenants who keep a tenancy pay less, the
+  ones who lose one leave the denominator. A cap that improves affordability for insiders is
+  not the same as one that improves it on average, and the model separates them.
+- **Ownership rises** ≈1.2–1.5% (10/10 seeds) as frustrated renters buy — reported in
+  `docs/claims.md` F-5.
+
+## Regenerate
+
+```
+uv run python -m resim.levers --jobs 10            # the ledger's rent-cap rows, both regimes
+# the dial in this file: scratch sweep over supply_response_elasticity × index_binds_all,
+# 10 seeds × 40 ticks, cached to runs/rentcap_dial_10seeds.json
+```
+
+---
+
+## Provenance — superseded measurements below this line
+
+### (2026-08-07 → 2026-09-08 passes, kept for provenance only)
 
 ## Design
 

@@ -155,7 +155,12 @@ Mark phases done here; details and dates in commit history.
 - [x] Phase 4 — model spec
 - [x] Phase 5 — implementation (all 11 modules; 12 tests green)
 - [x] Phase 6 — calibration & validation (`validation.md`; Morris/Sobol pass still open)
-- [x] Phase 7 — first experiment done: rent cap spans the three Catalonia studies (`experiments/rent-cap.md`); remaining levers implemented and runnable, experiments ongoing
+- [x] Phase 7 — first experiment done and **re-run 2026-09-15**: the rent-cap dial no longer
+  spans the three Catalonia studies (`experiments/rent-cap.md`). Under the statute they
+  evaluate the rent leg is flat across the dial — the cap's level sets it, not the
+  behavioural parameter — so the Phase-7 credibility gate is **not met** and the size of any
+  rent-cap rent effect is not quotable. Previously recorded as met against a model that
+  applied the index to every landlord (`experiments/rent-cap.md`); remaining levers implemented and runnable, experiments ongoing
 - [x] Redesign phases 0, A and B (`docs/superpowers/specs/2026-09-11-model-redesign-design.md`):
   the precision contract and seven new targets; the model bug fixes; the profitability block
   (total-return hurdle, buy-to-let entry, cash-buyer anchors, bidirectional migration). Detail
