@@ -96,12 +96,45 @@ def required_rent(state: WorldState, zone: ZoneType, value: float) -> float:
     return value * required_yield / (12.0 * (1.0 - mk.landlord_cost_share))
 
 
-def cap_level(state: WorldState, zone: ZoneType, quality: float) -> float | None:
-    """Reference-index cap for a new contract, €/month, or None when no cap binds."""
+def cap_level(
+    state: WorldState,
+    zone: ZoneType,
+    quality: float,
+    *,
+    previous_rent: float = 0.0,
+    large_holder: bool = True,
+) -> float | None:
+    """The cap on a new contract, €/month, or None when none binds.
+
+    **Two caps, because the statute has two** (Ley 12/2023 amending LAU art. 17.6–17.7, and
+    docs/policies/rent-cap.md). In a declared tensioned area:
+
+    - a **gran tenedor** (≥10 dwellings, ≥5 in the area) is capped at the **reference index**;
+    - **everyone else** is capped at the **rent of the previous contract**, uprated by the
+      statutory within-contract index (IRAV), and only falls back to the reference index when
+      the dwelling has no previous contract to anchor on.
+
+    The model applied the index to every landlord until 2026-09-15, which is a much harder cap
+    than the law: individuals hold 85–92% of the Spanish rental stock, so the index was binding
+    on the nine tenths of the market it does not bind on in Spain. That single error was the
+    whole of the rent-cap rent leg's overshoot — the model cut tensioned contract rents 24%
+    where Monràs and García-Montalvo measure ≈5% (docs/validation.md).
+    """
     pol = state.config.policy
     if not (pol.rent_cap_enabled and zone in pol.rent_cap_zones):
         return None
-    return state.zones[zone].reference_rent * quality
+    index_cap = state.zones[zone].reference_rent * quality
+    if large_holder or pol.cap_index_binds_all:
+        return index_cap
+    if previous_rent <= 0.0:
+        # a small landlord whose dwelling had no contract in the last five years is capped by
+        # NOTHING: art. 17.6 anchors on a previous contract it does not have, and art. 17.7's
+        # index binds grandes tenedores only. Returning the index here — as the model did
+        # until 2026-09-15 — invents a ceiling the law does not impose
+        return None
+    # the small landlord's ceiling is its own last contract plus IRAV, which in a market that
+    # has run ahead of the index is far LOOSER than the index — and that is the law
+    return previous_rent * (1.0 + pol.within_contract_update / 4.0)
 
 
 def is_covered(state: WorldState, unit) -> bool:
@@ -160,7 +193,14 @@ class SmallLandlords:
             market_ask *= pressure
             ask = max(floor, market_ask)
 
-            cap = cap_level(state, unit.zone, unit.quality)
+            # a small landlord is capped by its own previous contract, not by the index
+            cap = cap_level(
+                state,
+                unit.zone,
+                unit.quality,
+                previous_rent=unit.rent or unit.last_contract_rent,
+                large_holder=False,
+            )
             capped = False
             if cap is not None and not is_covered(state, unit):
                 cap = None  # not a declared municipality: no cap applies to this unit

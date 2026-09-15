@@ -460,6 +460,15 @@ class MarketConfig:
     # It is INERT in a rising market: with the dwelling worth more than it cost, the loss is
     # zero and the ask is unchanged. That is what makes it safe to add after a calibration
     # done on a rising window — and it is checked rather than assumed (docs/validation.md).
+    # THE REALISED-PRICE LEG (added 2026-09-15). Genesove & Mayer measure TWO effects and the
+    # model carried only one: asking prices 25–35% of the nominal loss higher, and **realised
+    # prices 3–18% of it higher**. Carrying only the ask made loss aversion inert on price once
+    # §5c.6 moved the bargaining weight to 0.25 — a one-bidder sale prices near the reserve, so
+    # a higher ask withheld the dwelling without holding the price up, and the brakes deepened
+    # a bust instead of cushioning it. The reserve now carries this leg [QJE 2001, central 0.10
+    # of a measured 0.03–0.18]
+    loss_aversion_reserve: float = 0.10
+    loss_aversion_reserve_range: tuple[float, float] = (0.03, 0.18)
     loss_aversion_owner: float = 0.30
     loss_aversion_owner_range: tuple[float, float] = (0.25, 0.35)
     loss_aversion_investor: float = 0.15
@@ -648,6 +657,12 @@ class PolicyConfig:
     rent_cap_enabled: bool = False
     rent_cap_zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED,)
     cap_reference_discount: float = 0.05  # cap below prevailing market rent; range 0–.10
+    # WHICH LAW. Ley 12/2023 (the default) binds the reference index on grandes tenedores
+    # only; everyone else is capped at their own previous contract plus IRAV, and at
+    # nothing when there is no contract in the last five years. Catalonia's Ley 11/2020,
+    # which the three evaluation studies measure, bound the index on EVERY landlord —
+    # so a run that reproduces Monràs and García-Montalvo must set this True
+    cap_index_binds_all: bool = False
     cap_compliance: float = 0.85  # share of new contracts actually at/below cap; range .25–.95
     # share of the capped zone's units that sit inside a DECLARED tensioned municipality.
     # Distinct from compliance (whether a covered landlord obeys): the law is a CCAA switch

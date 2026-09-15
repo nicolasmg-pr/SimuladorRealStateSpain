@@ -58,7 +58,7 @@ substance (F-4, F-9) and one carries a new caveat that did not exist before (F-5
 | F-2 | Mobilising the 3.8M empty homes fixes the shortage | contradicted, on the geography |
 | F-3 | Spain is 700,000 homes short, so building closes the gap | first half supported, second half unidentifiable on this horizon |
 | F-4 | Tourist flats are why rents rose | conditional — right sign, and the re-run brings the size inside the academic estimate |
-| F-5 | The Catalan rent cap works: new contracts fell 4.7% | supported in direction; the size is inflated by a registered defect |
+| F-5 | The Catalan rent cap works: new contracts fell 4.7% | supported in direction; size overshoots, and Spain's *current* law is a different instrument the model cannot yet report |
 | F-6 | The Catalan rent cap destroyed supply: listings −72% | direction supported, the −72% is a basis error |
 | F-7 | Public housing lowers rents | supported for rents and access; sale prices do not fall |
 | F-8 | Cutting ITP for young buyers improves access | conditional — much of it capitalises into price |
@@ -201,20 +201,36 @@ falsification of the strong version.
 
 **What the model says.** `RentCap` at full coverage:
 
+Run under **Ley 11/2020**, the Catalan statute these studies evaluate, in which the reference
+index binds *every* landlord:
+
 | | ε = 1 | ε = 2 | seeds |
 |---|---|---|---|
-| tensioned contract rent | **−24.1%** | −22.8% | 10/10 |
-| new leases | −20.7% | −33.2% | 10/10 |
-| rent overburden | −5.0% | −1.6% | 10/10 |
-| tensioned price | −10.3% | −11.5% | 10/10 |
+| tensioned contract rent | **−23.5%** | −20.6% | 10/10 |
+| new leases | −22.1% | −32.3% | 10/10 |
+| rent overburden | −4.3% | −1.0% | 10/10 |
+| tensioned price | −10.4% | −11.1% | 10/10 |
 
-**A caveat that did not exist in phase F, and it is a defect rather than a finding.** The rent
-leg deepened from −15.4% to −24.1% with §5c.8, and `test_rent_cap_reproduces_the_monras_co_movement`
-is an open registered failure because of it: the leg is now *mechanical*, identical at hazard
-0.3, 0.5 and 0.7 and at supply elasticity 0, 1 and 2, so no behavioural dial produces it. What
-produces it is the distance between market rents and the reference index the cap is written
-against, which updates at 0.3/tick behind them. **Until that is fixed the size of this row is
-not the model's opinion, it is an artefact**, and only the sign and the ordering should be read.
+**Two caveats, and the second is new on 2026-09-15.**
+
+*The size still overshoots.* −23.5% against Barcelona's measured ≈−5%, and
+`test_rent_cap_reproduces_the_monras_co_movement` stays an open registered failure. The
+overshoot is now attributed rather than mysterious: the model's reference index sits **16% below
+market rents at activation**, where the published implied cuts are −10…−15% for the Catalan
+index and −20% on average for the state one. The model's cap is simply harder than the one
+Monràs evaluated, and the rest of the distance is compliance, composition, and contracts that
+were already below the index — none of which the model separates. Read the sign, not the size.
+
+*Spain's current law is a different instrument, and the model cannot yet report it.* §5b now
+carries both statutes: Ley 11/2020 binds the index on everyone, Ley 12/2023 binds it on grandes
+tenedores and holds everyone else to their own previous contract plus IRAV — or to nothing at
+all, where no contract exists in the last five years. Individuals hold 85–92% of the Spanish
+rental stock, so the difference is most of the market. Run under the current law the model
+produces **rents +16.6% (10/10)** with new leases −16.1%: the withdrawal channel with almost no
+cap holding rents down. **That number is not reportable and is not a prediction** — the exit
+hazard behind it was identified when the index bound every landlord, and nothing has
+re-identified it for a regime where it binds one landlord in ten. It is in the artefact as
+`rent-cap-state-law` so that the gap is visible rather than hidden.
 
 **Verdict: supported in direction, and the model overshoots the size.** Its cap covers the
 whole tensioned zone where Spain's covers ≈42% of it, and the measured −15% against Barcelona's
@@ -232,8 +248,10 @@ settles it.
 > Long-term rental listings in Catalonia fell from 68,629 (2024Q1) to 18,878 (2026Q2), −72%.
 > — industry data, 2026
 
-**What the model says.** New leases fall **−23.2% (ε=1) to −33.6% (ε=2)**, 10/10 seeds. The
-three registered Catalan studies put the contract response between **0 and −13%**.
+**What the model says**, under Ley 11/2020 as F-5 explains: new leases fall **−22.1% (ε=1) to
+−32.3% (ε=2)**, 10/10 seeds. The three registered Catalan studies put the contract response
+between **0 and −13%**. Under the current state law the same lever gives −16.1%, which is
+closer to the studies and, for the reason F-5 gives, still not reportable.
 
 **Verdict: the direction is supported; the −72% is a basis error.** Portal listings are a
 stock of advertisements, and contracts are a flow; a cap that shortens the time a flat spends
@@ -335,8 +353,9 @@ Ranked by how much each lever moves the national price, over ten seeds:
 | lever | price | transactions | seeds |
 |---|---|---|---|
 | **credit crunch** | **−6.8%** | **−18.6%** | 10/10 |
-| rent cap (ε=2) | −6.8% | −9.3% | 10/10 |
-| rent cap (ε=1) | −5.9% | −8.3% | 10/10 |
+| rent cap, Ley 11/2020 (ε=2) | −6.6% | −9.3% | 10/10 |
+| rent cap, Ley 11/2020 (ε=1) | −6.3% | −8.1% | 10/10 |
+| rent cap, Ley 12/2023 | −6.9% | −7.3% | 10/10 · 9/10 (rents **rise**; see F-5) |
 | non-resident surcharge | −2.4% | −1.7% | 9/10 |
 | transaction tax +2pp | −1.6% | −4.3% | 10/10 · 9/10 |
 | tourist restriction | −0.1% | no effect | 6/10 |

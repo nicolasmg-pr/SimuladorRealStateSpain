@@ -285,7 +285,18 @@ existed: buyers did not look. The rule is now that a buyer samples `m` affordabl
 and bids on the one with the largest surplus (value minus ask), so bid concentration is
 endogenous — a well-priced dwelling attracts bidders, an overpriced one does not.
 
-`m` is reduced form and is identified against two observables the model has never used:
+**Rewritten 2026-09-15.** Phase D justified `m` by a direction the model no longer has: it
+claimed wider search *slows* the market (swept 75% → 21% sold inside the quarter as m went 1 →
+8). Under the taste-neutral anchor and sequential clearing the direction is the opposite and
+the sweep is flat — 0.503 (m=1), 0.661 (m=2), 0.686 (m=3), 0.691 (m=6) — because a buyer who
+has compared two listings bids nearer its limit on the one it picks, and clears it. The old
+reasoning survives only as an artefact of the simultaneous auction §5c.8 removed.
+
+What did not change is the identification: the days-on-market distribution is a **level**, and
+only m = 1 puts the model inside it (0.43–0.63). So `m` is still identified on the observable it
+was always identified on, and the mechanism story attached to it is now the measured one.
+
+`m` is reduced form and is identified against two observables:
 
 - **Days on market** [idealista/data, 2T 2026]: 7% of dwellings sell in under a week, 19%
   within the month, 27% within three months, 36% within the year and 11% take longer — so
@@ -563,6 +574,33 @@ vacancy and overburden stay direction-only.
 **Falsification.** A Spanish estimate of the required return of small landlords, from a survey
 or from a revealed-preference study, outside 2.0–3.0pp. Or a component that closes the residual
 and is shown not to be double-counting `landlord_cost_share`.
+
+### 5b.1 The rent cap is two statutes, not one (2026-09-15)
+
+The model applied the reference index to every landlord in a capped zone. Spain's law does not,
+and the difference is most of the market.
+
+| | who is capped | at what |
+|---|---|---|
+| **Ley 12/2023** (in force) | gran tenedor (≥10 dwellings, ≥5 in the area) | the reference index |
+| | every other landlord | its own previous contract, uprated by IRAV |
+| | …with no contract in the last five years | **nothing** — art. 17.6 has nothing to anchor on and art. 17.7 binds grandes tenedores only |
+| **Ley 11/2020** (Catalonia, 2020–22) | every landlord | the index |
+
+Individuals hold 85–92% of the Spanish rental stock, so applying the index universally is a far
+harder cap than the one the statute imposes. `agents/landlord.cap_level` carries both and
+`RentCap.index_binds_all` selects; the default is the law in force. The previous-contract anchor
+survives the tenancy (`Unit.last_contract_rent`), because the statute looks back five years —
+zeroing it on vacancy, as the model did, promoted every small landlord back to the index regime.
+
+**Which regime a test or an experiment runs is now part of its statement.** The three Catalan
+evaluations measure Ley 11/2020, so the targets drawn from them run that regime. Under the law
+in force the model produces a rent **rise** (+16.6%, ten seeds) as withdrawal outruns a cap that
+binds one landlord in ten — and that number is **not reportable**, because `hazard_scale` was
+identified when the index bound everyone and nothing has re-identified it here. It is published
+in `runs/levers_10seeds.json` as `rent-cap-state-law` so the gap is visible rather than hidden,
+and re-identifying that hazard for the current statute is the one piece of rent-cap work this
+project leaves open.
 
 ### 5c.8 The tick is a quarter, the market is not (2026-09-15)
 
@@ -1579,6 +1617,38 @@ attributed: what the claim requires to be true, what the model says in direction
 seeds, the verdict (supported / contradicted / conditional / unidentifiable) and what evidence
 would settle it. It is the file this project exists to produce, and it obeys §13.9: no row
 reports a magnitude the variance rule does not allow.
+
+## 13.12 When parameter sourcing stops (decided 2026-09-15)
+
+The variance rule has a defect as a work queue: it asks which *unsourced* parameter explains
+the most variance, and every ranking has a first entry. Close one and the next is promoted.
+Since phase E it has named `overbid_sigma`, then `ask_markup`, then `price_index_smoothing`,
+then `small_landlord_premium`, and behind them sit `buy_attempt_prob` and `search_listings`. One
+of them — `seller_bargaining_power` — **can never be closed**, because it is identified on the
+very moment it governs. Followed literally the rule is a treadmill.
+
+So it is bounded here, by purpose rather than by exhaustion:
+
+> **Parameter sourcing stops when every quantity a registered claim in `docs/claims.md` depends
+> on is either a reportable magnitude or explicitly published as a direction, and the unsourced
+> shares that remain sit on quantities no claim uses.**
+>
+> What remains unsourced after that point is not a to-do list. It is declared, with its size
+> and its falsification condition, in `docs/assumptions.md`, and the model is used.
+
+Three things are declared irreducible under this rule as of 2026-09-15, and no further work is
+scheduled against them:
+
+1. **`seller_bargaining_power`** — circular by construction (§5c.1). It is identified on the
+   negotiation margin, so the margin can never be independent evidence about it.
+2. **The residual of `small_landlord_premium`** — components justify 0.5–1.2pp of a shipped
+   3.0pp (§7.1b). Closing it needs a price for regulatory risk that nobody publishes.
+3. **A replacement hold-out.** 2008–13 is spent (§13.11). Until an unused episode with the
+   right inputs exists, out-of-sample replication is a claim this model cannot renew.
+
+The corollary matters as much as the rule: **after the stop, work on this model is experiments,
+not refinement.** A parameter that moves nothing anyone is asking about is not evidence work,
+it is decoration.
 
 ## 13.11 The hold-out is burned, and what that costs
 

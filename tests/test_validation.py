@@ -823,7 +823,9 @@ def test_ine_projection_vintages_all_decline_and_were_cut():
     assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
 
 
-def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
+def _rent_cap_response(
+    elasticity: float, seeds=(1, 2, 3), *, index_binds_all: bool = False
+) -> dict[str, float]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
     the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1."""
     from resim.scenario import RentCap
@@ -837,7 +839,13 @@ def _rent_cap_response(elasticity: float, seeds=(1, 2, 3)) -> dict[str, float]:
                 Scenario(
                     name="c",
                     baseline=cfg,
-                    interventions=(RentCap(start_tick=20, supply_response_elasticity=elasticity),),
+                    interventions=(
+                        RentCap(
+                            start_tick=20,
+                            supply_response_elasticity=elasticity,
+                            index_binds_all=index_binds_all,
+                        ),
+                    ),
                 )
             ).run()
         )
@@ -868,7 +876,14 @@ def test_rent_cap_lowers_contract_rents():
     Measured after phase D: contract rents **−3.6%** under the cap, at both ends of the
     supply-elasticity dial, against +4.9% (the wrong sign) before it.
     """
-    assert _rent_cap_response(1.0)["rent"] < -0.01
+    # Ley 11/2020, for the reason the Monràs test gives: target 8 comes from the Catalan
+    # evaluations, and `hazard_scale` was identified in that regime. Under the current statute
+    # (Ley 12/2023, the index binding grandes tenedores only) the same lever raises rents 1.4%
+    # here and 16.6% over the ledger's longer horizon, because the cap barely binds on
+    # individuals while the withdrawal channel keeps firing on a hazard nothing has
+    # re-identified. That result is recorded in docs/claims.md as NOT reportable rather than
+    # asserted here (model-spec §5b).
+    assert _rent_cap_response(1.0, index_binds_all=True)["rent"] < -0.01
 
 
 def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
@@ -883,23 +898,26 @@ def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
     the cap against (`ZoneState.shadow_rent`) fixed it. The full sweep is in
     docs/experiments/rent-cap.md.
     """
-    assert _rent_cap_response(2.0)["leases"] < -0.05
+    assert _rent_cap_response(2.0, index_binds_all=True)["leases"] < -0.05
 
 
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "PHASE-G REGRESSION, opened 2026-09-15. The rent leg lands at −21% against the "
-        "−4…−6% the three Catalan studies report, where phase D had it at −3.6%. Diagnosed "
-        "rather than tuned: the leg is now MECHANICAL, not behavioural — it reads −21.0% at "
-        "hazard 0.3, 0.5 and 0.7 alike and at supply elasticity 0, 1 and 2 alike, so no dial "
-        "in the cap block is producing it. What produces it is the distance between market "
-        "rents and the reference index the cap is written against: §5c.7's stretch lifts "
-        "sale prices, the §7.1 hurdle carries that into required rents, and the reference "
-        "rent updates at 0.1/tick behind them, so the cap bites on a wider gap than before. "
-        "The dial still works on the quantity leg (leases +16% at hazard 0.3, −60% at 1.0). "
-        "Closing it is a reference-rent question — how fast a SERPAVI-like index tracks the "
-        "market — and that is a specification decision this phase does not take."
+        "STILL OPEN, and re-diagnosed on 2026-09-15 after §5b split the cap into the two "
+        "regimes the statutes actually have. Under Catalonia's Ley 11/2020, which is the law "
+        "these three studies measure, the model cuts transacted tensioned rents **20.6%** at "
+        "elasticity 2 against a measured ≈5%, with contracts −51%. Under Ley 12/2023, the law "
+        "in force, the same lever cuts rents 3.8% and contracts 2.1% at elasticity 1 — inside "
+        "the studies' range, but that is a different statute and it is not evidence about "
+        "this one. What is left of the overshoot is now one identified quantity: the model's "
+        "reference index sits **16% below market rents at activation** (measured, three "
+        "seeds), where the published implied cuts are −10…−15% for the Catalan index and "
+        "−20% on average for the state index [Infobae/Cambra de la Propietat, Mar 2024]. The "
+        "model's cap is therefore harder than the one Monràs evaluated, and the rest of the "
+        "gap is compliance, composition and the contracts already below the index — none of "
+        "which the model separates. Closing it means calibrating the reference's distance "
+        "from market per regime, which is a §5b specification decision."
     ),
 )
 def test_rent_cap_reproduces_the_monras_co_movement():
@@ -925,6 +943,10 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     against +6.8% rents (wrong sign) and −21.8% contracts before it. Monràs and
     García-Montalvo's −5% / −10% pair now sits inside the dial rather than outside it.
     """
-    response = _rent_cap_response(2.0)
+    # Catalonia's Ley 11/2020 bound the index on EVERY landlord, which is the world these
+    # three studies measure. The model's default lever is Ley 12/2023, where the index binds
+    # grandes tenedores only (§5b, agents/landlord.cap_level) — running the default here would
+    # be adjudicating a 2020 evaluation against a 2023 statute.
+    response = _rent_cap_response(2.0, index_binds_all=True)
     assert response["leases"] < -0.09, f"quantity leg: {response['leases']:.1%}"
     assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"

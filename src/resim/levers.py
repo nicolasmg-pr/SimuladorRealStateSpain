@@ -52,8 +52,15 @@ COLUMNS = (
 # which is how the ledger separates "the model's response" from "the response at the top of
 # the dial the evidence admits".
 RUNS: dict[str, tuple[str, dict]] = {
-    "rent-cap": ("rent-cap", {}),
-    "rent-cap-e2": ("rent-cap", {"supply_response_elasticity": 2.0}),
+    # The ledger reports the CATALAN regime (Ley 11/2020, the index binding every landlord),
+    # because that is the world the three evaluation studies measure and the one the model's
+    # `hazard_scale` was identified in. The state regime (Ley 12/2023, the index binding
+    # grandes tenedores only) is run alongside it and is NOT reportable: with the cap barely
+    # binding on individuals the withdrawal channel runs on a hazard calibrated for the other
+    # regime, and it produces a rent RISE that no evidence covers (docs/validation.md).
+    "rent-cap": ("rent-cap", {"index_binds_all": True}),
+    "rent-cap-e2": ("rent-cap", {"supply_response_elasticity": 2.0, "index_binds_all": True}),
+    "rent-cap-state-law": ("rent-cap", {}),
     "transaction-tax": ("transaction-tax", {}),
     # the 100% non-EU surcharge of claim F-1, as the lever expresses it
     "transaction-tax-foreign": ("transaction-tax", {"itp_delta": 0.0, "foreign_delta": 1.0}),
