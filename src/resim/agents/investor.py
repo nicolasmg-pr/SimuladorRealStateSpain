@@ -62,7 +62,7 @@ class LargeInvestor:
                     key=lambda u: u.tenure is not Tenure.VACANT,
                 )
                 for u in sellable[:n_list]:
-                    value = zs.price_index * u.quality
+                    value = (zs.valuation_index or zs.price_index) * u.quality
                     ask = loss_averse_ask(
                         base_ask=value * (1.0 + state.config.market.ask_markup),
                         paid=u.last_sale_price,

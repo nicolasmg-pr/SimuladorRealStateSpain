@@ -102,10 +102,12 @@ class Households:
                 # rare movers: list the home; they re-enter demand after it sells
                 if move_draw[i] < pop.owner_move_prob:
                     unit = state.stock.units[hh.unit_id]
-                    value = zs.price_index * unit.quality
-                    ask = (
-                        value * (1.0 + zs.expected_price_growth) * (1.0 + cfg.market.ask_markup)
-                    )
+                    # posted off the TASTE-NEUTRAL index (model-spec §5c.6): what the
+                    # dwelling is worth to an average buyer. The markup over it is the
+                    # posting convention, and the selection premium a competitive auction
+                    # adds is what turns the posted markup into the realised 6.2% discount
+                    value = (zs.valuation_index or zs.price_index) * unit.quality
+                    ask = value * (1.0 + zs.expected_price_growth) * (1.0 + cfg.market.ask_markup)
                     # a seller facing a nominal loss asks part of it back, and waits
                     # (model-spec §5d.1; Genesove & Mayer 2001). Zero in a rising market.
                     ask = loss_averse_ask(

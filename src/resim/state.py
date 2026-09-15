@@ -70,9 +70,17 @@ class HouseholdState:
 class ZoneState:
     """Per-zone market observables agents condition on."""
 
-    price_index: float  # € per standard unit (quality 1)
+    price_index: float  # € per standard unit (quality 1), REALISED transaction basis
     rent_index: float  # €/month per standard unit, ASKING basis (idealista-like)
     reference_rent: float  # official reference index (SERPAVI-analogue), €/month
+    # What a buyer anchors its valuation on: the same index with the price-setting bidders'
+    # idiosyncratic taste taken out (model-spec §5c.6). The two differ by the selection
+    # premium an auction produces — the winner is chosen on a high draw — and they must be
+    # kept apart, because feeding the realised index back into valuations makes
+    # `overbid_sigma` a growth rate rather than a dispersion. Sellers post asks off
+    # `price_index` (they observe comparable SALES); buyers value off this one. Equal at
+    # initialisation.
+    valuation_index: float = 0.0
     # €/month a standard unit would clear at with NO cap: equals rent_index in a free market;
     # under a cap it is inferred from the applicant queue (engine._update_indices). This is
     # what landlords compare the cap against when deciding to withdraw a unit.
