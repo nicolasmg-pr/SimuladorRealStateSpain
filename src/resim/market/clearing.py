@@ -131,7 +131,9 @@ def loss_averse_ask(*, base_ask: float, paid: float, value: float, alpha: float)
     return base_ask + alpha * loss
 
 
-def seller_reserve(*, ask: float, debt: float, discount: float, cfg) -> float:
+def seller_reserve(
+    *, ask: float, debt: float, discount: float, cfg, paid: float = 0.0, value: float = 0.0
+) -> float:
     """The lowest price a seller can accept (model-spec §5c.3).
 
     `max(debt + selling costs, ask × (1 − max_discount))`. The first leg is accounting, not
@@ -141,7 +143,15 @@ def seller_reserve(*, ask: float, debt: float, discount: float, cfg) -> float:
     price path the model itself produces. The second leg keeps a floor under an outright
     owner, who still refuses a derisory offer; its size is the measured negotiation margin.
     """
-    return max(debt * (1.0 + cfg.market.selling_cost_share), ask * (1.0 - discount))
+    floor = max(debt * (1.0 + cfg.market.selling_cost_share), ask * (1.0 - discount))
+    # the REALISED-price leg of loss aversion (model-spec §5d.1): Genesove & Mayer find
+    # realised prices 3–18% of the nominal loss higher, not only asking prices. It belongs
+    # here rather than in the ask, because with a low bargaining weight the price is set by
+    # the reserve and an ask-only effect withholds the dwelling without holding the price up.
+    loss = max(0.0, paid - value)
+    if loss > 0.0:
+        floor = max(floor, floor + cfg.market.loss_aversion_reserve * loss)
+    return floor
 
 
 def clear_sales(
@@ -456,6 +466,10 @@ def settle(state: WorldState, trades: list[Trade], rentals: list[RentalMatch]) -
                 if old.tenure is Tenure.RENTED:
                     old.tenure = Tenure.VACANT
                     old.vacant_since = state.tick
+                    # the ceiling the small-landlord cap regime anchors on survives the
+                    # tenancy (LAU art. 17.6 as amended: the contract in force in the last
+                    # five years), so it is kept rather than zeroed with the rent
+                    old.last_contract_rent = old.rent or old.last_contract_rent
                     old.rent = 0.0
         unit.occupant_id = tenant.id
         unit.tenure = Tenure.RENTED

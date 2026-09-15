@@ -42,12 +42,17 @@ class RentCap(Intervention):
     # Cataluña-2024-like (≈90% of Catalan population declared); ≈0.42 = Spain's 317
     # municipalities of Jul 2026 (9.3M people) mapped onto the model's tensioned zone
     coverage: float = 1.0
+    # True = Ley 11/2020 (Catalonia): the index binds every landlord. False = Ley
+    # 12/2023: it binds grandes tenedores, and the rest are held to their own
+    # previous contract plus IRAV (agents/landlord.cap_level)
+    index_binds_all: bool = False
 
     def apply(self, config: SimConfig) -> SimConfig:
         cfg = config.with_policy(
             rent_cap_enabled=True,
             rent_cap_zones=self.zones,
             cap_reference_discount=self.cap_reference_discount,
+            cap_index_binds_all=self.index_binds_all,
             cap_compliance=self.compliance,
             cap_coverage=self.coverage,
             seasonal_segment_capped=self.seasonal_segment_capped,

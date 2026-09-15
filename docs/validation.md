@@ -2692,6 +2692,88 @@ sit inside `landlord_cost_share` — AEAT's cost line includes management — an
 counted twice. Pricing one of them without double-counting is the next piece of evidence work on
 the rent side.
 
+## The last three regressions, and the stopping rule (2026-09-15)
+
+Phase G left four registered regressions. One (the boom's rent leg) fell to §5c.8. The other
+three are closed here, and **none of them by a parameter**.
+
+### 1. Loss aversion was carrying one of its source's two legs
+
+`test_loss_aversion_reproduces_the_price_volume_correlation` broke in phase G: the brakes
+deepened a bust (−69.7%) instead of cushioning it (−66.9% without). The xfail wrote down what
+the fix would have to be and it was right. Genesove & Mayer measure **two** effects — asking
+prices 25–35% of the nominal loss higher, *and realised prices 3–18% of it higher* — and the
+model carried only the first. Once §5c.6 moved the bargaining weight to 0.25, a one-bidder sale
+priced near the reserve, so an ask-only effect withheld dwellings without holding prices up.
+The realised leg now sits in `seller_reserve` at **0.10 of the loss**, the centre of the paper's
+0.03–0.18. The test passes and the price–volume correlation is back.
+
+### 2. The search effect's direction was an artefact of simultaneous clearing
+
+Phase D justified `m` with a sweep in which wider search *slowed* the market (75% → 21% sold
+inside the quarter as m went 1 → 8). Measured now: **0.503 / 0.661 / 0.686 / 0.691** at m = 1 /
+2 / 3 / 6 — the opposite, and flat above m = 2. A buyer who has compared two listings bids
+nearer its limit on the one it picks, and clears it; the old ordering came from the simultaneous
+auction §5c.8 removed. §5c.2 is rewritten around the measurement, and the test now asserts what
+is true and identifying — the direction on every seed, with the *level* gated where ten seeds
+exist. `m` is unchanged at 1, still identified on the same idealista distribution.
+
+### 3. The rent cap was applying the wrong statute to nine tenths of the market
+
+The rent leg read −24% against Monràs's ≈−5% and was diagnosed in phase G as "mechanical". The
+mechanism turned out to be a **law the model was not implementing**. Ley 12/2023 binds the
+reference index on **grandes tenedores only**; every other landlord is held to its own previous
+contract plus IRAV, and to nothing at all where no contract exists in the last five years (LAU
+art. 17.6–17.7). Individuals hold 85–92% of the Spanish rental stock. The model applied the
+index to all of them.
+
+`cap_level` now carries both regimes and `RentCap.index_binds_all` selects between them —
+`True` is Catalonia's Ley 11/2020, which every evaluation study measures. Three fixes were
+needed to make the small-landlord anchor real: the previous contract's rent survives the
+tenancy (`Unit.last_contract_rent`, because the statute anchors on the last five years, and
+zeroing it on vacancy had silently promoted every small landlord to the index regime), the
+rotation path in `clearing.settle` keeps it too, and initially-let units start with it.
+
+Measured, ten seeds, the ledger's horizon:
+
+| | Ley 11/2020 (index binds all) | Ley 12/2023 (current law) |
+|---|---|---|
+| tensioned contract rent | −23.5% | **+16.6%** |
+| new leases | −22.1% | −16.1% |
+| national price | −6.3% | −6.9% |
+| rent overburden | −4.3% | −8.2% |
+
+**The second column is not reportable and says so in the ledger.** With the cap binding one
+landlord in ten, the withdrawal channel dominates — and that channel's `hazard_scale` was
+identified in the regime where the index bound everyone. Nothing has re-identified it for this
+one, so the rent *rise* is an out-of-regime extrapolation, not a prediction. It is published in
+the artefact as `rent-cap-state-law` precisely so the gap is visible.
+
+What the split does settle: the targets that come from the Catalan evaluations now run the
+Catalan statute (`test_rent_cap_lowers_contract_rents`, `test_cap_coverage_scales_the_rent_cap`,
+`test_rent_cap_reproduces_the_monras_co_movement`), which is the difference between adjudicating
+a 2020 evaluation against a 2020 law and against a 2023 one. The Monràs overshoot survives at
+−20.6%, now attributed to one measured quantity — the model's reference index sits **16% below
+market at activation**, against published implied cuts of −10…−15% (Catalan index) and −20% on
+average (state index).
+
+### The stopping rule (`model-spec §13.12`)
+
+The variance rule cannot terminate: it names the largest unsourced share, and every ranking has
+a first entry. Since phase E it has named `overbid_sigma`, `ask_markup`, `price_index_smoothing`
+and `small_landlord_premium` in turn, and one of its candidates —`seller_bargaining_power` — can
+never be closed, because it is identified on the moment it governs.
+
+So sourcing now stops on purpose rather than on exhaustion: **when every quantity a registered
+claim depends on is either a reportable magnitude or published as a direction, and the unsourced
+shares that remain sit on quantities no claim uses.** Three things are declared irreducible and
+nothing further is scheduled against them: the bargaining weight, the residual of the
+small-landlord premium, and a replacement hold-out. After the stop, work on this model is
+experiments, not refinement.
+
+**Where that leaves the suite**: 10 registered xfails, none of them a phase-G regression, and
+every one carrying its diagnosis and its falsification condition.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

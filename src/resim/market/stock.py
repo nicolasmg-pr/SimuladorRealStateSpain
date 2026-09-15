@@ -37,6 +37,11 @@ class Unit:
     tenure: Tenure
     last_sale_price: float
     rent: float = 0.0  # €/month, current contract (0 if not rented)
+    # €/month of the LAST contract, kept after the tenancy ends. The rent cap's small-landlord
+    # regime is anchored on the rent of the contract in force in the last five years (LAU art.
+    # 17.6 as amended by Ley 12/2023), so a dwelling that falls vacant keeps its ceiling —
+    # zeroing it on vacancy silently promoted every small landlord to the index regime
+    last_contract_rent: float = 0.0
     contract_start: int = -1  # tick the current lease was signed
     vacant_since: int = -1  # tick the unit became vacant (for vacancy tax)
     withheld: bool = False  # deliberately kept off the market (2nd home / strategic)

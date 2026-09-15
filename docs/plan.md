@@ -130,6 +130,20 @@ Note: the scaffold has `agents/landlord.py` + `agents/investor.py`; Phase 4 deci
   sharpens — the credit crunch is now the largest price mover outright and its volume effect
   doubled to −18.6%.
 
+- [x] The last three phase-G regressions, and the stopping rule (2026-09-15). Loss aversion was
+  carrying one of Genesove & Mayer's two legs — the realised-price effect (3–18% of the nominal
+  loss) now sits in the seller's reserve, and the price–volume correlation is back. The search
+  effect's direction turned out to be an artefact of simultaneous clearing, so §5c.2 is rewritten
+  around the measurement and `m` keeps its identification. And the rent cap was **applying the
+  wrong statute to nine tenths of the market**: Ley 12/2023 binds the reference index on grandes
+  tenedores only, everyone else on their own previous contract plus IRAV. Both regimes now exist
+  (`RentCap.index_binds_all`), the Catalan evaluations are adjudicated against the Catalan law,
+  and the current law's result — rents +16.6% through withdrawal — is published as **not
+  reportable**, because its hazard was identified in the other regime. **`model-spec §13.12` now
+  carries a stopping rule**: sourcing ends when every quantity a registered claim depends on is a
+  magnitude or a published direction, with the bargaining weight, the premium residual and a
+  replacement hold-out declared irreducible. After the stop, the work is experiments.
+
 ## Progress tracking
 
 Mark phases done here; details and dates in commit history.

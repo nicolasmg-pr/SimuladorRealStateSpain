@@ -107,22 +107,15 @@ def _deep_bust(seed: int, loss_aversion: bool):
     return metrics.to_frame(Engine(Scenario("bust", cfg, shock)).run())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "PHASE-G REGRESSION, opened 2026-09-15. The brakes now deepen the fall slightly "
-        "instead of cushioning it: −69.7% with loss aversion against −66.9% without, on the "
-        "same three seeds that gave −68.8% against −72.5% before the phase. The mechanism is "
-        "identified, not mysterious: loss aversion works through the ASK, and §5c.6 moved the "
-        "seller's bargaining weight to 0.25 so a one-bidder sale now prices near the reserve "
-        "rather than near the ask. A higher ask therefore withholds the dwelling (volume "
-        "falls, which still reproduces Genesove & Mayer's other half) without holding the "
-        "price up. Closing it means the reserve, not the ask, carrying the loss aversion — "
-        "which is a §5d.1 specification decision, and it is not made here."
-    ),
-)
 def test_loss_aversion_reproduces_the_price_volume_correlation():
     """Genesove & Mayer's own conclusion, which is why the mechanism was added.
+
+    Broken by phase G and CLOSED 2026-09-15 exactly as its xfail predicted. §5c.6 moved the
+    bargaining weight to 0.25, so a one-bidder sale prices near the reserve; loss aversion
+    lived entirely in the ask, which then withheld dwellings without holding prices up, and
+    the brakes deepened the fall. The paper measures TWO effects — asking prices 25–35% of the
+    nominal loss higher AND **realised prices 3–18% of it higher** — and the model carried only
+    the first. The second now sits in `seller_reserve` (§5d.1), and the sign is right again.
 
     Sellers facing nominal losses hold out: the price falls **less** and the volume falls
     **more**. That joint movement is the positive price–volume correlation housing markets

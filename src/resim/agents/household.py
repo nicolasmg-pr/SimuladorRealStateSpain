@@ -123,6 +123,8 @@ class Households:
                         debt=hh.mortgage_balance + hh.arrears_balance,
                         discount=float(discount_draw[i]),
                         cfg=cfg,
+                        paid=unit.last_sale_price,
+                        value=value,
                     )
                     intents.append(
                         ListForSale(agent_id=hh.id, unit_id=unit.id, ask=ask, reserve=reserve)

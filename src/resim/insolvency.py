@@ -470,6 +470,7 @@ def deliver(
     unit.occupant_id = None
     unit.tenure = Tenure.VACANT
     unit.vacant_since = state.tick
+    unit.last_contract_rent = unit.rent or unit.last_contract_rent
     unit.rent = 0.0
     unit.withheld = False
     unit.last_sale_price = award

@@ -334,7 +334,9 @@ def test_cap_coverage_scales_the_rent_cap():
         sc = Scenario(
             name="cap",
             baseline=cfg,
-            interventions=(RentCap(start_tick=20, coverage=coverage),),
+            # the Catalan regime: coverage is what this test varies, and the state
+            # statute's two-tier cap would confound it (model-spec §5b)
+            interventions=(RentCap(start_tick=20, coverage=coverage, index_binds_all=True),),
         )
         engine = Engine(sc)
         state = engine.initialise()

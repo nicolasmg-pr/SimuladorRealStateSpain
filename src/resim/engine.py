@@ -188,6 +188,7 @@ class Engine:
                 if status is HouseholdStatus.TENANT:
                     unit.tenure = Tenure.RENTED
                     unit.rent = zs.rent_index * quality
+                    unit.last_contract_rent = unit.rent
                     unit.contract_start = -int(rng.integers(1, 12))
                     unit.owner_id = -1  # assigned to a landlord below
                     hh.unit_id = unit.id
@@ -495,6 +496,7 @@ class Engine:
                 unit.occupant_id = None
                 unit.tenure = Tenure.VACANT
                 unit.vacant_since = state.tick
+                unit.last_contract_rent = unit.rent or unit.last_contract_rent
                 unit.rent = 0.0
                 state.sale_listings.pop(hh.unit_id, None)
                 state.rent_listings.pop(hh.unit_id, None)
@@ -530,6 +532,7 @@ class Engine:
                     home.occupant_id = heir.id
                     home.tenure = Tenure.OWNER_OCCUPIED
                     home.vacant_since = -1
+                    home.last_contract_rent = home.rent or home.last_contract_rent
                     home.rent = 0.0
                     home.withheld = False
                     heir.unit_id = home.id
@@ -621,6 +624,7 @@ class Engine:
                 unit.occupant_id = None
                 unit.tenure = Tenure.VACANT
                 unit.vacant_since = state.tick
+                unit.last_contract_rent = unit.rent or unit.last_contract_rent
                 unit.rent = 0.0
                 state.sale_listings.pop(hh.unit_id, None)
                 state.rent_listings.pop(hh.unit_id, None)
@@ -814,7 +818,15 @@ class Engine:
             # a listing clipped by the cap decays no lower than the cap; an uncovered or
             # non-complying listing keeps the landlord's yield floor — otherwise the cap
             # would lower asks in municipalities where it was never declared
-            cap = cap_level(state, unit.zone, unit.quality)
+            # the same two-regime cap the lister faced (§5b, Ley 12/2023 art. 17.6–17.7):
+            # the index for a gran tenedor, the previous contract plus IRAV for anyone else
+            cap = cap_level(
+                state,
+                unit.zone,
+                unit.quality,
+                previous_rent=unit.rent or unit.last_contract_rent,
+                large_holder=unit.owner_id == LARGE_INVESTOR_ID,
+            )
             if cap is not None and lst.capped:
                 floor = min(floor, cap)
             lst.ask = max(floor, lst.ask * (1.0 - cfg.market.ask_decay))
