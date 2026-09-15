@@ -2298,6 +2298,132 @@ Defects found and fixed. Each was verified by measurement before and after, not 
   unresolved, and the project standard requires ≥2 independent sources per behavioural rule.
   Inventing an elasticity here would have manufactured the result.
 
+## Phase G — the valuation anchor and the sourced `overbid_sigma` (2026-09-15)
+
+Branch `source-overbid-sigma`. The KB-refresh audit named this the highest-value evidence work
+left on the model. It was, and not for the reason the audit gave.
+
+### What the parameter is, and what the evidence says
+
+`overbid_sigma` has been idiosyncratic taste since phase D, and the counterpart of that is
+exact: the dispersion of log sale prices for the same dwelling, net of location × period.
+Three independent studies measure it (`sources.md`, five new rows):
+
+| Source | Data | Per-sale dispersion |
+|---|---|---|
+| Kotova & Zhang | US zipcodes 2012–16, house + zipcode-month fixed effects | mean **16.8%**, p10 11.2, p90 22.6 |
+| Giacoletti, *RFS* 34(8) 2021 | California resales 1989–2013 | **6.8–12.4%** |
+| Landvoigt, Piazzesi & Schneider, *AER* 2015 | San Diego 1999–2007 | **6.2–9.8%** |
+| BdE DO 2508 (2025) | 1,032,960 Spanish sales, census-section × quarter FE, R² 85.70% | bounds the *share*, not the level |
+
+The last two publish RETURN dispersions, which carry the error twice; the per-sale figures
+above are theirs ÷ √2. **Band adopted 6–17%, central 10%** (§9 target 16, `metrics.price_dispersion`).
+
+**No Spanish estimate exists.** INE's IPV estimates residual variances by category and
+publishes none; the Registradores' IPVVR runs Calhoun's three-stage weighting on **1,274,958
+sale pairs** — whose variance function *is* this quantity — and publishes only the index.
+Registered as a negative result rather than filled with a guess.
+
+The model measured **2.3%**.
+
+### Raising it moved the level, not the dispersion
+
+| σ | dispersion | price-to-income | discount | sold in the quarter |
+|---|---|---|---|---|
+| 0.02 (shipped) | 2.3% | 7.81 | 3.1% | 0.48 |
+| 0.10 | 6.0% | 9.53 | 1.0% | 0.40 |
+| 0.30 | 9.2% | 10.01 | 0.9% | 0.39 |
+
+Two candidate causes were prototyped and **refuted**, and both are kept because they bound the
+mechanism: correcting each price by the expected order statistic of its own auction (κ(n), then
+κ(n, m)) made the level worse and then absurd, because the realised price is clipped by the
+budget, the reserve and the ask; and a user-cost ceiling never binds, sitting at ≈40 years of
+rent against a price of ≈15.
+
+The cause is that `value = price_index × quality × taste` has no nominal anchor and the index
+is the median of *winning* prices. The selection premium was capitalised every tick. At σ=0.02
+the loop is invisible; at the measured σ it runs to the credit ceiling.
+
+### §5c.6, and the bill it presented
+
+Two indices: `price_index` stays realised (reported, expectations, the landlord hurdle);
+`valuation_index` reprices each sale at an average taste draw by running the same auction twice
+through the same rule. Level becomes σ-invariant — 6.38 / 6.40 / 6.44 across σ = 0.02 / 0.15 /
+0.30 — and the suite goes red by seven, because the old calibration was absorbing the premium.
+
+Then the diagnostic that decided the rest of the phase. The same supply experiment, before and
+after (3 seeds, 60 ticks):
+
+| starts/tick | before, p/inc | growth | after §5c.6 | growth |
+|---|---|---|---|---|
+| 8 | 8.56 | +4.24%/yr | 6.69 | +1.31%/yr |
+| 20 | 7.19 | +2.25%/yr | 6.51 | +1.13%/yr |
+
+**Phase D's scarcity-to-price channel was the taste order statistic.** Halving construction
+used to add 2.0pp to annual price growth and now adds 0.18pp; the bidder count moved (4.0 →
+5.8) and the price did not follow. Finding 2 of the redesign spec re-opens here.
+
+### §5c.7 — the channel, rebuilt on budgets
+
+`stretch = t/(t+k)` on the gap between the dwelling's worth and the buyer's credit limit, with
+`t` the buyers per listing. Scarcity now reaches the price through income, LTV and DSTI. The
+supply experiment recovers: p/inc +2.2 to +3.0 and growth +2.1 to +2.8pp across the same
+starts range, against the old model's +1.37 and +2.0pp.
+
+### The refit
+
+LHS over five parameters (96 points), then six (128 points) once §5c.7 existed, two seeds each,
+scored on dispersion / discount / above-ask / time-to-sale with the §9 gates as weighted guard
+rails; then focused grids. Shipped:
+
+| parameter | was | now | identified on |
+|---|---|---|---|
+| `overbid_sigma` | 0.02 | **0.20** | the sourced 6–17% dispersion band (delivers 8.0%) |
+| `tightness_half_saturation` | — | **260** | the price-income wedge; searched 4–1400 |
+| `ask_markup` | 0.08 | **0.12** | the realised discount, at the top of its sourced range |
+| `seller_bargaining_power` | 0.85 | **0.25** | arithmetic: a one-bidder price θ of the way from reserve to ask gives a discount of (1−θ)·d, so 0.85 could not reach 6.2% at any markup |
+| `search_listings` | 2 | **1** | see the frontier below |
+| `buy_attempt_prob` | 0.50 | **0.64** | transaction volume; top of its guessed range, declared |
+
+Ten-seed suite: **no failures**, and the level is σ-invariant over the sourced band (p/inc 8.09
+/ 8.14 / 8.28 at σ = 0.10 / 0.20 / 0.30). Below σ ≈ 0.05 it is not — p/inc 5.19 at σ = 0.01 —
+and that is recorded rather than hidden: the model is not meant to run there.
+
+### The frontier, and the four regressions
+
+`search_listings` buys one sourced observable with another, and no third setting escapes it:
+
+| | price-to-income | discount | sales above ask | boom rent |
+|---|---|---|---|---|
+| m=1, k=260 (shipped) | 8.07 | 3.9% | 20% | +1.2%/yr |
+| m=2, k=1400 | 8.07 | 2.0% | 39% | +4.2%/yr |
+| m=2, k=1000, markup 0.16 | 8.96 | 3.4% | 24% | +4.2%/yr |
+
+Fotocasa puts sales above ask at 9% of negotiating sellers; the Tecnocasa discount is 6.2%; the
+boom's sourced rent leg is +8–11%/yr. m=1 keeps two of the three closer and loses the third.
+
+Four tests are now **strict xfails labelled as phase-G regressions**, each with the diagnosis in
+its reason string rather than a widened band:
+
+1. **Boom rent growth** +1.17%/yr against a +2.5% gate — the frontier above.
+2. **Wider search no longer slows the market** (m=6 sells 37.3% inside the quarter against
+   m=1's 34.7%, where phase D swept 75% → 21%). The old ordering was produced by the same
+   selection §5c.6 removed; §5c.2 needs rewriting against the days-on-market distribution.
+3. **The rent cap's rent leg** reads −21% against −4…−6%, and is now *mechanical*: identical at
+   hazard 0.3 / 0.5 / 0.7 and at elasticity 0 / 1 / 2. What moved is the distance between market
+   rents and the reference index, which updates at 0.1/tick behind them. A reference-rent
+   specification question.
+4. **Loss aversion deepens the fall** (−69.7% against −66.9%) instead of cushioning it, because
+   §5c.6 moved θ to 0.25, so a one-bidder sale prices near the reserve and a higher ask now only
+   withholds the dwelling. Closing it means the reserve, not the ask, carrying §5d.1.
+
+### What this phase did not do
+
+Sobol has not been re-run, so the variance rule (§13.2) is applied on the old decomposition and
+every price-like magnitude stays direction-only until it is. The 2008–13 episode is spent
+(§13.11) and was not touched. The four regressions are open, and three of them are
+specification questions rather than calibration ones.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

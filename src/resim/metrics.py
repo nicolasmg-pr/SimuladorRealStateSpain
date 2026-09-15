@@ -86,6 +86,24 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["sold_within_year_share"] = (
         float(np.mean([t.ticks_listed <= 3 for t in trades])) if trades else float("nan")
     )
+    # IDIOSYNCRATIC SALE-PRICE DISPERSION (model-spec §5c.6, §9 target 16). The sd of log
+    # sale price left after taking out zone × tick and observable quality — the model's own
+    # version of the residual that Kotova & Zhang, Giacoletti and Landvoigt-Piazzesi-Schneider
+    # estimate on repeat sales with house fixed effects. Sourced band 6–17% per sale, central
+    # 10% (docs/sources.md, 2026-09-15). Zone × tick is this model's location × period cell,
+    # which is coarser than a zipcode-month, so if anything the model's number is flattered.
+    # NaN on a tick where no zone sold two dwellings; the fixture averages over ticks.
+    resid: list[float] = []
+    by_zone: dict[ZoneType, list[float]] = {}
+    for t in trades:
+        unit = state.stock.units[t.unit_id]
+        if t.price > 0.0 and unit.quality > 0.0:
+            by_zone.setdefault(unit.zone, []).append(float(np.log(t.price / unit.quality)))
+    for logs in by_zone.values():
+        if len(logs) >= 2:
+            arr = np.asarray(logs)
+            resid.extend((arr - arr.mean()).tolist())
+    row["price_dispersion"] = float(np.std(resid, ddof=1)) if len(resid) >= 2 else float("nan")
     row["mortgage_rate"] = state.macro.mortgage_rate
     # how the purchase was paid for. Spain 2023: 973,637 sales against 381,560 new mortgage
     # deeds ⇒ 60.8% of purchases carried no registered mortgage [INE via Funcas 104 ch.3],

@@ -18,7 +18,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..market.clearing import loss_averse_ask, seller_reserve
-from ..state import HouseholdStatus, WorldState
+from ..state import HouseholdStatus, WorldState, ask_basis
 from .bank import cash_price, max_price
 from .base import Intent, ListForSale, MakeOffer, RentApplication
 
@@ -106,7 +106,7 @@ class Households:
                     # dwelling is worth to an average buyer. The markup over it is the
                     # posting convention, and the selection premium a competitive auction
                     # adds is what turns the posted markup into the realised 6.2% discount
-                    value = (zs.valuation_index or zs.price_index) * unit.quality
+                    value = ask_basis(zs) * unit.quality
                     ask = value * (1.0 + zs.expected_price_growth) * (1.0 + cfg.market.ask_markup)
                     # a seller facing a nominal loss asks part of it back, and waits
                     # (model-spec §5d.1; Genesove & Mayer 2001). Zero in a rising market.

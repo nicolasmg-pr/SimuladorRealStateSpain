@@ -151,3 +151,15 @@ class WorldState:
     def new_household_id(self) -> int:
         self.next_household_id += 1
         return self.next_household_id - 1
+
+
+def ask_basis(zs: ZoneState) -> float:
+    """The index a SELLER prices off, per quality-1 unit (model-spec §5c.6).
+
+    Kept in one place because which index this is decides whether the selection premium
+    compounds. Both sides use the taste-neutral one: an A/B at the phase-G fit found the
+    realised basis equivalent on every moment once §5c.7's stretch pins the level to budgets
+    (price-to-income 8.77 against 8.84, and σ-invariant either way), so the branch that could
+    compound is the one that was dropped.
+    """
+    return zs.valuation_index or zs.price_index

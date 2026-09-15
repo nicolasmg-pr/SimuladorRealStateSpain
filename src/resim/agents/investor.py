@@ -15,7 +15,7 @@ import numpy as np
 from ..config import ZoneType
 from ..market.clearing import loss_averse_ask
 from ..market.stock import LARGE_INVESTOR_ID, Tenure
-from ..state import WorldState
+from ..state import WorldState, ask_basis
 from .bank import itp_wedge
 from .base import Intent, ListForRent, ListForSale, MakeOffer
 from .landlord import cap_level, is_covered
@@ -62,7 +62,7 @@ class LargeInvestor:
                     key=lambda u: u.tenure is not Tenure.VACANT,
                 )
                 for u in sellable[:n_list]:
-                    value = (zs.valuation_index or zs.price_index) * u.quality
+                    value = ask_basis(zs) * u.quality
                     ask = loss_averse_ask(
                         base_ask=value * (1.0 + state.config.market.ask_markup),
                         paid=u.last_sale_price,

@@ -68,6 +68,7 @@ from .state import (
     SaleListing,
     WorldState,
     ZoneState,
+    ask_basis,
 )
 
 HOUSEHOLDS_AGENT_ID = -10
@@ -823,7 +824,7 @@ class Engine:
             state.rent_listings.pop(w.unit_id, None)
             if w.destination == "sale":
                 zs = state.zones[unit.zone]
-                value = (zs.valuation_index or zs.price_index) * unit.quality
+                value = ask_basis(zs) * unit.quality
                 ask = loss_averse_ask(
                     base_ask=value * (1.0 + cfg.market.ask_markup),
                     paid=unit.last_sale_price,

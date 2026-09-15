@@ -45,7 +45,10 @@ from .scenario import Scenario
 # guess. Keep this table and docs/model-spec.md §7 consistent.
 SPACE: dict[str, tuple[float, float]] = {
     "expectation_momentum": (0.5, 0.9),
-    "overbid_sigma": (0.02, 0.06),
+    # phase G: the range that delivers the sourced 6–17% per-sale dispersion
+    "overbid_sigma": (0.10, 0.35),
+    # phase G §5c.7, the scarcity channel's one free parameter
+    "tightness_half_saturation": (120.0, 1400.0),
     "ask_decay": (0.02, 0.05),
     "buy_attempt_prob": (0.35, 0.65),
     "seeker_wealth_median": (10_000.0, 20_000.0),
@@ -72,8 +75,9 @@ SPACE: dict[str, tuple[float, float]] = {
     "tenant_move_prob": (0.04, 0.08),
     # --- phase D, sale-side price formation (model-spec §5c) ------------------------------
     "search_listings": (1.0, 10.0),  # rounded to an int inside _config_for
-    "ask_markup": (0.04, 0.12),
-    "seller_bargaining_power": (0.60, 0.95),
+    "ask_markup": (0.08, 0.16),
+    # phase G: identified on the measured discount, which needs a LOW weight
+    "seller_bargaining_power": (0.15, 0.60),
     "auction_increment": (0.002, 0.010),
     "momentum_gain": (1.5, 3.5),
     "max_listing_ticks": (4.0, 8.0),
@@ -132,6 +136,7 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         cfg.market,
         expectation_momentum=x["expectation_momentum"],
         overbid_sigma=x["overbid_sigma"],
+        tightness_half_saturation=x["tightness_half_saturation"],
         ask_decay=x["ask_decay"],
         search_listings=int(round(x["search_listings"])),
         ask_markup=x["ask_markup"],

@@ -182,6 +182,12 @@ def clear_sales(
                 MOMENTUM_CAP,
             )
         )
+        # Market tightness: buyers chasing each listing this tick, in this zone. The option
+        # value of searching again falls as this rises, so bids move toward the credit limit
+        # (model-spec §5c.7). This is the scarcity-to-price channel, and it runs through
+        # BUDGETS — income and credit — not through anybody's taste draw.
+        tightness = len(zone_offers) / max(len(listings), 1)
+        stretch = tightness / (tightness + cfg.market.tightness_half_saturation)
         # Each buyer samples m affordable listings and bids on the one with the most surplus
         # (what the dwelling is worth to them, minus what it costs). m < ∞ is the friction:
         # with m = 1 (the pre-phase-D rule) buyers bid at random and bidding wars happened
@@ -206,12 +212,15 @@ def clear_sales(
                 lst = affordable[int(pick)]
                 unit = state.stock.units[lst.unit_id]
                 fundamental = zone_price * unit.quality * (1.0 + momentum)
-                value = min(offer.budget, fundamental * float(taste[k]))
+                base = min(offer.budget, fundamental * float(taste[k]))
+                # stretch toward the credit limit as the market tightens (§5c.7)
+                value = base + stretch * max(0.0, offer.budget - base)
                 surplus = value - lst.ask
                 if surplus > best_surplus:
                     best, best_surplus, best_value = lst, surplus, value
                     # the same bid with an average taste draw, budget cap still applied
-                    best_neutral = min(offer.budget, fundamental)
+                    neutral_base = min(offer.budget, fundamental)
+                    best_neutral = neutral_base + stretch * max(0.0, offer.budget - neutral_base)
             if best is None:
                 continue
             # the bid is what the dwelling is worth to this buyer, capped by the budget the
