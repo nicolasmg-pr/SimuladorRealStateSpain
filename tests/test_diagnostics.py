@@ -121,7 +121,8 @@ def test_every_column_the_tab_plots_exists(frame):
 def test_summary_counts_the_registered_xfails(frame):
     counts = diagnostics.summary(frame)
     assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
-    # targets 9, 11, 12; 15's deliveries leg (phase C); 13c's negotiation margin (phase D)
-    assert counts["xfail"] == 5
+    # targets 9, 11, 12; 15's deliveries leg (phase C). 13c's negotiation margin was the
+    # fifth until §5c.8 closed it on 2026-09-15
+    assert counts["xfail"] == 4
     assert counts["targets"] == 10  # 1c, 9, 10, 11, 12, 13, 13c, 14, 15, 16 (phase G)
     assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)

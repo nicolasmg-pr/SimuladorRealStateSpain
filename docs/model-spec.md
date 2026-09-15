@@ -529,6 +529,63 @@ something else. If matching the wedge requires a `k` so low that buyers bid thei
 in a *slack* market, the mechanism is doing the work of a fitted constant and should be
 labelled one.
 
+### 5c.8 The tick is a quarter, the market is not (2026-09-15)
+
+Three registered failures had one cause, and it was the clearing calendar.
+
+`clear_sales` matched every buyer against every listing once per tick. A tick is a quarter, so
+every listing faced a full quarter of demand simultaneously and the ascending auction ran on all
+of it: 3.5 bids per listing, 21% of sales above the ask, and a negotiation margin of 3.9%
+against a measured 6.2% [Cátedra Tecnocasa-UPF, 2S 2025]. That margin had failed since phase D
+created the target, and phase G's frontier — the boom's rent leg against the negotiation
+observables — was the same fact seen from the other side.
+
+Real offers arrive **sequentially**, and a seller answers the ones in front of it against a
+reservation price [Merlo & Ortalo-Magné 2004; Merlo, Ortalo-Magné & Rust, complete offer
+histories for 780 English properties]. The tick now clears in **three sub-periods** — the months
+in a quarter, the calendar rather than a parameter. Buyers are split across them at random;
+each sub-period matches against the listings still unsold; a listing that sells leaves.
+
+Market tightness for §5c.7 is still measured over the whole tick, because the option value of
+searching is a property of the quarter's market, not of one month in it.
+
+**What it did**, ten seeds unless noted:
+
+| | before | after | band / source |
+|---|---|---|---|
+| Negotiation margin | 3.9% | **5.20% ± 0.10** | 4–12%, mean 6.2% [Tecnocasa-UPF] |
+| Sales above the ask | 21% | **12.8%** | 9% of negotiating sellers [Fotocasa] — closer, not gated |
+| Bids per listing | 3.5 | **2.22** | ≤ 7 [Tecnocasa] |
+| Boom rent leg | +1.17%/yr | **+3.03%/yr ± 2.74**, 9/10 positive | gate +2.5% |
+| Rate-shock volume cut | 1.6% | **passes** | 5% [the phase-D falsification] |
+| Price-to-income | 8.07 | **8.13 ± 0.11** | 7.0–8.2 |
+| Sold inside the quarter | 0.47 | **0.607** | 0.43–0.63 [idealista] |
+
+The rate-shock test is the one worth pausing on. Phase D killed
+`PARTICIPATION_RATE_SENSITIVITY` and recorded the resulting failure as the falsification the
+redesign asked for. It passes again, and **nothing was added to the rate channel**: with the
+quarter clearing month by month, a buyer the credit screen prices out is no longer replaced
+inside the same tick by the next bidder on the same listing, so the screen reaches volume the
+way the 2022–23 episode says it does. The coefficient stays dead.
+
+Re-fit alongside it, both inside their sourced bands: `tightness_half_saturation` 260 → **400**
+(the level rises when sales are spread over the quarter) and `ask_markup` 0.12 → **0.125**.
+
+**What it changed beyond the three tests.** On 1,792 fresh Sobol evaluations the largest
+*unsourced* share of the price level's variance is `momentum_gain` at 0.109, against 0.24
+before. Under §13.2 that makes price-to-income a **reportable magnitude** — the first in the
+project — conditional on the ask-markup band, which explains 61% of it: **8.13, and 7.2–9.1
+across the parameter ranges the evidence admits**. The verdict follows the consistency check
+on `ask_markup` that this section closed; it was refused the day before, when that check
+failed. Overburden, the cash share, the zone price ratio and the negotiation margin stay
+direction-only (docs/validation.md).
+
+**Falsification.** If the sub-period count has to leave 3 to hold the margin — 1 or 6 rather
+than the calendar — then it is a fitted parameter wearing a calendar's clothes and must be
+declared as one. Measured: 1 gives a 3.9% margin, 2 gives 4.7%, 3 gives 5.1%, 6 gives 5.6% with
+70% of listings selling inside the quarter against a 43–63% band. Three is both the calendar and
+the only value that satisfies every gate.
+
 ## 5d. What stops a falling market (2026-09-15)
 
 The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model

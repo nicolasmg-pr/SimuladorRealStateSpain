@@ -298,18 +298,17 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.04, 0.12),
         sourced="6,2% de media; sólo el 23% de las negociadas supera el 10%",
         fmt=".2%",
-        registered=Registered.XFAIL,
+        registered=Registered.GATED,
         source="Cátedra Tecnocasa-UPF (2S 2025); Fotocasa, Experiencia en compraventa 2024",
         reads="Es una **salida**, no una entrada: el vendedor publica con margen y la subasta "
         "decide cuánto queda de él. Por eso se gatilla.",
-        note="**Sigue fallando tras la fase G**: 3,9% contra 4–12%, desde el 3,0% con que "
-        "nació. El peso de negociación bajó de 0,85 a 0,25 porque la aritmética lo obliga "
-        "—con la reserva en `ask × (1 − d)`, un precio a θ del camino da un descuento de "
-        "(1−θ)·d— y aun así el mercado del modelo está más competido que el español: 20% de "
-        "ventas por encima del precio de salida frente al 9% de vendedores que lo suben en "
-        "la encuesta de Fotocasa. Es una frontera medida, no un ajuste pendiente: con "
-        "`search_listings`=2 el descuento cae al 2,0% y las ventas por encima del ask suben "
-        "al 39%, a cambio de la pierna de rentas del boom (docs/validation.md, fase G).",
+        note="**CERRADO el 15-09-2026**, tras fallar desde que nació: 5,20% ± 0,10 en diez "
+        "semillas, dentro de 4–12% y contra el 6,2% medido. No lo cerró ningún parámetro sino "
+        "§5c.8: el trimestre dejó de casarse como una subasta simultánea y las ofertas llegan "
+        "mes a mes [Merlo & Ortalo-Magné], así que las pujas por anuncio bajaron de 3,5 a 2,2 "
+        "y la mayoría de las ventas pasó a ser la negociación bilateral sobre la que el 6,2% "
+        "está medido. Las ventas por encima del precio de salida cayeron con ello, del 21% al "
+        "12,8%, contra el 9% de vendedores que suben el precio en Fotocasa.",
     ),
     Criterion(
         key="arrears_share",

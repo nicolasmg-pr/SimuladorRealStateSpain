@@ -396,10 +396,11 @@ class MarketConfig:
     # this was the taste order statistic being capitalised into the anchor (§5c.6): with the
     # anchor fixed, halving construction moved price growth by 0.18pp/yr where the old model
     # moved it by 2.0pp. REDUCED FORM, identified on the 2014–25 price-income wedge and on
-    # the cross-zone price ratio (fitted 2026-09-15: 260 against a searched 4–320, so the
+    # the cross-zone price ratio (fitted 2026-09-15: 400 against a searched 4–1400, and
+    # re-fitted from 260 when §5c.8 made clearing sequential, so the
     # stretch is small per tick — ≈5% of the gap to the credit limit at the model's own
     # buyers-per-listing — and works by compounding into the anchor, bounded by budgets)
-    tightness_half_saturation: float = 260.0
+    tightness_half_saturation: float = 400.0
     # How many affordable listings a buyer actually looks at before bidding. Reduced form,
     # identified against two observables the model did not use before: the days-on-market
     # distribution [idealista/data 2T 2026 — 26% inside a month, 53% inside a quarter, 89%
@@ -413,6 +414,13 @@ class MarketConfig:
     # two observables m was identified on still pass at m = 1 (3.4 bids per listing against
     # Tecnocasa's ≤7; 46% sold inside the quarter against idealista's 43–63%)
     search_listings: int = 1
+    # Sub-periods a tick clears in (model-spec §5c.8). The tick is a quarter and the market is
+    # not: offers arrive month by month and the seller answers what is in front of it [Merlo &
+    # Ortalo-Magné 2004; Merlo, Ortalo-Magné & Rust, 780 English properties with complete offer
+    # histories]. Three is the calendar, not a fitted number — clearing the whole quarter at
+    # once made every listing a simultaneous auction, and the negotiation margin came out a
+    # third of the measured one
+    subperiods_per_tick: int = 3
     search_listings_range: tuple[int, int] = (1, 10)
     # What an ordinary seller posts ABOVE what it expects to get. Spanish sellers build the
     # negotiation margin into the ask — the practitioner rule of thumb is 15–20% over the
@@ -441,7 +449,7 @@ class MarketConfig:
     # The aggregate portal-to-notary gap (8–12% in 2021 → 32–44% in 2025, UVE Valoraciones)
     # measures the stock on offer against what sold. It is composition, not this parameter,
     # and is registered as a contrast rather than used.
-    ask_markup: float = 0.12
+    ask_markup: float = 0.125
     # --- §5d.1 nominal loss aversion (2026-09-15) -----------------------------------------
     # A seller facing a nominal loss asks for a fraction of that loss back. MEASURED, and by
     # the canonical study: Genesove & Mayer (QJE 2001) find asking prices 25–35% of the gap

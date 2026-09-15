@@ -496,24 +496,6 @@ def _holdout_boom(seeds):
     return price, rent, vol
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "PHASE-G REGRESSION, opened 2026-09-15, and it is a FRONTIER rather than a miss. "
-        "The boom rent leg reads +1.17%/yr against the +2.5% gate and the +3.6% phase D "
-        "produced. It is governed by `search_listings`, and the two settings the block "
-        "admits cannot both be had (5 seeds baseline, 5 boom):\n"
-        "  m=1, k=260: price-to-income 8.07, discount 3.9%, sales above ask 20%, boom rent "
-        "+1.2%/yr\n"
-        "  m=2, k=1400: price-to-income 8.07, discount 2.0%, sales above ask 39%, boom rent "
-        "+4.2%/yr\n"
-        "Raising the ask markup to bring m=2's above-ask share down puts the level back out "
-        "of band (9.0). m=1 is shipped because it keeps two sourced observables closer and "
-        "loses one; the choice is recorded in docs/validation.md rather than hidden in a "
-        "parameter. Closing this needs the rental queue to carry boom rent growth on its own, "
-        "which is the size/quality margin §10 already names."
-    ),
-)
 def test_holdout_boom_rent_growth():
     """Target 7, rent leg: the 2021–25 boom must produce sustained asking-rent growth.
 
@@ -537,6 +519,12 @@ def test_holdout_boom_rent_growth():
     valuation anchor (§5c.1), the value rises when the market is tight, the reservation
     rent rises with it, and the rent side inherits the channel. Finding 2 of the redesign
     spec is closed on both sides by the same change.
+
+    REOPENED by phase G at +1.17%/yr and CLOSED AGAIN 2026-09-15 by §5c.8: **+3.03%/yr ±
+    2.74 over the ten seeds, positive on nine of them**. The frontier the phase-G xfail
+    described — the boom's rent leg against the negotiation observables, traded through
+    `search_listings` — is gone, because sequential arrival buys both at once. The seed
+    spread stays reported: a single-seed reading of this leg means nothing.
     """
     _, rent, _ = _holdout_boom((3, 5, 7, 8, 9, 11, 13, 17, 19, 23))
     assert float(np.mean(rent)) > 0.025
@@ -688,20 +676,18 @@ def test_bidders_per_listing_stays_under_the_interest_count(baseline_moments):
     assert 1.0 < baseline_moments["bidders"] <= 7.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14 (phase D, on arrival): the model's negotiation margin is 3.0% against "
-    "a measured 6.2% [Cátedra Tecnocasa-UPF, 2S 2025] and a 4–12% sourced range. The model's "
-    "sale market is more competitive than Spain's on both of the observables that identify "
-    "this: 3.6 bids per listing and 17% of sales closing above the ask, where Fotocasa finds "
-    "9% of negotiating sellers raising their price. The two are the same fact — with more "
-    "bidders the ascending auction runs the price up to the runner-up's valuation and there "
-    "is nothing left to negotiate away. Closing it means fewer buyers per listing, which is "
-    "the demand side (buy_attempt_prob, an admitted guess) rather than the auction, so it is "
-    "not fixed by tuning the mechanism this target exists to test.",
-)
 def test_sale_discount_matches_the_negotiation_margin(baseline_moments):
-    """Target 13c: the gap between asking and sale price.
+    """CLOSED 2026-09-15 by §5c.8, having failed since the day phase D created it.
+
+    5.20% ± 0.10 on ten seeds, inside the 4–12% band, against the 6.2% mean [Cátedra
+    Tecnocasa-UPF 2S 2025]. It read 3.0% on arrival and 3.9% after phase G. No parameter
+    closed it: the tick stopped clearing as one simultaneous auction. Offers arrive month by
+    month [Merlo & Ortalo-Magné 2004], so bids per listing fell 3.5 → 2.2 and most sales
+    became the bilateral negotiation the 6.2% is measured on. Sales above the ask fell with
+    it, 21% → 12.8%, against Fotocasa's 9% of negotiating sellers who raise the price —
+    closer, still high, and still not gated.
+
+    Target 13c: the gap between asking and sale price.
 
     6.2% on average [Cátedra Tecnocasa-UPF, 2S 2025, "a level very similar to 2007"], with
     Fotocasa's survey giving the distribution behind it — 53% of buyers negotiate, 80% of

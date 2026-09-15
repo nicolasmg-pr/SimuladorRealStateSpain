@@ -221,4 +221,20 @@ Mark phases done here; details and dates in commit history.
   parameter is carried as *derived with a failing consistency check* and the price level is
   **not** promoted to a magnitude — closing §9 target 13c is now the last thing between the
   model and its first reportable price level.
+- [x] §5c.8 — the tick is a quarter, the market is not (2026-09-15). `clear_sales` matched a
+  whole quarter of demand at once, so every listing was a simultaneous auction. Offers arrive
+  sequentially [Merlo & Ortalo-Magné; Merlo, Ortalo-Magné & Rust, 780 English properties], so
+  the tick now clears in **three sub-periods — the months in a quarter, not a fitted number**.
+  **Three registered failures closed at once and none by a parameter**: the negotiation margin
+  (3.9% → **5.20% ± 0.10**, inside 4–12%, failing since phase D created it), the boom's rent
+  leg (**+3.03%/yr**, and phase G's frontier with it), and the phase-D falsification on the
+  rate shock — which passes again with nothing added to the rate channel. Re-fit inside the
+  sourced bands: `tightness_half_saturation` 260 → 400, `ask_markup` 0.12 → 0.125.
+  **Then the variance rule flipped**: on 1,792 fresh Sobol evaluations the largest unsourced
+  share of the price level is `momentum_gain` at 0.109, so **price-to-income is the project's
+  first reportable magnitude — 8.13, and 7.2–9.1 across the sourced parameter ranges** —
+  together with transactions, the rent level, vacancy, completions, arrears and time to sale.
+  Direction-only survives where a guess still dominates: overburden and the cash share
+  (`search_listings`), the zone price ratio (`buy_attempt_prob`), and the negotiation margin
+  on the weight it is identified against. Those three guesses are the new queue.
 - [x] KB refresh 2026-09-08 (`kb-refresh-2026-09.md`): sources re-checked against Jul–Sep 2026 releases; INE projection vintages, rent-cap coverage, buyer-type ITP, ICO wealth cap, IRAV-relative indexation added. **Re-measurement found the Phase-7 rent-cap gate no longer met on the tenancy leg** (the August audit and Funcas revision changed the baseline and the experiment was not re-run) — fixed the same day by the tensioned-tightness revision (`validation.md` T1–T7): metro-weighted formation, a shadow rent under caps, hazard scale 3.0; gate met again on 5 seeds. Then partial coverage was made reportable by regulatory segment, and the location premium (`model-spec` §5b) closed the zone price ladder — the model's oldest known gap — restoring the price-to-income ordering and, unplanned, lifting cash purchases 3.1% → 18.7%. Then the shadow-rent anchor was made exogenous (two richer anchors measured and rejected), the hazard scale re-fitted so all three rent-cap studies sit inside the 0–2 dial, and boom-time rent growth passed for the first time (+3.6%/yr, ≈40% of the sourced magnitude) — **the suite now carries no xfails and every §9 target is met**. Open: the size/quality margin behind the remaining boom-rent gap; a per-CCAA formation series to replace the metro-weighting guess. **Morris screening and Sobol indices are done** (`src/resim/sensitivity.py`, validation.md, 230 + 1,152 evaluations): `overbid_sigma` explains 56% of the variance in price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned market vacancy and 40% of the rent level — **both are unsourced guesses, and sourcing them is now the highest-value evidence work on this model**. Three weakly-sourced parameters (`max_starts_per_tick`, `presale_share`, `margin_threshold`) are inert and can be left alone

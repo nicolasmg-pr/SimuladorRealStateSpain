@@ -136,23 +136,16 @@ def test_supply_shock_lowers_prices():
     assert f_boost["price_national"].iloc[tail].mean() < f_base["price_national"].iloc[tail].mean()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-14 (phase D): THE FALSIFICATION THE SPEC ASKED FOR, and it fired. "
-    "Removing PARTICIPATION_RATE_SENSITIVITY = 20 — a coefficient fitted so that a +2.4pp "
-    "rate move cut transactions 11% — leaves the euríbor with only its mechanical channel: "
-    "the credit screen. Measured over 3 seeds, a +2.8pp euríbor shock now cuts volume 1.6% "
-    "against the 5% this test asserts, with prices at −1.1%, so the ORDERING survives and the "
-    "MAGNITUDE does not. Pass-through is slow by construction (7%/tick, BdE DO 2312) and "
-    "buyers hold enough slack under the DSTI cap to absorb what does arrive. The honest "
-    "reading, and the spec's own instruction, is to record that the coefficient was carrying "
-    "something the mechanisms do not reproduce — not to reinstate it with a new story. The "
-    "episode as it actually happened is tested below: 2022–23 was a rate rise AND a "
-    "tightening of standards [BdE Encuesta sobre Préstamos Bancarios, Jan 2023], and with "
-    "both inputs the model cuts volume 5.5% against prices 1.5%.",
-)
 def test_rate_shock_cuts_transactions_before_prices():
     """2022–23 signature: a rate shock compresses volumes, prices stay sticky.
+
+    UN-FAILED 2026-09-15. Phase D killed `PARTICIPATION_RATE_SENSITIVITY` and this test went
+    with it — the falsification the redesign spec asked for, recorded as a strict xfail
+    rather than patched with a new coefficient (volume −1.6% against the 5% asserted). It
+    passes again after §5c.8, and nothing was added to the rate channel to make it: with the
+    quarter clearing month by month, a buyer priced out by the credit screen is no longer
+    replaced inside the same tick by the next bidder on the same listing, so the screen
+    reaches volume the way the episode says it does. The coefficient stays dead.
 
     Two deliberate choices:
       - the window starts 4 ticks after the shock, because mortgage-rate pass-through is
@@ -429,7 +422,15 @@ def test_shadow_rent_stays_anchored_under_a_cap():
     # something this test should pin.
     early = frame.loc[21:25]
     assert early["shadow_rent_tensioned"].mean() > early["rent_tensioned"].mean()
-    assert early["rent_tensioned"].mean() < at_activation
+    # AGAINST THE COUNTERFACTUAL, not against a pre-cap level (changed 2026-09-15). The old
+    # leg asserted `early_ask < shadow_at_activation`, which compares a post-cap level with a
+    # level from two ticks earlier and therefore only holds while the trend is flat. §5c.8
+    # made the sale side — and through the §7.1 hurdle the rent side — grow faster, so the
+    # capped ask passed its own activation level by 1.6% while still being far below where it
+    # would have been: measured −9.6% / −12.2% / −16.9% against the no-cap run on three
+    # seeds. The counterfactual is the claim the mechanism actually makes.
+    free = metrics.to_frame(Engine(Scenario(name="free", baseline=cfg)).run())
+    assert early["rent_tensioned"].mean() < free["rent_tensioned"].loc[21:25].mean()
 
 
 def test_formation_zone_weights_are_a_distribution():
