@@ -56,7 +56,7 @@ SPACE: dict[str, tuple[float, float]] = {
     # §7.1 (2026-09-14): `landlord_required_spread` was split into a measured prime
     # spread and the declared free premium. The premium is what a sweep should move —
     # the prime spread is measured and `c` has its own sourced range.
-    "small_landlord_premium": (0.025, 0.055),
+    "small_landlord_premium": (0.020, 0.030),  # narrowed by §7.1b, 2026-09-15
     "landlord_cost_share": (0.20, 0.24),
     "landlord_zone_risk_premium": (0.010, 0.020),
     "hazard_scale": (0.4, 1.2),
