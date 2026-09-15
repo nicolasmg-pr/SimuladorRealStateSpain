@@ -2472,6 +2472,86 @@ re-identify the rent-cap block against the new price side, or source `ask_markup
 (§13.11) and was not touched. The four regressions are open, and three of them are
 specification questions rather than calibration ones.
 
+## Sourcing `ask_markup` and `price_index_smoothing` (2026-09-15)
+
+Phase G's Sobol run left three parameters holding every price-like magnitude: `ask_markup`
+(0.42 of the price level's variance), `price_index_smoothing` (0.26) and
+`small_landlord_premium` (0.68–0.93 on the rent side). The first two are done here. Five source
+rows, two of them Tier-1 series pulled and computed with rather than quoted.
+
+### `price_index_smoothing` — measured, and the guess was right
+
+The parameter is the weight of this tick's transactions in the index agents condition on. Its
+empirical counterpart is not a preference: **the price signal Spanish buyers, sellers and
+lenders actually see is an appraisal**, and an appraisal under ECO/805/2003 is built from
+recent comparables, so it tracks transacted prices with a lag. Two Tier-1 quarterly series make
+that measurable:
+
+- **INE IPV**, national general index, transaction-based hedonic — 78 quarters 2007Q1–2026Q2,
+  pulled through the INE API (table 80270).
+- **MIVAU Estadística de Valor Tasado**, table 1, appraisal €/m² — 79 quarters 1995Q1–2026Q1,
+  the XLS parsed.
+
+Fitting `dlog(appraisal) = s·dlog(IPV) + (1−s)·dlog(appraisal[−1])`:
+
+| Window | n | s on current transactions | persistence | implied s | R² |
+|---|---|---|---|---|---|
+| 2014Q1–2026Q1 (calibration) | 47 | **0.307** (se 0.104) | 0.490 (se 0.145) | 0.510 | 0.36 |
+| 2007Q1–2026Q1 (with the bust) | 75 | **0.287** (se 0.065) | 0.520 (se 0.094) | 0.480 | 0.70 |
+| 2014Q1–2019Q4 | 26 | 0.306 (se 0.109) | −0.014 (se 0.191) | 1.014 | 0.07 |
+
+The model ships **0.30**. The two legs do not sum to one (0.31 + 0.49), so the appraisal series
+carries drift the pure EMA does not: the honest range is **0.29–0.51**, with 0.30 at its lower
+edge. The third row is the interesting one — in the calm expansion the appraisal tracks
+transactions contemporaneously, so the smoothing is state-dependent, and a constant is a
+simplification recorded in the register rather than averaged away.
+
+### `ask_markup` — the outcome is measured, the parameter is derived, and the mapping fails
+
+Per dwelling, the distance from a listing's own initial ask to its own sale price is:
+
+- **6.2%** at the point of sale [Cátedra Tecnocasa-UPF, 2S 2025], plus
+- the in-listing cuts, which idealista measures separately: **14%** of live listings cut in
+  2026Q1 (11% a year earlier), by **7% of the initial ask** (€29,390 average).
+
+So a dwelling never revised closes 6.2% below its ask and one revised once ≈13% below:
+**a sourced band of 0.06–0.13**, and the model's 0.12 sits inside it, at the top — which is
+where §5c.6 says it belongs, because with a taste-neutral anchor the posted markup must cover
+the selection premium as well as the negotiation margin. The 15–20% practitioner rule of thumb
+is the same statement from the seller's side.
+
+Two things this does **not** license.
+
+1. **The parameter is not the measured number.** The model's realised discount is 3.9% against
+   the sourced 6.2% (§9 target 13c, a registered failure). The mapping from the observable to
+   the parameter is therefore off by 2.3pp, and the register carries `ask_markup` as *derived,
+   with a failing consistency check* rather than as measured.
+2. **The markup is cyclical and the model's is constant.** The same per-dwelling gap was **27%**
+   in October 2012, with 78% of unsold sellers having already cut 25% [Fotocasa seller survey].
+   A constant markup understates asks in a bust — the same gap §5d.1's loss aversion attacks
+   from the other side, and one more reason that regression matters.
+
+The aggregate portal-to-notary gap (8–12% in 2021 → 32–44% in 2025, UVE Valoraciones) is
+registered as a contrast and deliberately not used: it compares the stock on offer with what
+sold, which is composition, not a markup.
+
+### The variance rule, re-applied — and the price level stays a direction
+
+With `price_index_smoothing` measured and `overbid_sigma` measured, the shares left on the
+price level are `ask_markup` 0.42, `momentum_gain` 0.238, `search_listings` 0.155.
+
+**If `ask_markup` counted as sourced, the largest unsourced share would be `momentum_gain` at
+0.238 — below the 25% threshold — and price-to-income would become a reportable magnitude for
+the first time in the project's history.** It is not being counted as sourced, because its own
+consistency check fails by 2.3pp, and promoting a magnitude on a parameter whose mapping to its
+observable is visibly wrong is exactly the move the rule exists to block. The price level stays
+direction-only.
+
+What that leaves is a short, specific route to the first reportable price level: close §9
+target 13c. The discount is a frontier of the sale block (validation.md, phase G) rather than a
+missing measurement, so the work is mechanism — a seller who concedes through the reserve
+rather than the ask, or a demand side with fewer buyers per listing — not more evidence.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

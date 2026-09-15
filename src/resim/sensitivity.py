@@ -384,7 +384,6 @@ def getattr_default(name: str) -> float:
     raise KeyError(name)
 
 
-
 def _eval_one(job: tuple[dict[str, float], int, int]) -> dict[str, float]:
     """Pool worker: one design point. Module level because a Pool must pickle it."""
     point, seed, ticks = job
@@ -427,6 +426,7 @@ def _morris_trajectory(job: tuple[int, int, int, int, int]) -> tuple[list[list[f
         point, previous = moved, current
     del per_param
     return effects, k + 1
+
 
 def morris(trajectories: int, seed: int, ticks: int, levels: int = 4, jobs: int = 1) -> dict:
     """Elementary-effects screening: `trajectories` × (k+1) runs.

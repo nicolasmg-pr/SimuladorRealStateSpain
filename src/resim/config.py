@@ -420,7 +420,27 @@ class MarketConfig:
     # [Cátedra Tecnocasa-UPF 2S 2025; Fotocasa 2024]. The model posts the smaller, measured
     # number: the markup is the posting convention, and the discount that comes out of it is
     # an OUTCOME of competition, not an input — high in a slack market, negative (sales above
-    # ask) when several buyers converge on one listing [range 0.04–0.12]
+    # ask) when several buyers converge on one listing.
+    #
+    # **SOURCED BAND 0.06–0.13 per dwelling (2026-09-15)**, where the row used to read
+    # "[guess]" for the size: the distance from a listing's own initial ask to its own sale
+    # price is the 6.2% negotiation margin at the point of sale [Cátedra Tecnocasa-UPF, 2S
+    # 2025] plus the in-listing cuts, which idealista measures separately — 14% of live
+    # listings cut in 2026Q1, by 7% of the initial ask — so a dwelling never revised closes
+    # 6.2% below its ask and one revised once closes ≈13% below. Phase G's refit put this at
+    # the TOP of the band, which is where the mechanism says it belongs: with the taste-
+    # neutral anchor (§5c.6) the posted markup has to cover the selection premium as well as
+    # the negotiation margin, and the 15–20% practitioner rule of thumb is the same statement
+    # from the seller's side.
+    #
+    # **The markup is cyclical and this one is not.** The same quantity was **27%** in
+    # October 2012, with 78% of unsold sellers having already cut 25% [Fotocasa seller
+    # survey]. A constant markup therefore understates asks in a bust, which is the same gap
+    # §5d.1's loss aversion is trying to cover from the other side.
+    #
+    # The aggregate portal-to-notary gap (8–12% in 2021 → 32–44% in 2025, UVE Valoraciones)
+    # measures the stock on offer against what sold. It is composition, not this parameter,
+    # and is registered as a contrast rather than used.
     ask_markup: float = 0.12
     # --- §5d.1 nominal loss aversion (2026-09-15) -----------------------------------------
     # A seller facing a nominal loss asks for a fraction of that loss back. MEASURED, and by
@@ -456,7 +476,18 @@ class MarketConfig:
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]
-    price_index_smoothing: float = 0.3  # weight of tick median transaction in index update [guess]
+    # Weight of this tick's median transaction in the index update. **MEASURED 2026-09-15**,
+    # where it was a bare guess, and it is the second-largest term in the price level's
+    # variance (Sobol ST 0.26). The observable: the price signal Spanish buyers, sellers and
+    # lenders actually see is an APPRAISAL, built from recent comparables, so it tracks
+    # transacted prices with a lag. Regressing
+    #     dlog(valor tasado) = s · dlog(IPV) + (1 − s) · dlog(valor tasado[−1])
+    # gives s = **0.307** (se 0.104) on 2014Q1–2026Q1 and **0.287** (se 0.065) on 2007–2026;
+    # the lag leg implies a slower 0.48–0.51, so the sourced range is **0.29–0.51** and this
+    # value sits at its lower edge. The 2014–2019 subsample shows no persistence at all
+    # (s ≈ 1) — the smoothing is state-dependent, recorded rather than averaged away
+    # [INE IPV table 80270 via the INE API; MIVAU Estadística de Valor Tasado, table 1]
+    price_index_smoothing: float = 0.3
     # notary/registry etc., fraction of price, on top of ITP [Fotocasa triangulated — high]
     buyer_fees: float = 0.02
     # required gross yield over bond in the tensioned zone — observed spread there is
