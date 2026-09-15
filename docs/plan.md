@@ -144,6 +144,22 @@ Note: the scaffold has `agents/landlord.py` + `agents/investor.py`; Phase 4 deci
   magnitude or a published direction, with the bargaining weight, the premium residual and a
   replacement hold-out declared irreducible. After the stop, the work is experiments.
 
+- [x] Phase 7 complete — **all seven levers now have write-ups** (`docs/experiments/`,
+  2026-09-15), ten seeds each, each measured against its own dossier's effect-size range and
+  labelled for what the reporting contract allows. Two are corrections rather than additions:
+  **land release** was being measured on a 40-tick horizon with a 40-tick release lag, so every
+  column read exactly zero — on 80 ticks it moves prices −1% at Spain's current pipeline and
+  −7.5% to −12.9% with the lag halved, which overturns the ledger's F-3 "no effect"; and
+  **public housing**'s price sign flips with crowd-out (+9.7% at 0.60, −1.2% at 0.10, both
+  inside the dossier's admitted range), which is a conditional prediction rather than an answer.
+  The other five: the ITP's capitalisation lands at ≈45% (sourced 40–100%) and its volume
+  response just below the sourced band; the **vacancy tax does nothing measurable at any
+  setting**, including six times the Spanish rate; the tourist restriction is worth ≈1% of rents
+  at a full phase-out, inside the Barcelona estimate; the ICO aval capitalises, moves no one
+  across the ownership line, and its wealth cap is inert. One prediction recurs and nothing
+  registered can adjudicate it: **supply programmes lower prices and raise rents**, because
+  killing expected appreciation forces the landlord's return into the yield (§7.1).
+
 ## Progress tracking
 
 Mark phases done here; details and dates in commit history.

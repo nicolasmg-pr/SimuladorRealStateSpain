@@ -56,11 +56,11 @@ substance (F-4, F-9) and one carries a new caveat that did not exist before (F-5
 |---|---|---|
 | F-1 | A 100% tax on non-EU buyers frees up housing | conditional — real channel, effect an order of magnitude below the problem |
 | F-2 | Mobilising the 3.8M empty homes fixes the shortage | contradicted, on the geography |
-| F-3 | Spain is 700,000 homes short, so building closes the gap | first half supported, second half unidentifiable on this horizon |
+| F-3 | Spain is 700,000 homes short, so building closes the gap | count supported; building closes it **conditional on halving the pipeline lag** — the old "no effect" was a horizon artefact |
 | F-4 | Tourist flats are why rents rose | conditional — right sign, and the re-run brings the size inside the academic estimate |
 | F-5 | The Catalan rent cap works: new contracts fell 4.7% | supported in direction; size overshoots, and Spain's *current* law is a different instrument the model cannot yet report |
 | F-6 | The Catalan rent cap destroyed supply: listings −72% | direction supported, the −72% is a basis error |
-| F-7 | Public housing lowers rents | supported for rents and access; sale prices do not fall |
+| F-7 | Public housing lowers rents | supported for rents and access; the sale-price sign flips with crowd-out, and both signs are inside the evidence |
 | F-8 | Cutting ITP for young buyers improves access | conditional — much of it capitalises into price |
 | F-9 | The ICO guarantees help young people buy | unsupported, and mildly counterproductive: rents +2.2% |
 | F-10 | Housing always goes up | contradicted by the model's own hold-out |
@@ -154,14 +154,31 @@ For the *inference* usually attached to it — "so build and prices come down" �
 channel that reaches prices inside the horizon anyone cares about.
 
 **What the model says.** The count is reproduced by construction: completions run at **55% of
-formation** (§9 target 4, band 40–70%, ten seeds). The inference is not: the land-release
-lever raises starts **+6.6% (10/10)** and moves the national price **0.0% (5/10, no effect)**
-over 60 ticks, which is what an 8-quarter construction lag plus a 20–60-tick land lag implies.
+formation** (§9 target 4, band 40–70%, ten seeds).
 
-**Verdict: the count is supported; the inference is unidentifiable on this horizon.** A model
-whose supply lever cannot move prices in fifteen years is not evidence that supply does not
-work — it is evidence that the question is about a horizon longer than the one anybody argues
-over.
+**The inference was re-measured on 2026-09-15 and the previous reading here was wrong.** This
+row used to report the land-release lever moving the national price "0.0% (5/10, no effect)".
+That came from a 40-tick experiment on a lever with a **40-tick release lag** — the programme's
+output arrived after the measurement window closed, so every column, including starts, read
+exactly zero. On an 80-tick horizon (`docs/experiments/land-release.md`, ten seeds):
+
+| | starts | national price | tensioned rent |
+|---|---|---|---|
+| 4/tick, unreformed 40-tick lag | +15% | −0.3% | +0.5% (6/10) |
+| 12/tick, unreformed lag | +55% | −1.0% | +4.4% (9/10) |
+| 12/tick, lag halved | +60% | **−7.5%** (0/10 up) | +9.4% (8/10) |
+| 12/tick, lag halved, permits −6 | +50% | **−12.9%** (0/10 up) | +6.1% (8/10) |
+
+**Verdict: the count is supported, and the inference is supported *conditional on speed*.**
+Building does bring prices down in this model — by 1% at the pipeline Spain currently has and
+by 8–13% at a reformed one. The binding constraint is the lag, which is the part policy can
+change, and the earlier "no effect" was an artefact of asking a fifteen-year question of a
+ten-year experiment.
+
+One result attaches to it that nobody in the debate claims and no registered source can
+adjudicate: **the same runs raise rents 9%**, because a credible supply programme kills
+expected appreciation (−1.9pp/yr) and the landlord's return shifts from capital gain to yield
+(+1.14pp). Direction-only, and flagged as a prediction rather than a finding.
 
 ---
 
@@ -275,9 +292,18 @@ versus entry yields.
 | construction starts | +37.9% | 10/10 |
 | national price | **+1.4%** | **10/10** |
 
+**The sign of the price effect depends on one parameter the evidence does not resolve.** On an
+80-tick horizon, where the programme's deliveries actually arrive
+(`docs/experiments/public-housing.md`), doubling the programme gives **+3.2%** on prices at the
+model's mid-range crowd-out, **+9.7%** at crowd-out 0.60 and **−1.2%** at 0.10. The dossier
+keeps net stock added per public unit at 0.2–1.0, so both signs are inside the admitted range:
+the honest statement is *"public building lowers prices if it displaces little private
+building, and raises them if it displaces a lot"*, and which of those Spain is in is not
+settled by anything registered here.
+
 **Verdict: supported for rents and access — and note what it does not do.** Sale prices do
-not fall; they tick *up*, and after the re-run that is unanimous across seeds (10/10, +1.4%)
-rather than 9/10, because the programme competes for the same builders and land while
+not fall; they tick *up* at the model's central crowd-out, unanimously across seeds
+(10/10, +1.4% at the ledger's horizon), because the programme competes for the same builders and land while
 adding households who stay in the rental market. Anyone arguing public housing as a
 house-price policy is arguing for something the model does not produce; as a rental-access
 policy it is the strongest lever in this table on overburden.
