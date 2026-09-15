@@ -1248,6 +1248,14 @@ writing would fail. Prices overshoot the observed fall by a fifth and the arrear
 out at a third of the BdE's, both for the same reason — nothing in this model slows a market
 once it turns. **No parameter has been changed since that run and none may be.**
 
+## 13.10 Where the model's answers are published
+
+`docs/claims.md` — the claims ledger, added in phase F. One row per public claim, quoted and
+attributed: what the claim requires to be true, what the model says in directions on ten
+seeds, the verdict (supported / contradicted / conditional / unidentifiable) and what evidence
+would settle it. It is the file this project exists to produce, and it obeys §13.9: no row
+reports a magnitude the variance rule does not allow.
+
 ## 14. Exogenous boundary
 
 What is outside the model by construction, enumerated in `docs/assumptions.md` §"Exogenous
