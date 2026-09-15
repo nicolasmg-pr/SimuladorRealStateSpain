@@ -203,6 +203,12 @@ Mark phases done here; details and dates in commit history.
   anchor was clean — so §5c.7 rebuilds the channel on budgets (buyers stretch toward their
   credit limit as the market tightens). Refit by LHS + focused grids; ten-seed suite green.
   Four **registered regressions**: the boom rent leg, the direction of the search effect, the
-  rent cap's rent leg (now mechanical) and loss aversion's sign in a bust. Sobol not re-run,
-  so every price-like magnitude stays direction-only.
+  rent cap's rent leg (now mechanical) and loss aversion's sign in a bust. **Morris + Sobol
+  re-run** (390 + 1,536 evaluations, and the runner now takes `--jobs`): `overbid_sigma` is out
+  of the Morris top eight and explains **5.7%** of the price level's variance against 26% in
+  phase E and 56% in phase D. The variance rule's verdict is unchanged — two magnitudes,
+  everything else direction-only — but the blockers are now `ask_markup` (0.42), 
+  `price_index_smoothing` (0.26, which had no register row until now) and
+  `small_landlord_premium` (0.68–0.93 on the rent side). **Sourcing those three is the new
+  highest-value evidence work.**
 - [x] KB refresh 2026-09-08 (`kb-refresh-2026-09.md`): sources re-checked against Jul–Sep 2026 releases; INE projection vintages, rent-cap coverage, buyer-type ITP, ICO wealth cap, IRAV-relative indexation added. **Re-measurement found the Phase-7 rent-cap gate no longer met on the tenancy leg** (the August audit and Funcas revision changed the baseline and the experiment was not re-run) — fixed the same day by the tensioned-tightness revision (`validation.md` T1–T7): metro-weighted formation, a shadow rent under caps, hazard scale 3.0; gate met again on 5 seeds. Then partial coverage was made reportable by regulatory segment, and the location premium (`model-spec` §5b) closed the zone price ladder — the model's oldest known gap — restoring the price-to-income ordering and, unplanned, lifting cash purchases 3.1% → 18.7%. Then the shadow-rent anchor was made exogenous (two richer anchors measured and rejected), the hazard scale re-fitted so all three rent-cap studies sit inside the 0–2 dial, and boom-time rent growth passed for the first time (+3.6%/yr, ≈40% of the sourced magnitude) — **the suite now carries no xfails and every §9 target is met**. Open: the size/quality margin behind the remaining boom-rent gap; a per-CCAA formation series to replace the metro-weighting guess. **Morris screening and Sobol indices are done** (`src/resim/sensitivity.py`, validation.md, 230 + 1,152 evaluations): `overbid_sigma` explains 56% of the variance in price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned market vacancy and 40% of the rent level — **both are unsourced guesses, and sourcing them is now the highest-value evidence work on this model**. Three weakly-sourced parameters (`max_starts_per_tick`, `presale_share`, `margin_threshold`) are inert and can be left alone

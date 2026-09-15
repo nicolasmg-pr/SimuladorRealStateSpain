@@ -2417,10 +2417,58 @@ its reason string rather than a widened band:
    §5c.6 moved θ to 0.25, so a one-bidder sale prices near the reserve and a higher ask now only
    withholds the dwelling. Closing it means the reserve, not the ask, carrying §5d.1.
 
+### Sobol after phase G (2026-09-15) — 390 + 1,536 evaluations
+
+Morris first, 10 trajectories over the 39 free parameters, then Saltelli on the eight
+survivors plus the two parameters this phase owns. The runner now takes `--jobs`; the design is
+evaluated in a process pool and the numbers do not depend on it (every point is a deterministic
+run of its own config at the one fixed seed).
+
+**`overbid_sigma` is out of the screening entirely** — it does not reach the Morris top eight
+on any moment. Total-order indices on the moments that matter:
+
+| Moment | CV | first | second | third | `overbid_sigma` | `tightness_half_saturation` |
+|---|---|---|---|---|---|---|
+| price-to-income | 0.092 | `ask_markup` 0.42 | `price_index_smoothing` 0.26 | `momentum_gain` 0.24 | **0.057** | 0.041 |
+| purchase effort | 0.092 | `ask_markup` 0.42 | `price_index_smoothing` 0.26 | `momentum_gain` 0.24 | **0.057** | 0.041 |
+| transactions | 0.123 | `ask_markup` 0.68 | `momentum_gain` 0.18 | `price_index_smoothing` 0.18 | 0.050 | — |
+| rent level | 0.157 | `small_landlord_premium` 0.68 | `ask_markup` 0.35 | `price_index_smoothing` 0.16 | 0.130 | 0.134 |
+| tensioned market vacancy | 0.405 | `small_landlord_premium` 0.93 | `momentum_gain` 0.17 | `ask_markup` 0.15 | 0.103 | 0.100 |
+| rent overburden | 0.041 | `small_landlord_premium` 0.69 | `ask_markup` 0.64 | `price_index_smoothing` 0.56 | 0.374 | 0.402 |
+| arrears | 0.177 | **`essential_share` 0.96** | `ask_markup` 0.10 | `overbid_sigma` 0.08 | 0.083 | — |
+| ownership | 0.0067 | flat across the design, not decomposed | | | | |
+
+Phase E put 26% of the price level's variance on `overbid_sigma` and called that the reason the
+level could not be reported as a magnitude. It is now **5.7%**, and the parameter is sourced
+besides. The phase did what it was for.
+
+**The variance rule (§13.2), applied as written and not adjusted after seeing the numbers.**
+The verdict does not change — two magnitudes, everything else direction-only — but the reason
+does, and that is the useful part:
+
+| Quantity | Largest assumed share | After the rule |
+|---|---|---|
+| Price level, price-to-income, purchase effort | `ask_markup` 0.42 | direction only |
+| Transactions | `ask_markup` 0.68 | direction only |
+| Rent level, overburden, tensioned vacancy | `small_landlord_premium` 0.68–0.93 | direction only |
+| Cash-purchase share, zone price ratio, completion ratio, foreclosure rate | assumed shares 0.29–0.78 | direction only |
+| Arrears | largest assumed below 0.10; the 0.96 is a measured band | magnitude, conditional on the essential-consumption band |
+| Ownership rate | flat | magnitude |
+
+**The evidence queue is therefore rewritten.** The KB refresh named `overbid_sigma` and
+`landlord_required_spread` as the two highest-value measurements. Both are closed — one
+measured here, one split into sourced parts in phase B — and what now blocks every price-like
+magnitude is, in order: `ask_markup` (assumed that sellers post a markup; the 6.2% realised
+margin is measured, the posting convention is not), `price_index_smoothing` (a guess, and not
+yet a row in `assumptions.md`), and `small_landlord_premium` (declared fitted, §7.1's one free
+parameter). None of them is the dispersion parameter this phase spent its time on, which is how
+a variance rule is supposed to work.
+
 ### What this phase did not do
 
-Sobol has not been re-run, so the variance rule (§13.2) is applied on the old decomposition and
-every price-like magnitude stays direction-only until it is. The 2008–13 episode is spent
+Sobol **has** been re-run (above). What the phase did not do: close the four regressions,
+re-identify the rent-cap block against the new price side, or source `ask_markup` and
+`price_index_smoothing`, which is where the variance rule now points. The 2008–13 episode is spent
 (§13.11) and was not touched. The four regressions are open, and three of them are
 specification questions rather than calibration ones.
 

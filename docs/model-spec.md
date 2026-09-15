@@ -465,6 +465,12 @@ more than seed noise, this section is wrong. Measured on arrival: 6.38 / 6.40 / 
 prices collapse toward the reserve. The claim holds where the evidence puts the parameter, and
 nowhere else, which is the honest scope of it.
 
+**What the variance rule says afterwards.** Sobol on 1,536 evaluations puts `overbid_sigma`
+at **5.7%** of the variance in price-to-income (phase E: 26%; phase D: 56%) and
+`tightness_half_saturation` at 4.1%. The price level is still direction-only, but now because
+of `ask_markup` (0.42) and `price_index_smoothing` (0.26) — which is the rule working as
+intended: it moved the evidence queue rather than blessing the parameter that was measured.
+
 **Shipped values (phase-G refit, docs/validation.md).** `overbid_sigma` 0.20 (delivers 8.0%
 dispersion), `ask_markup` 0.12, `seller_bargaining_power` 0.25, `search_listings` 1,
 `tightness_half_saturation` 260, `buy_attempt_prob` 0.64. The bargaining weight moved because
