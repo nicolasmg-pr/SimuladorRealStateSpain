@@ -2552,6 +2552,92 @@ target 13c. The discount is a frontier of the sale block (validation.md, phase G
 missing measurement, so the work is mechanism — a seller who concedes through the reserve
 rather than the ask, or a demand side with fewer buyers per listing — not more evidence.
 
+## §5c.8 and the first reportable magnitude (2026-09-15)
+
+### Three failures, one cause: the clearing calendar
+
+`clear_sales` matched a whole quarter of demand against every listing at once, so the ascending
+auction ran on all of it. Offers do not arrive that way — they arrive sequentially, and the
+seller answers what is in front of it [Merlo & Ortalo-Magné 2004; Merlo, Ortalo-Magné & Rust,
+complete offer histories for 780 English properties]. The tick now clears in **three
+sub-periods**, which is the number of months in a quarter and not a fitted number.
+
+| Sub-periods | discount | above ask | bids/listing | sold in the quarter | price-to-income |
+|---|---|---|---|---|---|
+| 1 (before) | 3.9% | 21.3% | 3.49 | 0.47 | 8.07 |
+| 2 | 4.7% | 16.4% | 2.59 | 0.57 | 8.16 |
+| **3 (calendar)** | **5.1%** | **13.0%** | **2.22** | **0.61** | 8.28 → 8.13 after the re-fit |
+| 6 | 5.6% | 9.8% | 1.88 | 0.70 (band tops at 0.63) | 8.37 |
+
+Re-fit alongside it, both inside their sourced bands: `tightness_half_saturation` 260 → 400,
+`ask_markup` 0.12 → 0.125. Ten-seed moments after both: discount **5.20% ± 0.10** (band 4–12%,
+source 6.2%), dispersion 7.15%, price-to-income **8.13 ± 0.11**, sold inside the quarter 0.607,
+contract yield 6.88%, ownership 0.724, transactions 3.3%/yr, arrears 3.2%.
+
+**Three registered failures closed at once**, none of them by a parameter:
+
+1. **§9 target 13c, the negotiation margin** — failing since phase D created it. 3.0% on
+   arrival, 3.9% after phase G, **5.20%** now.
+2. **The boom's rent leg** — phase G's frontier, which said the margin and boom rents could not
+   both be had. **+3.03%/yr ± 2.74**, positive on nine of ten seeds. The frontier was an
+   artifact of clearing the quarter at once.
+3. **The phase-D falsification on the rate shock** — `PARTICIPATION_RATE_SENSITIVITY` was killed
+   in phase D and the resulting failure recorded rather than patched. It passes again, and
+   **nothing was added to the rate channel**: a buyer the credit screen prices out is no longer
+   replaced inside the same tick by the next bidder on the same listing. The coefficient stays
+   dead, which is the point.
+
+One test changed rather than closed: `test_shadow_rent_stays_anchored_under_a_cap` had a leg
+comparing post-cap asks with the shadow's level two ticks earlier, which only holds while the
+trend is flat. §5c.8 made rents grow faster and the capped ask passed that level by 1.6% — while
+sitting **9.6% / 12.2% / 16.9% below the no-cap counterfactual** on three seeds. The leg is now
+the counterfactual, which is the claim the mechanism makes.
+
+### Morris and Sobol re-run, and the variance rule flips
+
+390 + **1,792** evaluations over twelve parameters. `ask_markup` now dominates almost everything
+(ST 0.42–0.74) and `overbid_sigma` has left the screening entirely. Applying §13.2 as written,
+with `ask_markup`, `price_index_smoothing`, `overbid_sigma`, `small_landlord_premium`,
+`essential_share` and `base_starts_per_tick` counted as sourced and the rest as assumed:
+
+| Moment | CV | largest assumed share | verdict |
+|---|---|---|---|
+| Price-to-income, purchase effort | 0.115 | `momentum_gain` 0.109 | **magnitude** |
+| Price-to-income ladder margin | 0.293 | `momentum_gain` 0.131 | **magnitude** |
+| Transactions | 0.115 | `search_listings` 0.199 | **magnitude** |
+| Rent level | 0.144 | `momentum_gain` 0.143 | **magnitude** |
+| Tensioned market vacancy | 0.427 | `momentum_gain` 0.134 | **magnitude** |
+| Completion ratio | 0.203 | `expectation_momentum` 0.135 | **magnitude** |
+| Arrears | 0.191 | `search_listings` 0.090 | **magnitude** |
+| Foreclosure rate | 0.840 | `search_listings` 0.140 | magnitude, on a CV that large |
+| Sold inside the quarter | 0.238 | `search_listings` 0.125 | **magnitude** |
+| Bidders per listing | 0.179 | `buy_attempt_prob` 0.189 | **magnitude** |
+| Ownership rate | 0.008 | flat across the design | magnitude |
+| Rent overburden | 0.041 | `search_listings` 0.364 | direction only |
+| Zone price ratio T/R | 0.186 | `buy_attempt_prob` 0.336 | direction only |
+| Cash-purchase share | 0.114 | `search_listings` 0.408 | direction only |
+| Negotiation margin | 0.308 | `seller_bargaining_power` 0.317 | direction only, and circular — it is identified on this |
+
+**The price level is a reportable magnitude for the first time in the project's history**, and
+the three conditions that make it one are worth stating plainly because they are what a critic
+should attack:
+
+1. It is **conditional on the ask-markup band** (0.06–0.13 per dwelling), which explains 61% of
+   its variance. Across the whole sourced design the moment's CV is 11.5%, so the honest
+   reported form is *8.13, and 7.2–9.1 over the parameter ranges the evidence admits* — not a
+   point.
+2. It rests on counting `ask_markup` as **derived rather than assumed**. That call was refused a
+   day earlier, when the model's realised discount was 3.9% against its source's 6.2%; it is
+   made now because §5c.8 closed that gap to 5.20%, inside the band. The verdict follows the
+   consistency check, not the other way round.
+3. `momentum_gain` at 0.109 is the largest genuinely unsourced share. It was 0.24 before §5c.8.
+   If a future change lifts it back above 0.25, the magnitude goes away again, and it should.
+
+Direction-only survives where an admitted guess still dominates: `search_listings` on overburden
+and the cash share, `buy_attempt_prob` on the zone price ratio, and the negotiation margin on
+the weight it is identified against. Sourcing `buy_attempt_prob` and settling `search_listings`
+against the days-on-market distribution under the new block is what the queue now points at.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

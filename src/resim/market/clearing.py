@@ -195,92 +195,112 @@ def clear_sales(
         # market clears like a single auction. Both are wrong, and m is identified against the
         # days-on-market distribution and the bidders-per-dwelling count (model-spec §5c.2).
         m = max(1, cfg.market.search_listings)
-        bids: dict[int, list[tuple[float, MakeOffer]]] = defaultdict(list)
+        # SEQUENTIAL ARRIVAL WITHIN THE TICK (model-spec §5c.8). The tick is a quarter, the
+        # market is not: offers arrive month by month and a seller answers the ones in front
+        # of it [Merlo & Ortalo-Magné 2004; Merlo, Ortalo-Magné & Rust, complete offer
+        # histories for 780 English properties]. Clearing a whole quarter at once turned every
+        # listing into a simultaneous auction, which is why the model's negotiation margin was
+        # a third of the measured one. The sub-period count is the calendar, not a parameter.
+        subperiods = max(1, cfg.market.subperiods_per_tick)
         order = rng.permutation(len(zone_offers))
-        for idx in order:
-            offer = zone_offers[int(idx)]
-            affordable = [lst for lst in listings if lst.ask <= offer.budget * 1.05]
-            if not affordable:
-                continue
-            sample_size = min(m, len(affordable))
-            picks = rng.choice(len(affordable), size=sample_size, replace=False)
-            # taste: how much THIS buyer happens to like each dwelling. The demoted
-            # `overbid_sigma` (model-spec §5c.1) — dispersion over value, not over price
-            taste = rng.normal(1.0, cfg.market.overbid_sigma, sample_size)
-            best, best_surplus, best_value, best_neutral = None, -np.inf, 0.0, 0.0
-            for k, pick in enumerate(picks):
-                lst = affordable[int(pick)]
-                unit = state.stock.units[lst.unit_id]
-                fundamental = zone_price * unit.quality * (1.0 + momentum)
-                base = min(offer.budget, fundamental * float(taste[k]))
-                # stretch toward the credit limit as the market tightens (§5c.7)
-                value = base + stretch * max(0.0, offer.budget - base)
-                surplus = value - lst.ask
-                if surplus > best_surplus:
-                    best, best_surplus, best_value = lst, surplus, value
-                    # the same bid with an average taste draw, budget cap still applied
-                    neutral_base = min(offer.budget, fundamental)
-                    best_neutral = neutral_base + stretch * max(0.0, offer.budget - neutral_base)
-            if best is None:
-                continue
-            # the bid is what the dwelling is worth to this buyer, capped by the budget the
-            # credit screen left them. What they actually PAY is set by the auction below
-            bids[best.unit_id].append((best_value, offer, best_neutral))
-
         # a household buys at most one home per tick. Negative agent ids are *aggregates*
         # (the foreign overlay, the large investor): each of their offers is a distinct
         # buyer, so they must not be deduplicated — doing so silently throttled the whole
         # non-resident stream to one purchase per zone per tick.
         taken_buyers: set[int] = set()
-        for unit_id, unit_bids in bids.items():
-            lst = state.sale_listings[unit_id]
-            unit_bids = [
-                (b, o, nb)
-                for b, o, nb in unit_bids
-                if not (o.agent_id >= 0 and o.agent_id in taken_buyers)
-            ]
-            if not unit_bids:
+        available = list(listings)
+        for arrivals in np.array_split(order, subperiods):
+            if not len(arrivals) or not available:
                 continue
-            unit_bids.sort(key=lambda t: -t[0])
-            best_bid, best_offer, best_neutral = unit_bids[0]
-            if best_bid < lst.reserve:
-                continue
-            price = auction_price(
-                highest=best_bid,
-                runner_up=unit_bids[1][0] if len(unit_bids) > 1 else None,
-                ask=lst.ask,
-                reserve=lst.reserve,
-                cfg=cfg,
-            )
-            # the same auction with the taste draws of both price-setting bidders replaced by
-            # the average one. Run through the SAME rule, so the reserve, the ask, the
-            # bargaining weight and the budget cap all still bind where they bound before —
-            # which is why this cannot be written as a closed-form correction (model-spec §5c.6)
-            neutral_bids = sorted((nb for _, _, nb in unit_bids), reverse=True)
-            neutral_price = auction_price(
-                highest=neutral_bids[0],
-                runner_up=neutral_bids[1] if len(neutral_bids) > 1 else None,
-                ask=lst.ask,
-                reserve=lst.reserve,
-                cfg=cfg,
-            )
-            unit = state.stock.units[unit_id]
-            trades.append(
-                Trade(
-                    unit_id=unit_id,
-                    buyer_id=best_offer.agent_id,
-                    seller_id=unit.owner_id,
-                    price=price,
-                    cash=best_offer.cash,
-                    guaranteed=best_offer.guaranteed,
-                    ticks_listed=lst.ticks_listed,
+            bids: dict[int, list[tuple[float, MakeOffer, float]]] = defaultdict(list)
+            for idx in arrivals:
+                offer = zone_offers[int(idx)]
+                if offer.agent_id >= 0 and offer.agent_id in taken_buyers:
+                    continue
+                affordable = [lst for lst in available if lst.ask <= offer.budget * 1.05]
+                if not affordable:
+                    continue
+                sample_size = min(m, len(affordable))
+                picks = rng.choice(len(affordable), size=sample_size, replace=False)
+                # taste: how much THIS buyer happens to like each dwelling. The demoted
+                # `overbid_sigma` (model-spec §5c.1) — dispersion over value, not over price
+                taste = rng.normal(1.0, cfg.market.overbid_sigma, sample_size)
+                best, best_surplus, best_value, best_neutral = None, -np.inf, 0.0, 0.0
+                for k, pick in enumerate(picks):
+                    lst = affordable[int(pick)]
+                    unit = state.stock.units[lst.unit_id]
+                    fundamental = zone_price * unit.quality * (1.0 + momentum)
+                    base = min(offer.budget, fundamental * float(taste[k]))
+                    # stretch toward the credit limit as the market tightens (§5c.7)
+                    value = base + stretch * max(0.0, offer.budget - base)
+                    surplus = value - lst.ask
+                    if surplus > best_surplus:
+                        best, best_surplus, best_value = lst, surplus, value
+                        # the same bid with an average taste draw, budget cap still applied
+                        neutral_base = min(offer.budget, fundamental)
+                        best_neutral = neutral_base + stretch * max(
+                            0.0, offer.budget - neutral_base
+                        )
+                if best is None:
+                    continue
+                # the bid is what the dwelling is worth to this buyer, capped by the budget
+                # the credit screen left them. What they PAY is set by the auction below
+                bids[best.unit_id].append((best_value, offer, best_neutral))
+
+            sold: set[int] = set()
+            for unit_id, unit_bids in bids.items():
+                lst = state.sale_listings[unit_id]
+                unit_bids = [
+                    (b, o, nb)
+                    for b, o, nb in unit_bids
+                    if not (o.agent_id >= 0 and o.agent_id in taken_buyers)
+                ]
+                if not unit_bids:
+                    continue
+                unit_bids.sort(key=lambda t: -t[0])
+                best_bid, best_offer, _ = unit_bids[0]
+                if best_bid < lst.reserve:
+                    continue
+                price = auction_price(
+                    highest=best_bid,
+                    runner_up=unit_bids[1][0] if len(unit_bids) > 1 else None,
                     ask=lst.ask,
-                    bidders=len(unit_bids),
-                    neutral_price=neutral_price,
+                    reserve=lst.reserve,
+                    cfg=cfg,
                 )
-            )
-            if best_offer.agent_id >= 0:
-                taken_buyers.add(best_offer.agent_id)
+                # the same auction with the taste draws of both price-setting bidders
+                # replaced by the average one. Run through the SAME rule, so the reserve, the
+                # ask, the bargaining weight and the budget cap all still bind where they
+                # bound before — which is why this cannot be written as a closed-form
+                # correction (model-spec §5c.6)
+                neutral_bids = sorted((nb for _, _, nb in unit_bids), reverse=True)
+                neutral_price = auction_price(
+                    highest=neutral_bids[0],
+                    runner_up=neutral_bids[1] if len(neutral_bids) > 1 else None,
+                    ask=lst.ask,
+                    reserve=lst.reserve,
+                    cfg=cfg,
+                )
+                unit = state.stock.units[unit_id]
+                trades.append(
+                    Trade(
+                        unit_id=unit_id,
+                        buyer_id=best_offer.agent_id,
+                        seller_id=unit.owner_id,
+                        price=price,
+                        cash=best_offer.cash,
+                        guaranteed=best_offer.guaranteed,
+                        ticks_listed=lst.ticks_listed,
+                        ask=lst.ask,
+                        bidders=len(unit_bids),
+                        neutral_price=neutral_price,
+                    )
+                )
+                sold.add(unit_id)
+                if best_offer.agent_id >= 0:
+                    taken_buyers.add(best_offer.agent_id)
+            if sold:
+                available = [lst for lst in available if lst.unit_id not in sold]
     return trades
 
 
