@@ -398,6 +398,98 @@ check that says the level is being set by something real. Whether `overbid_sigma
 the 25% variance threshold is phase E's Sobol question, and the answer is reported either
 way.
 
+## 5d. What stops a falling market (2026-09-15)
+
+The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model
+slows a market once it turns.** Fed 2008–13, prices fell 56.9% against an observed 30–45%, and
+the arrears stock peaked at 2.2% against the BdE's 6.28%. Both numbers point at the same
+absence — every mechanism the model had was symmetric, and a real housing bust is not.
+
+Two brakes are added, each identified on evidence that has nothing to do with the episode
+that revealed the gap. **That distinction is the whole of the discipline here**: the hold-out
+may not be used to calibrate anything (§13.4), so the parameters below come from a
+peer-reviewed estimate and from a statute, and the episode is re-run only as a **diagnostic**,
+never again as out-of-sample evidence (§13.11).
+
+### 5d.1 Nominal loss aversion in the seller's ask
+
+Genesove & Mayer (QJE 2001) is the canonical measurement and it is unambiguous: owners facing
+a nominal loss set asking prices **25–35% of the gap** between the expected selling price and
+what they originally paid *above* what they would otherwise ask, realise selling prices 3–18%
+of that gap higher, and show a **much lower sale hazard**. The list-price effect is **twice as
+large for owner-occupants as for investors**. Their own conclusion is the mechanism this model
+needs: it is what produces the positive price–volume correlation in housing.
+
+```
+loss      = max(0, price paid − what the dwelling is worth now)
+ask       = (index × quality × (1 + E[g]) × (1 + markup))  +  α · loss
+α         = 0.30 owner-occupier,  0.15 landlord/investor      [range 0.25–0.35, halved]
+```
+
+Three properties worth stating, because they are what make this safe to add after a
+calibration:
+
+- **It is inert in a rising market.** With prices above what the seller paid the loss is zero
+  and the ask is exactly what it was before. The calibration window is a rising market, so
+  this cannot have been fitted to it and must not move it — which is checked, not assumed
+  (`docs/validation.md`).
+- **The realised-price effect is not a second parameter.** A higher ask feeds the
+  single-bidder negotiation branch of §5c.1 and the reserve floor unchanged; what the seller
+  actually gets, and the lower sale hazard, come out of the auction.
+- **It does not override the mortgage.** The reserve is still `max(debt + costs, ask × (1 −
+  discount))`; loss aversion raises the ask, not the floor, so a household that must sell can
+  still sell — it just asks for more first and waits longer.
+
+### 5d.2 Forbearance: the Código de Buenas Prácticas
+
+The second brake is law, and the model's failure to have it was registered as an omission
+with the *wrong sign* until the hold-out corrected it (`docs/assumptions.md`).
+
+RDL 6/2012's annex, as the Banco de España's own guide states it: a borrower past the
+exclusion threshold gets a **grace period of five years** with capital amortisation suspended
+(two years in the milder case), the term extended to at most **40 years** from origination,
+and interest during grace at **euríbor − 0.10%**; the plan is refused if the restructured
+payment would exceed **50% of household income**; it is available only **before the
+foreclosure auction is announced**.
+
+In the model:
+
+- **Entry** at the first missed quarter, before the statutory foreclosure clock matures, if
+  the viability test passes — interest-only payment ≤ 50% of income — and the household takes
+  it up. Unemployed households get the five-year grace, employed ones the two-year: a proxy
+  for "effort ratio rose ≥1.5×", declared as a proxy.
+- **During grace** the payment is interest only, the arrears counter is frozen rather than
+  cured, and the loan still counts in `arrears_share`. That last point is not a modelling
+  convenience: refinanced and restructured loans stayed classified as doubtful in the BdE's
+  own statistics, which is a large part of why the ratio stayed above 5% for years after the
+  deliveries peaked.
+- **On exit** the term is extended by the grace taken (capped at 40 years from origination)
+  and the payment is recomputed from the balance and the remaining term — so the household
+  leaves with a lower instalment than it entered with, which is the point of the measure.
+- **Take-up** is the one reduced-form parameter: 0.20, range **0.10–0.30**, from the CBP's own
+  counts — 45,697 families in five years, 14,730 operations in 2016 alone, against roughly
+  50,000 deliveries a year in the same period.
+
+**What each brake is predicted to do**, written before either was run, so the check is not
+retrospective: loss aversion slows the *price* fall and cuts volume further in a downturn
+(Genesove & Mayer's price–volume correlation); forbearance raises the arrears *stock* and
+lowers the foreclosure *flow* (it is a delay, not a cure). Neither should move the calibration
+window by more than seed noise, because one is inert in a rising market and the other fires
+only on arrears the baseline barely has.
+
+### 5d.3 What is still missing
+
+Two of the four brakes the hold-out pointed at are **not** implemented, and are registered
+rather than hand-waved:
+
+- **Eviction moratoria.** Spain has suspended evictions for vulnerable households in an
+  unbroken chain of decrees since RDL 11/2020. It is policy, not a permanent mechanism, so it
+  belongs as a lever, and it does not exist yet.
+- **Court congestion.** The judicial phase is a constant in the model, and in the episode it
+  was a queue: filings multiplied fourfold while the courts' capacity did not. The CGPJ series
+  the model carries has filings but not pending stock, so the queue cannot be identified from
+  registered data and the constant stays.
+
 ## 6. Expectations
 
 **Adaptive extrapolation with momentum** (this is what produces cycles):
@@ -1255,6 +1347,30 @@ attributed: what the claim requires to be true, what the model says in direction
 seeds, the verdict (supported / contradicted / conditional / unidentifiable) and what evidence
 would settle it. It is the file this project exists to produce, and it obeys §13.9: no row
 reports a magnitude the variance rule does not allow.
+
+## 13.11 The hold-out is burned, and what that costs
+
+The 2008–13 episode was run once on 2026-09-14 (§13.4, `docs/holdout-2008-2013.md`). On
+2026-09-15 the model gained two mechanisms — §5d — **because that run revealed they were
+missing**. Both are identified on evidence unrelated to the episode (a peer-reviewed estimate
+from 1990s Boston; a Spanish statute and its published operation counts), and no parameter was
+set by looking at 2008–13 output.
+
+That is not enough to keep the episode as evidence, and the contract says so plainly:
+
+- The 2008–13 run **may still be executed**, and is, as a **diagnostic**: does the mechanism
+  that was added for a stated reason behave the way the source says it behaves?
+- It **may never again be cited as out-of-sample validation of this model**. A model that has
+  been changed in response to an episode is in-sample on that episode, whatever the provenance
+  of the parameters.
+- Any future out-of-sample claim needs a **different sealed episode**, chosen and sealed before
+  the mechanisms that would be tested on it exist. Candidates are registered nowhere yet; the
+  obvious ones are Spain's 1992–96 correction and a non-Spanish bust with comparable
+  registers.
+
+The cost is stated rather than minimised: the project traded its one clean out-of-sample test
+for a mechanism it had good independent reason to add. Whether that was the right trade is a
+judgement the reader can now make, because both sides of it are on the record.
 
 ## 14. Exogenous boundary
 

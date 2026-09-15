@@ -146,7 +146,16 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # measures euros of credit and this measures households; they coincide only if arrears
     # are uncorrelated with loan size, which the incidence gradient makes unlikely — so the
     # band is wide and the comparison is an order-of-magnitude one [docs/sources.md].
-    row["arrears_share"] = getattr(ins, "in_arrears", 0) / mortgaged if mortgaged else float("nan")
+    # A restructured loan stays doubtful in the BdE's own classification, so it stays in this
+    # ratio: that is a large part of why the Spanish ratio held above 5% for years after the
+    # deliveries had peaked (model-spec §5d.2).
+    row["arrears_share"] = (
+        (getattr(ins, "in_arrears", 0) + getattr(ins, "forborne", 0)) / mortgaged
+        if mortgaged
+        else float("nan")
+    )
+    # the part of that which is a live Código de Buenas Prácticas grace period
+    row["forborne_share"] = getattr(ins, "forborne", 0) / mortgaged if mortgaged else float("nan")
     # dwellings delivered to the lender, annualised per outstanding mortgage. Anchor: the
     # BdE's own 0.7%/yr in 2014 (0.6% for main residences) — the only published like-for-like
     # rate — against ≈0.10%/yr implied by INE's 2019 trough [BdE Circular 1/2013 note].

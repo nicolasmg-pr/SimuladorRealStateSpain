@@ -44,7 +44,13 @@ from .agents.household import Households, search_burden
 from .agents.investor import LargeInvestor
 from .agents.landlord import SmallLandlords, cap_level, required_rent
 from .config import ZoneType
-from .market.clearing import FOREIGN_ID, clear_rentals, clear_sales, settle
+from .market.clearing import (
+    FOREIGN_ID,
+    clear_rentals,
+    clear_sales,
+    loss_averse_ask,
+    settle,
+)
 from .market.stock import (
     DEVELOPER_ID,
     LARGE_INVESTOR_ID,
@@ -80,10 +86,14 @@ class Engine:
         self.scenario = scenario
         base = scenario.baseline
         self.rng = rng_mod.make_rng(base.seed)
-        # 8 streams: the eighth is insolvency (model-spec §6c). Spawning one more child does
-        # not disturb the first seven — SeedSequence children are keyed by index — so every
-        # pre-phase-C draw is unchanged by this line.
-        streams = rng_mod.spawn(self.rng, 8)
+        # 9 streams. The eighth is insolvency (model-spec §6c) and the ninth is forbearance
+        # (§5d.2). Spawning more children does not disturb the earlier ones — SeedSequence
+        # children are keyed by index — and giving forbearance its own stream is not tidiness:
+        # its take-up draw sits inside the arrears path, so sharing the insolvency stream
+        # would shift every later draw in the run and re-randomise the whole model. That was
+        # measured: three unrelated gates flipped on the stream shift alone, one of them a
+        # marginal gate whose own docstring admits the margin is thin.
+        streams = rng_mod.spawn(self.rng, 9)
         self.households_agent = Households(HOUSEHOLDS_AGENT_ID, streams[0])
         self.landlords_agent = SmallLandlords(LANDLORDS_AGENT_ID, streams[1])
         self.investor_agent = LargeInvestor(LARGE_INVESTOR_ID, streams[2])
@@ -92,6 +102,7 @@ class Engine:
         self.government_agent = Government(GOVERNMENT_AGENT_ID, streams[5])
         self.market_rng = streams[6]
         self.insolvency_rng = streams[7]
+        self.forbearance_rng = streams[8]
 
     # ------------------------------------------------------------------ init
 
@@ -811,7 +822,15 @@ class Engine:
             state.rent_listings.pop(w.unit_id, None)
             if w.destination == "sale":
                 zs = state.zones[unit.zone]
-                ask = zs.price_index * unit.quality * (1.0 + cfg.market.ask_markup)
+                value = zs.price_index * unit.quality
+                ask = loss_averse_ask(
+                    base_ask=value * (1.0 + cfg.market.ask_markup),
+                    paid=unit.last_sale_price,
+                    value=value,
+                    # a landlord's list-price response to a nominal loss is half an
+                    # owner-occupier's [Genesove & Mayer 2001, model-spec §5d.1]
+                    alpha=cfg.market.loss_aversion_investor,
+                )
                 discount = float(
                     self.market_rng.uniform(
                         cfg.market.max_seller_discount_lo, cfg.market.max_seller_discount_hi
@@ -1094,6 +1113,11 @@ class Engine:
                 insolvency_mod.service_mortgage(hh, state, income_eff, saving, median_income)
             if hh.arrears_instalments > 0:
                 events.in_arrears += 1
+                # the Código de Buenas Prácticas is offered at the first missed quarter and
+                # before the auction is announced — the order the statute sets (§5d.2)
+                insolvency_mod.offer_forbearance(hh, state, income_eff, self.forbearance_rng)
+            if hh.forbearance_ticks_left > 0:
+                events.forborne += 1
             insolvency_mod.advance_foreclosure(hh, state, rng)
             # the sale decision follows the statutory threat, not the first missed payment
             if hh.foreclosure_tick is not None and hh.status is HouseholdStatus.OWNER:

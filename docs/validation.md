@@ -963,6 +963,91 @@ has a standard deviation of 0.032 around a mean of 0.045: it is positive on the 
 not reliably positive on a single seed, so it is a direction that holds in expectation, which
 is weaker than the gate's wording suggests.
 
+## The brakes on a falling market (2026-09-15)
+
+`docs/assumptions.md` carried one row as the largest known gap after phase E: **nothing in
+this model slows a market once it turns.** Two mechanisms close part of it, and the discipline
+around them is the interesting half of the entry.
+
+### What was added, and why it is not a fit
+
+| Mechanism | Identified on | What it is allowed to move |
+|---|---|---|
+| Nominal loss aversion in the ask (§5d.1) | Genesove & Mayer, QJE 2001: asking prices 25–35% of the nominal loss higher, sale hazard much lower, list-price effect twice as large for owner-occupants | nothing in a rising market — the loss is zero and the ask is unchanged |
+| Forbearance, Código de Buenas Prácticas (§5d.2) | RDL 6/2012 annex verbatim, and the CBP's own counts (45,697 families in five years) | only households inside the umbral de exclusión, a poverty gate |
+
+Neither was calibrated on the episode that revealed the gap, and **the episode can no longer
+validate this model** (§13.11) — that cost is recorded, not minimised.
+
+### The calibration window does not move
+
+Ten seeds, 60 ticks, last 20 averaged, against the phase-E baseline:
+
+| Moment | phase E | with brakes | band | |
+|---|---|---|---|---|
+| Price-to-income | 7.91 | **7.88** | 7.0–8.2 | pass |
+| Ownership rate | 0.716 | **0.718** | 0.70–0.74 | pass |
+| Purchase effort | 0.373 | **0.371** | 0.35–0.40 | pass |
+| Gross yield, contract | 0.0685 | **0.0679** | 0.065–0.075 | pass |
+| Overburden | 0.323 | **0.322** | 0.26–0.34 | pass |
+| Completion ratio | 0.547 | **0.551** | 0.40–0.70 | pass |
+| Sold inside the quarter | 0.481 | **0.473** | 0.43–0.63 | pass |
+| Arrears | 0.0248 | **0.0334** | 0.010–0.040 | pass — 0.5pp of the rise is the new forborne column |
+
+That is the test that matters for an addition made after a calibration: loss aversion is
+inert in a rising market by construction, and the numbers say so.
+
+### An engineering finding worth more than it looks
+
+The take-up draw first shared the insolvency RNG stream. That alone — the same mechanisms,
+the same parameters, a different draw order — **flipped three unrelated gates**: cap coverage
+scaling, the Monràs co-movement and boom-time yield compression. Two facts follow. Giving
+forbearance its own stream is not tidiness, it is what makes a mechanism's effect attributable
+at all. And three gates that flip on a re-randomisation are sitting on thin margins — the
+yield-compression test says so in its own docstring ("two are all but flat"), and the other
+two now deserve the same warning.
+
+### The diagnostic run, and a prediction that failed
+
+Pre-registered in `docs/prereg/2026-09-15-brakes-diagnostic.md` at commit `9ca8bba`, and
+labelled a **diagnostic**: the 2008–13 episode was spent on 14 September, and a model changed
+in response to an episode is in-sample on it.
+
+| Quantity | 14 Sep | 15 Sep | predicted | |
+|---|---|---|---|---|
+| Price fall | −56.9% ± 2.2 | **−59.0% ± 0.8** | smaller | **failed** |
+| Arrears, peak | 2.2% | **3.5%** | higher | right |
+| Foreclosure flow, peak | 1.34%/yr | 1.30%/yr | lower | right, inside noise |
+| Forborne, peak | — | **0.74%** ≈ 34,000 families | > 0 | right, and the right order |
+
+**The price prediction failed, and the honest reading is that the comparison could not have
+settled it.** The two runs differ by the brakes *and* by a new RNG stream, and a 2.1pp move
+against a 0.8–2.2pp seed spread attributes to nothing. What does attribute is the toggle test,
+same version, brake on and off in a synthetic bust built from round numbers rather than from
+the registered series:
+
+| | loss aversion on | off |
+|---|---|---|
+| price, peak to trough | **−68.8%** | −72.5% |
+| transactions per tick | **10.8** | 63.0 |
+| sold inside the quarter | 20.5% | 42.2% |
+
+That is Genesove & Mayer's price–volume correlation, reproduced: sellers facing losses hold
+out, the fall is cushioned, and the market pays for it in volume. The mechanism works as its
+source describes. What it cannot do at α = 0.30 is close a twelve-point gap on its own — and
+the volume cost it imposes (−83% against the no-brake counterfactual, where Spain's own
+transactions fell about 64% peak to trough) suggests the model now over-uses the margin it was
+given.
+
+### What is still missing
+
+Two of the four brakes named in §5d.3 are still not there, and both would push the same way:
+**eviction moratoria** (policy, so a lever, and Spain has had them unbroken since RDL 11/2020)
+and **court congestion** (the judicial phase is a constant in the model and was a queue in the
+episode — filings quadrupled, capacity did not). The CGPJ series the project carries has
+filings but not pending stock, so the queue cannot be identified from registered data. The
+gap is narrower than it was and it is not closed.
+
 ## Phase E — the hold-out, run once (2026-09-14)
 
 Pre-registered in `docs/prereg/2026-09-14-holdout-2008-2013.md`, committed as
