@@ -2086,13 +2086,14 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   Unchanged and still unreconciled: DO 2432's ≈36% of gross rent against AEAT's own 41–45% on the
   same object while citing it — neither of which **is** `c`, since both carry depreciation and
   interest.
-- **§7.2 does not exist.** It is cited in `model-spec §13.7`, twice in this file and once in
-  `config.CapResponseConfig` as the arbitrage condition that will replace the rent cap's fitted
-  `hazard_scale`, and it has never been written. The spec said until 2026-09-16 that §7.1 and
-  §7.2 were "not coded until [`c`] is retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was
-  coded with it, so that sentence was stale in both halves. §7.2 is blocked on **being specified**,
-  not on a parameter — and until it is, the Ley 12/2023 rent-cap result stays out-of-regime
-  (`model-spec §5b.1`).
+- **§7.2 did not exist until 2026-09-16, and is now specification only.** It had been cited in
+  `model-spec §13.7`, twice in this file and once in `config.CapResponseConfig` as the arbitrage
+  condition that would replace the rent cap's fitted `hazard_scale`, and it had never been
+  written. The spec also said until 2026-09-16 that §7.1 and §7.2 were "not coded until [`c`] is
+  retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was coded with it, so that sentence was
+  stale in both halves. §7.2 is now written (`model-spec §7.2`) and **no code has moved**: the
+  cap's withdrawal margin is still `hazard_scale`, and the Ley 12/2023 result stays
+  out-of-regime (`model-spec §5b.1`) until §7.2 is implemented and its F1–F4 are run.
 - **Index bases matter.** The price index is a quality-adjusted *transaction* index
   (IPV-like); its boom growth (+5–6%/yr) sits below the +12.7% (2025) IPV peak. The rent
   index agents see is an *asking* basis (idealista-like); the transacted median

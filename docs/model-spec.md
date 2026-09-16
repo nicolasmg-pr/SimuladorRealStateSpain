@@ -600,7 +600,168 @@ binds one landlord in ten — and that number is **not reportable**, because `ha
 identified when the index bound everyone and nothing has re-identified it here. It is published
 in `runs/levers_10seeds.json` as `rent-cap-state-law` so the gap is visible rather than hidden,
 and re-identifying that hazard for the current statute is the one piece of rent-cap work this
-project leaves open.
+project leaves open. **§7.2 below is that work**: it retires the hazard rather than
+re-identifying it.
+
+### 7.2 The withdrawal margin, from the reservation rent (2026-09-16)
+
+§7.2 has been cited since phase A — here, twice in `docs/validation.md` and once in
+`config.CapResponseConfig` — as the arbitrage condition that would replace the rent cap's fitted
+`hazard_scale`. It was never written. This section is it.
+
+**What it replaces.** `agents/landlord.decide` currently reaches the withdrawal branch whenever
+the cap binds at all, and then draws against a fitted scale factor:
+
+```
+if fundamental_ask > cap and complies:
+    gap    = ln(fundamental_ask / cap) · (1 + holding_years · growth_wedge)
+    p_exit = min(0.9, rental_supply_elasticity · hazard_scale · gap)
+```
+
+`hazard_scale` is calibrated so that `rental_supply_elasticity = 2` reproduces Monràs &
+García-Montalvo's co-movement under Ley 11/2020. That is why the Ley 12/2023 result is
+out-of-regime (§5b.1): the scale factor carries a regime inside it.
+
+**The condition.** `agents/landlord.decide` already computes the reservation rent one screen
+earlier — `floor = required_rent(state, unit.zone, value)` — and uses it only as a floor on the
+ask. §7.2 promotes it to the decision variable:
+
+```
+cap ≥ r_req → list at the cap. No withdrawal.
+cap <  r_req → evaluate the alternatives; leave to whichever wins.
+```
+
+**The trigger is the change, not the arithmetic.** Today any binding cap generates exit hazard,
+including one that binds and still clears the landlord's hurdle. Under §7.2 a cap that binds but
+leaves `cap ≥ r_req` produces **zero** withdrawal. This is the property phase A reached for and
+did not get: removing the additive hazard floor made a cap that binds on *nothing* cost nothing,
+but a cap that binds *a little* still started the hazard the instant `ask > cap`. The landlord's
+own margin sits between the cap and its reservation, and §7.2 puts that margin in the trigger.
+
+**A dependency retired as a side effect.** The exit decision stops depending on `shadow_rent`.
+The comment at `agents/landlord` records two earlier versions that failed on the choice of
+comparison quantity — the posted ask (the cap unbound, the asking index collapsing onto it) and
+the congestion-inflated ask (a spiral, tenancies −50 to −87% at elasticity 2). The third works
+but rests on a quantity **inferred from the queue** in `engine._update_indices`. `r_req` is
+inferred from nothing: it is built from `V`, the bond, π, E[g] and `c`.
+
+#### The branches
+
+| branch | rule | quantities |
+|---|---|---|
+| stay let at the cap | default while `cap ≥ r_req` | `cap`, `r_req` |
+| **seasonal** | if the segment is open and the landlord falls in the diversion | `seasonal_evasion_share` 0.05–0.25 [Incasòl — counts] |
+| **sell** | cumulative shortfall over the horizon exceeds the cost of leaving | `holding_years`, `selling_cost_share` |
+
+The sale rule integrates a **widening** shortfall rather than multiplying the instantaneous one:
+the cap grows at the statutory IRAV while `r_req` grows with `V` and E[g], so the gap compounds
+over the horizon. This keeps phase A's insight — the growth divergence compounds the shortfall —
+as an accounting term inside the calculation instead of a multiplier on a hazard.
+`wedge_annualisation` survives as what it is, four quarters; `within_contract_update` stays
+statutory. No double-counting of appreciation: `r_req` already nets E[g], so `r_req − cap` is the
+monthly shortfall against the best alternative use of the capital, appreciation included.
+
+**Vacancy is not a branch, and that is a finding.** On flows, holding empty returns
+`− vacancy_tax·V/12` against a strictly positive capped rent. Vacancy is dominated by letting at
+*any* cap, however harsh. The 15% of withdrawals that sit empty are not landlords choosing
+vacancy — they are units **waiting for the sale channel to clear**, which takes time because
+`clear_sales` matches over sub-periods. So `exit_split_vacant` dies with a mechanism behind it,
+and the share of withdrawn units standing empty becomes a model **output** to be checked rather
+than an input to be assumed.
+
+**Branch order, and the natural experiment that tests it.** Seasonal is evaluated **before** sale,
+because leaving to seasonal pays no transaction cost and selling does: whoever exits prefers the
+cheap exit. That yields a comparative static with a dated experiment behind it — closing the
+seasonal segment pushes exits into sales. Catalonia capped seasonal contracts on 1 Jan 2026
+(Ley 11/2025), and the deposit register measured the following quarter: seasonal contracts
+**−1,233**, the first fall since the cap began, against a habitual-contract stock **+8,895** over
+2025. The model already carries the switch (`PolicyConfig.seasonal_segment_capped`), so the
+prediction runs against that quarter without new machinery.
+
+#### Parameter ledger
+
+Retired: `hazard_scale` (0.7, fitted), `exit_split_sale` (0.50), `exit_split_vacant` (0.15), and
+`exit_split_evasion_base` (0.15) — the proportional rescaling `docs/assumptions.md` declares "a
+convention with no episode behind it", which the direct diversion no longer needs.
+
+**`rental_supply_elasticity` is retired too, and becomes an output.** The 0–2 dial — the
+OLS-to-IV span of Monràs & García-Montalvo, the most disputed parameter in the model — cannot
+survive an arbitrage condition: the supply response is determined by the distribution of
+`(r_req − cap)` across units together with `selling_cost_share` and `holding_years`. The three
+Catalan studies stop being a dial and become the targets that adjudicate it. Under this project's
+bias-control rule the dispute must stay visible as a range, so **it moves** — to the ranges of
+those two structural parameters — rather than disappearing. `ui/levers.py` exposes those two in
+place of the elasticity slider, with the Monràs span named in the help text as the thing they
+span.
+
+Carried, with changed roles: `holding_years` (5.0, range 3–10, **[guess]**) becomes the horizon of
+the sale decision rather than a term inside a gap — more exposure, not less, and it enters the
+Sobol sweep on that basis. `selling_cost_share` (0.02, **[guess, order of magnitude from
+buyer_fees]**) becomes the **exit threshold**. Unchanged: `cap_compliance` (still in front of
+everything), `magnet_gain`, `seasonal_evasion_share`, and all of `cap_level`.
+
+**One parameter becomes load-bearing without anyone having chosen it.** `min_required_yield`
+(0.005, **[guess]**) floors `required_yield = max(min_required_yield, bond + π·risk − E[g])`. In a
+boom E[g] is large, the floor binds, `r_req` collapses, and `cap < r_req` almost never fires. The
+structural prediction that falls out — cap-driven withdrawal is weak in booms and strong in flat
+or falling markets — may well be right, since appreciation compensates the landlord for a cap.
+But Catalonia 2024–26 was a price boom with substantial claimed withdrawal, so this `[guess]`
+would be governing the **sign** of the regime that matters. See F3.
+
+#### Sources
+
+The arbitrage arithmetic needs no source — it is accounting. The quantities do, under the ≥2 rule:
+
+- **`selling_cost_share` — pending.** Needs two independent institutional viewpoints: published
+  notarial and registry tariffs (regulated schedule) against agency fees and plusvalía municipal
+  (market and municipal ordinance). Until then it stays `[guess]` and §7.2's output is
+  direction-only regardless of what the tests say.
+- **`holding_years` — bounded, not set.** `docs/sources.md` carries Registradores ERI 2020:
+  mean holding period **15 years 256 days**, series minimum 7 years 106 days (2009). That is the
+  *realised* holding period, not the decision horizon, and treating them as the same quantity
+  would be an error. It enters as a bound.
+
+#### Falsification
+
+**F1 — the co-movement does not emerge.** If under Ley 11/2020 the model cannot produce
+Δln contracts / Δln rent inside Monràs's 0.07–2.0 OLS-to-IV span at **any** point in the declared
+ranges of `selling_cost_share` and `holding_years`, the arbitrage condition is false. It is not
+rescued by restoring a scale factor.
+
+**F2 — the selling cost has to leave its band.** If reproducing the co-movement requires a
+`selling_cost_share` outside the sourced Spanish band, it is a fitted parameter wearing a cost's
+clothes and must be declared as one. This is §5c.8's own test applied to itself.
+
+**F3 — `min_required_yield` is carrying the sign.** If withdrawal turns out so decreasing in E[g]
+that the 2024–26 Catalan boom produces no withdrawal at all while three independent instruments
+say withdrawal occurred, then a `[guess]` floor is governing the sign of the result. The repair is
+to rebuild how E[g] enters `r_req`, not to retune the floor.
+
+**F4 — out of sample, Ley 12/2023 still produces a rent rise.** If after §7.2 the statute in
+force still produces a **rise** in tensioned contract rents, outside the in-regime span running
+from the register (contracts +1,374; new-contract rent −2.7% real [O-HB no. 4]) to Pérez García
+(−13% tenancies, rent effect ≈0), then §7.2 has not done the thing it was written for.
+
+**F4 is not repaired by re-fitting.** A failure there means the arbitrage condition is wrong, not
+that a parameter needs tuning. And the warning this project has already earned once applies:
+rewriting §7.2 in response to its failure under Ley 12/2023 **spends that evidence**, exactly as
+2008–13 was spent (§13.11). From that point the statute in force can no longer validate the
+model and becomes a diagnostic. F4 is therefore run **once**, after the three Ley 11/2020 tests
+are green, and its result is registered before anything is touched.
+
+#### What §7.2 does not touch
+
+Deliberately, so that a failure can be attributed: `cap_level` and its two statutes; the
+previous-contract anchor; coverage, the declared/undeclared segment mix and target T7;
+`shadow_rent` as an input to the *ask*; `magnet_gain`; compliance; and the whole sale channel
+downstream of `WithdrawRental`.
+
+#### Reporting consequence
+
+If F1–F3 pass and F4 lands inside the span, the rent cap under Ley 12/2023 moves from **not
+reportable** to **direction** under §13.2 — not to magnitude, which the variance rule would
+refuse while `holding_years` and `selling_cost_share` remain guesses. The warning in
+`ui/levers.py` is then rewritten to say what may be read rather than only what may not.
 
 ### 5c.8 The tick is a quarter, the market is not (2026-09-15)
 
@@ -1545,12 +1706,12 @@ Still unreconciled, and recorded rather than resolved: DO 2432's 2pp off a ≈5.
 ≈36% of gross rent, against AEAT's own 41–45% gross-to-net on the same object while citing it.
 Neither figure **is** `c` — both carry depreciation and interest.
 
-**§7.2 is a different blocker, and it is not this one.** It is referenced here, twice in
-`docs/validation.md` and once in `config.CapResponseConfig` as the arbitrage condition that will
-replace the rent cap's fitted `hazard_scale` — and it has **never been written**. It is not
-waiting on a parameter; it is waiting on being specified. Until it exists the cap's withdrawal
-margin stays the reduced form in `agents/landlord`, and the Ley 12/2023 regime stays
-out-of-regime (§5b.1).
+**§7.2 was a different blocker, and it was never this one.** It had been referenced here, twice
+in `docs/validation.md` and once in `config.CapResponseConfig` as the arbitrage condition that
+would replace the rent cap's fitted `hazard_scale`, and it had **never been written** — it was
+waiting on being specified, not on a parameter. It is written as of 2026-09-16 and is
+specification only: no code has moved yet, and the cap's withdrawal margin is still the reduced
+form in `agents/landlord` until it does.
 
 ### 13.8 Migration: interior and exterior, reported separately (decided 2026-09-12, phase B)
 

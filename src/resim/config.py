@@ -799,8 +799,10 @@ class CapResponseConfig:
     # This value is deliberately NOT re-fitted to recover them: the old number was produced
     # by a floor built from two exogenous constants, and re-fitting a scale factor to
     # reproduce a result that a defect was generating is the one move this project's
-    # standard forbids. Phase B replaces this machinery with the arbitrage condition
-    # (spec §7.2), and the dial is re-derived there rather than re-tuned here.
+    # standard forbids. The arbitrage condition that replaces this machinery is now WRITTEN
+    # (spec §7.2, 2026-09-16) and retires `hazard_scale` outright rather than re-deriving it —
+    # along with `rental_supply_elasticity`, which becomes an output. Nothing here has moved
+    # yet: §7.2 is specification, and this reduced form is still what runs.
     hazard_scale: float = 0.7
     hazard_scale_range: tuple[float, float] = (0.5, 1.0)
 
