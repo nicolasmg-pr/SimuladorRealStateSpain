@@ -184,6 +184,7 @@ class Engine:
                     tenure=Tenure.OWNER_OCCUPIED,
                     last_sale_price=zs.price_index * quality,
                     declaration_draw=float(rng.random()),
+                    sale_route_draw=float(rng.random()),
                 )
                 if status is HouseholdStatus.TENANT:
                     unit.tenure = Tenure.RENTED
@@ -238,6 +239,7 @@ class Engine:
                         # and stock empty for want of location and condition [ZoneConfig]
                         withheld=bool(rng.random() < zcfg.withheld_share),
                         declaration_draw=float(rng.random()),
+                        sale_route_draw=float(rng.random()),
                     )
                 )
 
@@ -257,6 +259,7 @@ class Engine:
                         tenure=Tenure.SEASONAL,
                         last_sale_price=zs.price_index * quality,
                         declaration_draw=float(rng.random()),
+                        sale_route_draw=float(rng.random()),
                     )
                 )
 
@@ -1091,6 +1094,7 @@ class Engine:
                     vacant_since=state.tick,  # completion date = start of inventory ageing
                     is_public=is_public,
                     declaration_draw=float(self.market_rng.random()),
+                    sale_route_draw=float(self.market_rng.random()),
                 )
                 state.stock.add(unit)
                 if is_public:

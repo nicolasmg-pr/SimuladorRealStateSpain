@@ -11,10 +11,10 @@ from resim.agents.base import ListForSale, MakeOffer, StartConstruction, Withdra
 from resim.agents.developer import Developer
 from resim.agents.household import Households
 from resim.agents.investor import LargeInvestor
-from resim.agents.landlord import SmallLandlords, cap_level, required_rent
+from resim.agents.landlord import SmallLandlords, cap_level, exit_cost_for, required_rent
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
-from resim.market.stock import LARGE_INVESTOR_ID, Tenure
+from resim.market.stock import LARGE_INVESTOR_ID, Tenure, Unit
 from resim.scenario import RentCap, Scenario
 from resim.state import HouseholdState, HouseholdStatus
 
@@ -82,6 +82,20 @@ def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
     return state, landlord
 
 
+def _unit_with_draw(u: float) -> Unit:
+    """A minimal `Unit` carrying only the field `exit_cost_for` reads: `sale_route_draw`."""
+    return Unit(
+        id=0,
+        zone=ZoneType.TENSIONED,
+        quality=1.0,
+        owner_id=0,
+        occupant_id=None,
+        tenure=Tenure.RENTED,
+        last_sale_price=100_000.0,
+        sale_route_draw=u,
+    )
+
+
 def _exit_destinations(state, landlord: SmallLandlords, *, draws: int = 200) -> collections.Counter:
     """Counter of `WithdrawRental.destination` over `draws` calls to `landlord.decide`.
 
@@ -147,6 +161,30 @@ def test_closing_the_seasonal_segment_pushes_exits_into_sales():
     assert closed["seasonal"] == 0
     assert closed["sale"] > open_["sale"]
     assert "vacant" not in open_ and "vacant" not in closed
+
+
+def test_the_exit_cost_map_is_monotone_in_the_draw():
+    """§7.2b Piece A. `k` must increase with the draw, so raising the cap's bite ADDS
+    landlords to the exiting set rather than reshuffling it — the same monotonicity
+    `declaration_draw`'s comment prizes for coverage, and for the same reason: two cap
+    scenarios have to stay comparable.
+    """
+    cfg = SimConfig.baseline(seed=1, ticks=4)
+    ks = [exit_cost_for(_unit_with_draw(u), cfg) for u in (0.0, 0.2, 0.4, 0.6, 0.8, 0.99)]
+    assert ks == sorted(ks), f"not monotone: {ks}"
+
+
+def test_the_exit_cost_map_lands_in_the_two_sourced_bands():
+    """Private sales 0.005–0.015 (Código Civil art. 1455, IIVTNU, aranceles); agency sales
+    0.04–0.07 (commission 3–5% + IVA). The share on the agency side is the measured
+    intermediation share, 0.64 of second-hand purchases [Fotocasa Research].
+    """
+    cfg = SimConfig.baseline(seed=1, ticks=4)
+    s = cfg.cap_response.intermediation_share
+    private = [exit_cost_for(_unit_with_draw(u), cfg) for u in (0.0, (1 - s) * 0.99)]
+    agency = [exit_cost_for(_unit_with_draw(u), cfg) for u in (1 - s, 0.999)]
+    assert all(0.005 <= k <= 0.015 for k in private), private
+    assert all(0.04 <= k <= 0.07 for k in agency), agency
 
 
 def test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone():

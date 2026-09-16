@@ -874,6 +874,28 @@ class CapResponseConfig:
     holding_years: float = 5.0
     holding_years_range: tuple[float, float] = (3.0, 10.0)
 
+    # Share of dwelling sales that go through an agency, which decides how many landlords have
+    # a CHEAP exit and therefore how many leave at a given cap (model-spec §7.2b). Agencies
+    # handle 64% of SECOND-HAND purchases [Fotocasa Research] and ~70% of all operations
+    # [idealista] — two portals competing for the same sellers, agreeing within 6pp. The model
+    # takes the second-hand figure: a landlord selling a let dwelling makes a second-hand sale.
+    # Regional spread is wide (Murcia, Navarra, Baleares high; Extremadura, País Vasco,
+    # Andalucía low), which is why the UI slider is wider than this band.
+    intermediation_share: float = 0.64
+    intermediation_share_range: tuple[float, float] = (0.64, 0.70)
+    # The regional spread behind `intermediation_share`, not the national band above: Murcia,
+    # Navarra and Baleares run high, Extremadura, País Vasco and Andalucía run low [Fotocasa
+    # Research / idealista, by autonomous community]. A later task's sweep and the UI slider
+    # read this field rather than hardcoding the regional extremes.
+    intermediation_share_regional_range: tuple[float, float] = (0.40, 0.85)
+    # The two sale routes, as shares of price. Statutory: CC art. 1455 puts the escritura
+    # matriz on the seller, IIVTNU falls on the transmitente but is levied on cadastral LAND
+    # value, plus aranceles RD 1426/1989 and RD 1427/1989. Market: commission 3–5% + IVA, so a
+    # 4% fee costs 4.84% of price; large networks reach 7%. Uniform within band is a declared
+    # convention — the sources give ranges, not distributions.
+    exit_cost_private: tuple[float, float] = (0.005, 0.015)
+    exit_cost_agency: tuple[float, float] = (0.04, 0.07)
+
 
 @dataclass(frozen=True)
 class LabourConfig:

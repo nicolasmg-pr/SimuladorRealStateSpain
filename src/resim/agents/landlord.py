@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..config import ZoneType
+from ..config import SimConfig, ZoneType
 from ..market.stock import Tenure, Unit
 from ..state import WorldState
 from .base import Intent, ListForRent, WithdrawRental
@@ -265,3 +265,22 @@ class SmallLandlords:
         if shortfall > value * cfg.market.selling_cost_share:
             return "sale"
         return None
+
+
+def exit_cost_for(unit: Unit, cfg: SimConfig) -> float:
+    """The landlord's cost of leaving, as a share of the dwelling's value (model-spec §7.2b).
+
+    Monotone in `unit.sale_route_draw`: the cheap-to-extract private sellers sit at the bottom
+    and leave first, agency sellers at the top and hold out longest. Monotonicity is the point —
+    it makes a harder cap ADD landlords to the exiting set instead of reshuffling it.
+    """
+    c = cfg.cap_response
+    s = c.intermediation_share
+    u = unit.sale_route_draw
+    if u < 1.0 - s:
+        lo, hi = c.exit_cost_private
+        frac = u / (1.0 - s) if s < 1.0 else 0.0
+    else:
+        lo, hi = c.exit_cost_agency
+        frac = (u - (1.0 - s)) / s if s > 0.0 else 0.0
+    return lo + (hi - lo) * frac

@@ -53,6 +53,13 @@ class Unit:
     # whole run. It also makes coverage monotone — raising it adds municipalities to the
     # declared set instead of reshuffling them — so two coverage levels are comparable.
     declaration_draw: float = 1.0
+    # U(0,1) drawn once from the engine's seeded Generator when the unit is created, and never
+    # redrawn. Maps to the landlord's cost of LEAVING the rental market (model-spec §7.2b):
+    # a private sale is cheap, an agency sale is not, and a landlord's route is a property of
+    # the landlord rather than of the quarter. Persistent for the same reason
+    # `declaration_draw` is: a per-tick coin flip would let the same unit cross the exit
+    # threshold and come back, and would stop two cap scenarios being comparable.
+    sale_route_draw: float = 1.0
 
 
 class Stock:
