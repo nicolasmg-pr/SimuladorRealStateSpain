@@ -982,13 +982,19 @@ def test_rent_cap_lowers_contract_rents():
 
     REOPENED by model-spec §7.2 (2026-09-16). `hazard_scale` and `rental_supply_elasticity`
     are retired; withdrawal is now decided by the arbitrage condition `cap < r_req` instead.
-    At the shipped `selling_cost_share`/`holding_years`, under this same Ley 11/2020 regime,
-    that condition drives enough mass withdrawal that transacted rents in the capped zone
-    RISE rather than fall (measured ≈+54%, three seeds). This is a faithful, measured
-    consequence of the specified rule — recorded as a falsification (§7.2's Falsification
-    subsection), not tuned away here. See
-    test_the_supply_elasticity_lands_inside_the_monras_span for whether the correct sign is
-    reachable anywhere in the declared ranges.
+    At the shipped `selling_cost_share`/`holding_years` (the latter since retired outright by
+    §7.2b, which replaced it with the cap's own remaining statutory term — see model-spec.md
+    §7.2b, "Parameter ledger"), under this same Ley 11/2020 regime, that condition drives
+    enough mass withdrawal that transacted rents in the capped zone RISE rather than fall
+    (measured ≈+54%, three seeds). This is a faithful, measured consequence of the specified
+    rule — recorded as a falsification (§7.2's Falsification subsection), not tuned away here.
+    §7.2's own F1 (`test_the_supply_elasticity_lands_inside_the_monras_span`) asked only for a
+    witness anywhere in the declared ranges; it was deleted outright by §7.2b Task 5, once
+    `holding_years`, the second dimension it swept, stopped existing (see the note above
+    `test_g1_the_co_movement_emerges_at_the_shipped_parameters`, further down this file).
+    `test_g1_the_co_movement_emerges_at_the_shipped_parameters` is F1's declared, stricter
+    successor: it requires the correct sign at every one of ten seeds, not a witness at one
+    corner out of four.
     """
     # Ley 11/2020, for the reason the Monràs test gives: target 8 comes from the Catalan
     # evaluations, which is the regime the withdrawal channel is being asked to reproduce.
@@ -998,8 +1004,9 @@ def test_rent_cap_lowers_contract_rents():
 
 
 def test_rent_cap_supply_response_is_negative_at_the_shipped_structural_parameters():
-    """Target 8, supply leg, WEAK form: at the shipped `selling_cost_share` and
-    `holding_years` (model-spec §7.2), the withdrawal channel must still produce a real
+    """Target 8, supply leg, WEAK form: at the shipped `selling_cost_share` (model-spec §7.2;
+    `holding_years`, shipped alongside it at the time, was retired outright by §7.2b — see
+    model-spec.md §7.2b, "Parameter ledger"), the withdrawal channel must still produce a real
     contraction in new leases — regardless of what the price leg does.
 
     Asserted at −5%, well below what the studies report, so seed noise (σ ≈ 3pp on 3 seeds)
@@ -1033,9 +1040,12 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     and −21.8% contracts before it). REOPENED by model-spec §7.2 (2026-09-16): the arbitrage
     condition's mass withdrawal now sends contract rents UP (measured ≈+54%, three seeds)
     while contracts still contract, so only the quantity leg survives. This is a faithful,
-    measured consequence of the specified rule, not a bug in the test — see
-    test_the_supply_elasticity_lands_inside_the_monras_span (§7.2 F1) for whether the
-    correct sign is reachable anywhere in the declared ranges.
+    measured consequence of the specified rule, not a bug in the test — §7.2's own F1
+    (`test_the_supply_elasticity_lands_inside_the_monras_span`) asked whether the correct
+    sign was reachable anywhere in the declared ranges; F1 is deleted (§7.2b Task 5, once
+    `holding_years`, the second dimension it swept, stopped existing) and its declared,
+    stricter successor is `test_g1_the_co_movement_emerges_at_the_shipped_parameters`,
+    further down this file.
     """
     # Catalonia's Ley 11/2020 bound the index on EVERY landlord, which is the world these
     # three studies measure. The model's default lever is Ley 12/2023, where the index binds

@@ -902,11 +902,17 @@ class CapResponseConfig:
     # Regional spread is wide (Murcia, Navarra, Baleares high; Extremadura, País Vasco,
     # Andalucía low), which is why the UI slider is wider than this band.
     intermediation_share: float = 0.64
-    intermediation_share_range: tuple[float, float] = (0.64, 0.70)
-    # The regional spread behind `intermediation_share`, not the national band above: Murcia,
-    # Navarra and Baleares run high, Extremadura, País Vasco and Andalucía run low [Fotocasa
-    # Research / idealista, by autonomous community]. A later task's sweep and the UI slider
-    # read this field rather than hardcoding the regional extremes.
+    # National two-source band (0.64, 0.70): Fotocasa's 64% of second-hand purchases to
+    # idealista's ≈70% of all operations. Provenance only, not a field — nothing reads it (not
+    # the sweep, which reads `intermediation_share_regional_range` below; not the UI; not any
+    # test), and a dead field is the wrong thing to carry on a branch arguing about parameter
+    # headcount. Demoted to this comment 2026-09-16; the sources stay registered in
+    # `docs/sources.md`.
+    #
+    # The regional spread behind `intermediation_share`, which IS read: Murcia, Navarra and
+    # Baleares run high, Extremadura, País Vasco and Andalucía run low [Fotocasa Research /
+    # idealista, by autonomous community]. The sweep and the UI slider read this field rather
+    # than hardcoding the regional extremes.
     intermediation_share_regional_range: tuple[float, float] = (0.40, 0.85)
     # The two sale routes, as shares of price. Statutory: CC art. 1455 puts the escritura
     # matriz on the seller, IIVTNU falls on the transmitente but is levied on cadastral LAND

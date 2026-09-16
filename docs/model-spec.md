@@ -890,13 +890,16 @@ Retired: `holding_years` (5.0, range 3–10, **[guess]**), `holding_years_range`
 added for it on 2026-09-16.
 
 Added: `intermediation_share` (0.64, range 0.64–0.70), the two exit-cost bands (0.005–0.015 and
-0.04–0.07), `cap_term_ticks` (12), `cap_renews` (True). `Unit.sale_route_draw` is per-unit state,
-not a parameter.
+0.04–0.07), `cap_term_ticks` (12). `Unit.sale_route_draw` is per-unit state, not a parameter.
+Renewal is not a fifth parameter: there is no `cap_renews` flag anywhere in `src/` — renewal is a
+property of the term arithmetic, `elapsed % cap_term_ticks` at `landlord.py:268`, which recycles
+the horizon every declared term without a boolean to carry or default. That is the better
+implementation, so this ledger entry is corrected rather than a field added to match it.
 
-**§7.2 retired five parameters and §7.2b returns five.** On a headcount this is a regression, and
+**§7.2 retired five parameters and §7.2b returns four.** On a headcount this is a regression, and
 it is recorded as one. The project's criterion is not the count but the **unsourced share of
 variance** (§13.2): what dies is a `[guess]` that governed the whole channel, and what is born is
-five quantities with published sources — three committed on 2026-09-16, two from the BOE. There is
+four quantities with published sources — three committed on 2026-09-16, one from the BOE. There is
 also an asymmetry worth naming: `holding_years` was a guess with **no empirical band**, so
 sweeping it measured the model's ignorance; the new bands are ranges of evidence, so sweeping them
 measures disagreement between sources.
@@ -1031,6 +1034,23 @@ evidence admits — and G1 fails: new leases fall −46.6% against Monràs's −
 −13% tenancies (3.5–4.7× the sourced quantity response), and the co-movement ratio itself
 (3.563) sits 1.8× above the top of Monràs's 0.07–2.0 span at the shipped point; G2's own sweep
 shows the excess survives at every corner of the sourced `intermediation_share` range too.
+
+**The price leg carries its own excess too, not only the ratio between the two legs.** Rent
+−16.2% against Monràs's −5% point estimate is **≈3.2×** the sourced magnitude — smaller than
+§7.2's ≈7× overshoot at the one anchor where §7.2's sign was correct, but not close to closed:
+three times the sourced figure is a registered excess, not a rounding difference. It sits
+alongside the quantity leg's excess above, not instead of it — both legs are too large.
+
+**G4's pass is sign only.** All four sourced anchors (1/2/4/8%/yr) run negative rent at all ten
+seeds, and the pre-§7.2b regime boundary is gone at the three anchors that discriminate — that
+is what G4 tests, and it passes. But the per-anchor rent and lease *magnitudes* were not
+captured at those ten seeds, so whether the quantity leg's overshoot above holds, worsens, or
+eases across the anchor sweep is unverified at full statistical power. A superseded three-seed
+probe (explicitly disclaimed at the time as not this gate's own measurement) had shown new
+leases turning positive at the 8%/yr anchor while rent stayed negative — the same
+large-quantity-response pattern G1 falsifies at the shipped anchor, glimpsed again across the
+sweep but not confirmed at the ten seeds G4 actually runs.
+
 Under §13.2 the rent cap under Ley 11/2020 stays where §7.2's own "Reporting consequence" left
 it — **not reportable** — with the sign of the withdrawal channel now a defensible **direction**
 claim (G1's per-seed check, G4) and the size of that channel's contract response an **open,

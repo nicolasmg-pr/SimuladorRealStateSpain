@@ -45,6 +45,7 @@ def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
         cap_index_binds_all=True,
         cap_coverage=0.0,
         seasonal_segment_capped=seasonal_closed,
+        cap_start_tick=0,
     )
     unit = next(
         u
@@ -212,10 +213,12 @@ def test_the_exit_cost_map_lands_in_the_two_sourced_bands():
     """
     cfg = SimConfig.baseline(seed=1, ticks=4)
     s = cfg.cap_response.intermediation_share
+    private_lo, private_hi = cfg.cap_response.exit_cost_private
+    agency_lo, agency_hi = cfg.cap_response.exit_cost_agency
     private = [exit_cost_for(_unit_with_draw(u), cfg) for u in (0.0, (1 - s) * 0.99)]
     agency = [exit_cost_for(_unit_with_draw(u), cfg) for u in (1 - s, 0.999)]
-    assert all(0.005 <= k <= 0.015 for k in private), private
-    assert all(0.04 <= k <= 0.07 for k in agency), agency
+    assert all(private_lo <= k <= private_hi for k in private), private
+    assert all(agency_lo <= k <= agency_hi for k in agency), agency
 
 
 def test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone():
