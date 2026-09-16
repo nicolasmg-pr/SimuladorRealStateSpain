@@ -141,10 +141,14 @@ CRITERIA: tuple[Criterion, ...] = (
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
         note="**Esta es la pata que rompe el objetivo 9.** `required_rent` ancla el suelo del "
-        "yield al precio, la oferta de alquiler rural no tiene margen de entrada (el inversor "
-        "no entra en rural y los hogares nunca compran para alquilar) y la migración sólo "
-        "baja, así que todo buscador expulsado acaba allí. Lo arregla el *total-return hurdle* "
-        "y la entrada buy-to-let (spec §7.1, §7.3 — fase B).",
+        "yield al precio y la oferta de alquiler rural no tiene margen de entrada: el "
+        "inversor no entra en rural y los hogares nunca compran para alquilar. El "
+        "*total-return hurdle* (§7.1) y la migración bidireccional (§7.5) ya entraron en la "
+        "fase B y no bastaron. Lo que queda es la **entrada buy-to-let (§7.3)**, que baja "
+        "esta pata de 22% a 8,10% y sigue **aparcada** en la rama `buy-to-let-remeasure`: la "
+        "entrada por yield arbitra la escalera de precios entre zonas (T/R cae a 1,65 contra "
+        "un suelo de 2,6) y falta meterle el gradiente de vacancia que el inversor debería "
+        "*ver* al elegir zona (`docs/validation.md`, «Parked, on buy-to-let-remeasure»).",
     ),
     Criterion(
         key="rent_ordering",
@@ -162,26 +166,56 @@ CRITERIA: tuple[Criterion, ...] = (
         "sobrevivió 60 trimestres sin que saltara nada.",
         note="El alquiler rural adelanta al tensionado alrededor del trimestre 35–40. La prima "
         "de localización descuenta la disposición a **comprar** en rural, pero nada descuenta la "
-        "aceptación de **alquiler** (model-spec §5b), mientras la migración sólo-hacia-abajo "
-        "canaliza buscadores allí y el margen de compartir sube la carga aceptada a 0,55. Lo "
-        "arreglan la migración bidireccional y la entrada buy-to-let (spec §7.3, §7.5 — fase B).",
+        "aceptación de **alquiler** (model-spec §5b), y el margen de compartir sube la carga "
+        "aceptada a 0,55. La migración bidireccional (§7.5) entró en la fase B y no lo cerró. "
+        "Lo cierra la **entrada buy-to-let (§7.3)**, medida y **aparcada** en la rama "
+        "`buy-to-let-remeasure` por el mismo motivo que el objetivo 9: arbitra la escalera de "
+        "precios entre zonas.",
     ),
     Criterion(
         key="net_migration_tensioned",
         target="12",
-        label="Migración interna neta hacia la zona tensionada (acumulada)",
+        label="Migración interna neta de la zona tensionada (acumulada)",
         measure=lambda f: _cumulative(f, "net_migration_tensioned"),
-        band=(0.0, float("inf")),
-        sourced="sólo dirección — el nivel necesita INE Migraciones, aún no en sources.md",
+        band=(float("-inf"), 0.0),
+        sourced="negativa — signo, no nivel",
+        fmt="+,.0f",
+        registered=Registered.GATED,
+        source="INE EVR 2015–21 y EMCR 69753 2021–24, mapeo B (model-spec §13.8): "
+        "−33.393 (2019), −140.179 (2020), −55.195 (2024)",
+        reads="**Corregido el 2026-09-14.** Hasta la fase B esta fila pedía el signo "
+        "contrario y estaba registrada como xfail: se daba por hecho que el flujo interno "
+        "neto español va rural → metro. Los datos dicen lo contrario — la zona tensionada "
+        "pierde migrantes internos todos los años desde 2017 en los tres mapeos candidatos y "
+        "en ambas estadísticas. El modelo acertaba y la ficha lo contaba como fallo "
+        "(`docs/validation.md`, «Phase-B finding-11 correction»).",
+        note="Escala del modelo (1:`metrics.SCALE`), hogares acumulados sobre la simulación "
+        "entera — es un flujo, no un nivel, y por eso no se promedia la cola. Es un test de "
+        "**signo**, y sólo significa algo porque la regla ya admite los dos signos: la "
+        "migración bidireccional de la fase B sustituyó la regla de sólo-bajar, que afirmaba "
+        "esto por construcción (`test_interior_migration_is_bidirectional`).",
+    ),
+    Criterion(
+        key="migration_in_tensioned",
+        target="12",
+        label="Entradas interiores brutas a la zona tensionada (acumuladas)",
+        measure=lambda f: _cumulative(f, "migration_in_tensioned"),
+        band=(1.0, float("inf")),
+        sourced="cualquier flujo de entrada > 0 — un neto negativo no es un flujo de un sentido",
         fmt="+,.0f",
         registered=Registered.XFAIL,
-        source="INE Migraciones y Variaciones Residenciales — pendiente de registrar",
-        reads="En España el flujo interno neto va **rural → metro**. El modelo lo tiene "
-        "invertido por construcción: la regla de `engine._demography` sólo deja bajar la "
-        "escalera, así que la zona tensionada pierde migrantes internos en todas las semillas.",
-        note="Escala del modelo (1:`metrics.SCALE`), hogares acumulados sobre la simulación "
-        "entera — es un flujo, no un nivel, y por eso no se promedia la cola. Lo arreglan los "
-        "flujos bidireccionales identificados sobre INE MVR (spec §7.5 — fase B).",
+        source="INE EVR/EMCR: el neto negativo del metro es la diferencia de dos flujos "
+        "grandes, no una ausencia de entradas",
+        reads="Lo que falla no es el signo del neto, sino que las entradas brutas se van a "
+        "cero: nadie entra nunca al metro en la base. Con eso, el neto sale del sitio "
+        "correcto por el motivo equivocado.",
+        note="**Reabierta el 2026-09-14 por §7.4.** Había cerrado bajo el hurdle de §7.1, que "
+        "bajó las rentas metropolitanas lo suficiente para que una entrada superase la "
+        "fricción; capitalizar la puja del inversor y desanclar al comprador extranjero "
+        "devolvió precios y rentas, y las entradas volvieron a cero. Que un cambio del lado "
+        "del precio la abra y la cierre es la prueba de que la sostenía una coincidencia, no "
+        "un mecanismo: en `engine._demography` el único tirón hacia el metro es el ratio de "
+        "renta, y falta **dónde está el empleo** (término de amenidad, spec §7.5).",
     ),
     Criterion(
         key="tenant_ordering",
@@ -382,12 +416,24 @@ def evaluate(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("key")
 
 
+def xfail_targets() -> tuple[str, ...]:
+    """Targets carrying a live strict xfail, in `CRITERIA` order and without a run.
+
+    Frame-independent on purpose: the guide tab states how many targets are red, and a
+    hand-written count there is how the guide drifted away from this module in the first
+    place. One definition, read by everything that quotes it.
+    """
+    seen = {c.target for c in CRITERIA if c.registered is Registered.XFAIL}
+    ordered = dict.fromkeys(c.target for c in CRITERIA if c.target in seen)
+    return tuple(ordered)
+
+
 def summary(frame: pd.DataFrame) -> dict[str, int]:
     """Counts for the headline row: how many targets are red, and how many are measured."""
     table = evaluate(frame)
     return {
         "targets": len({c.target for c in CRITERIA}),
-        "xfail": len({c.target for c in CRITERIA if c.registered is Registered.XFAIL}),
+        "xfail": len(xfail_targets()),
         "inside": int((table["Encaja"] == "✅").sum()),
         "outside": int(table["Encaja"].isin(["🔽", "🔼"]).sum()),
     }

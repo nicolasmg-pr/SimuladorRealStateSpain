@@ -593,8 +593,14 @@ alquileres **emergen** de sus transacciones — nunca se imponen desde fuera.
 | 👤 Pequeño casero / inversor | Alquilar, subir renta, vender, pasar a temporada |
 | 🏢 Gran inversor | Comprar o vender cartera según rentabilidad |
 | 🏗️ Promotor | Iniciar obra nueva si los márgenes salen |
-| 🏦 Banco | Conceder o denegar hipotecas (filtro de esfuerzo) |
+| 🏦 Banco | Conceder o denegar hipotecas, declarar la mora, quedarse la vivienda ejecutada |
 | 🏛️ Gobierno | Aplica la política que eliges en la barra lateral |
+
+Desde la fase C los hogares pueden **dejar de pagar**: hay riesgo de renta sobre una senda
+exógena de paro, mora contra un suelo de consumo en el umbral de pobreza y ejecución
+hipotecaria por el artículo 24 de la Ley 5/2019. Por eso la barra lateral tiene, además de
+las siete políticas, dos **condiciones de contorno** que nadie «elige» en la realidad —
+restricción de crédito y shock de desempleo: son las dos entradas del episodio 2008–13.
 
 ### Cómo funciona una simulación
 
@@ -617,7 +623,14 @@ Regla del proyecto: cuando los estudios serios no se ponen de acuerdo, el modelo
 **no elige un bando**. El desacuerdo se convierte en un deslizador y tú exploras
 ambos mundos. El ejemplo estrella: tres estudios sobre el tope de alquiler catalán,
 con los mismos datos, concluyen desde «no se retiró oferta» hasta «−10% de
-contratos». Ese deslizador (elasticidad 0–2) recorre exactamente ese rango.
+contratos». Ese deslizador (elasticidad 0–2) recorre ese rango en la pata de **oferta**.
+
+Y aquí va la letra pequeña, que es del propio modelo: en la re-ejecución del 15-09-2026, bajo
+la ley que esos tres estudios evalúan (Ley 11/2020, el índice ata a **todos** los caseros),
+la pata de **renta** sale plana a lo largo del dial — la mueve el nivel del tope, no el
+parámetro de conducta. Es decir, el dial ya no recorre el desacuerdo de los tres estudios
+donde más importa, así que **el tamaño de cualquier efecto del tope sobre la renta no es
+citable**; el signo sí (`docs/experiments/rent-cap.md`).
 
 ### Límites que conviene recordar
 
@@ -625,8 +638,14 @@ contratos». Ese deslizador (elasticidad 0–2) recorre exactamente ese rango.
   disputa antes de creerte ninguna conclusión.
 - Varios efectos clave no tienen estudio causal español (ITP, impuesto a la
   vivienda vacía, avales ICO): la evidencia es importada y los rangos, anchos.
-- La base reproduce los objetivos de validación (docs/validation.md) antes de que
-  ningún escenario se considere fiable.
+- **La base no reproduce todos los objetivos de validación.** Los objetivos
+  {xfail_targets} siguen rojos y registrados como *xfail estrictos* — yield rural, orden de
+  alquileres, entradas interiores al metro y entregas de vivienda al acreedor. Están en la
+  pestaña «Diagnóstico del modelo», con su mecanismo y su fase, en vez de escondidos.
+- **La mitad de las cifras se leen sólo como dirección.** Ninguna cantidad se reporta como
+  magnitud si un parámetro sin fuente explica más del 25% de su varianza (regla de varianza,
+  model-spec §13.2). Todo el lado del alquiler está en ese grupo. El desglose está en «Qué
+  puede decir el modelo, y qué no», en la pestaña de diagnóstico.
 - El modelo informa la discusión; no la sustituye.
 """
 
@@ -690,8 +709,9 @@ serie es legible por máquina (`docs/external-forecasts.md` §4).
 
 El par **base + adverso del FMI/EBA** es el más útil de la lista: es el único camino
 publicado para España con un escenario de crisis emparejado, así que es el contraste natural
-para una intervención tipo `CreditCrunch` — que este modelo todavía no tiene
-(`docs/validation.md`, hueco conocido).
+para la palanca `CreditCrunch` — que **desde la fase C sí existe**, junto con `LabourShock`,
+en la barra lateral bajo «restricción de crédito» y «shock de desempleo». No son políticas:
+son condiciones de contorno, las dos entradas del episodio 2008–13 (model-spec §6c).
 
 Nota de honestidad: el panel de 2026 **subestimó mucho** el precio real. El IPV del INE
 cerró el primer semestre de 2026 en **+12,55% interanual de media** (1T +12,9%, 2T +12,2%,
@@ -760,14 +780,27 @@ Esta pestaña no explora ninguna política. Muestra **en qué se equivoca el mod
 
 La fase 0 del rediseño añadió siete observables y **no cambió ni una regla de
 comportamiento**. Ése era su propósito: convertir defectos invisibles en fallos que la
-suite reporta. Tres salieron rojos de fábrica y siguen rojos — están registrados como
-*xfail estrictos*, no escondidos:
+suite reporta. La tabla ha crecido con cada fase; los contadores de aquí abajo dicen cuántos
+criterios y cuántos objetivos hay hoy. Estos son los objetivos que **siguen con un xfail
+estricto vivo**, registrados, no escondidos:
 
 - **Objetivo 9** — el yield bruto rural corre al doble de su banda publicada.
 - **Objetivo 11** — el alquiler pedido en rural adelanta al de la zona tensionada.
-- **Objetivo 12** — la migración interna neta tiene el signo invertido.
+- **Objetivo 12** — las entradas interiores **brutas** al metro se van a cero: el neto sale
+  del sitio correcto por el motivo equivocado.
+- **Objetivo 15** — las entregas de vivienda al acreedor salen ≈0,02%/año contra 0,10–0,16%
+  observado: el modelo convierte casi todo disparo estatutario en venta voluntaria.
 
-Los tres los arregla la **fase B**. Hasta entonces se ven aquí.
+Los objetivos 9 y 11 **ya no esperan a la fase B**: la fase B entró entera y no los cerró.
+Lo que falta es la entrada *buy-to-let* (§7.3), medida y **aparcada** en la rama
+`buy-to-let-remeasure` porque la entrada por yield arbitra la escalera de precios entre
+zonas. El 12 espera al término de amenidad de §7.5 («dónde está el empleo»); el 15, a las
+fricciones de venta que las fases D y E dejaron abiertas.
+
+**El objetivo 12 cambió de signo el 2026-09-14, y no por el modelo.** Esta pestaña pedía
+migración interna neta *positiva* hacia el metro. INE EVR/EMCR dicen lo contrario en todos
+los años desde 2017 y en los tres mapeos candidatos: el modelo acertaba y la ficha lo
+contaba como fallo. La fila ahora está gatillada sobre el signo correcto.
 
 ⚠️ **Esto no es la puerta de validación.** La suite promedia 3 semillas sobre los últimos
 20 de 60 trimestres (`tests/test_validation.py`); esta pestaña mide **la semilla que tengas
@@ -782,9 +815,15 @@ yield rural (objetivo 9) son el mismo defecto visto desde dos lados: la escalera
 estaba gatillada **sólo en precios**, así que un alquiler rural por encima del metropolitano
 sobrevivió 60 trimestres y 3 semillas sin que nada saltara.
 
-**Por qué el objetivo 15 no es un test.** No existe mecanismo de insolvencia en el modelo.
-Un test que no puede correr no es evidencia de nada, y un xfail sobre un mecanismo ausente
-sería decoración. Está diferido a fase C y registrado en `docs/holdout-2008-2013.md`.
+**El objetivo 15 ya es un test, desde la fase C.** Antes no existía mecanismo de
+insolvencia: `wealth = max(0, wealth − cuota)` absorbía cualquier falta de pago, y un xfail
+sobre un mecanismo ausente habría sido decoración. La fase C metió riesgo de renta sobre una
+senda exógena de paro, mora contra un suelo de consumo en el umbral de pobreza, ejecución
+estatutaria (Ley 5/2019 art. 24, con el régimen anterior de tres cuotas como interruptor
+para el hold-out), REO bancario y las palancas `CreditCrunch` y `LabourShock`. El objetivo
+tiene dos patas y se comportan distinto: la **mora** pasa contra el ratio de dudosos del BdE
+y está gatillada; las **entregas al acreedor** fallan al nacer y se reportan como fallo en
+lugar de ensanchar la banda — la banda es el dato.
 """
 
 

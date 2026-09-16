@@ -4,8 +4,8 @@ Run: streamlit run src/resim/ui/app.py
 
 Five tabs: explore one policy in depth (with actor-reaction explanations), compare all
 policies on one indicator, contrast the model's national figures against what Banco de
-España actually publishes, show the phase-0 diagnostic targets (including the three the
-model currently fails), and a plain-language guide to the model.
+España actually publishes, show the phase-0 diagnostic targets (including the four that
+still carry a live strict xfail), and a plain-language guide to the model.
 Sidebar: baseline knobs, one policy lever, and the *disputed* parameters exposed as
 sliders labeled with the competing estimates (bias-control rule: the model spans the
 disagreement, the user explores it).
@@ -424,7 +424,7 @@ def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) ->
 
 
 def diagnostics_tab(baseline_frame, scenario_frame, params: dict, lever: str) -> None:
-    """The phase-0 targets on screen — including the three the model currently fails.
+    """The phase-0 targets on screen — including the four that still carry a strict xfail.
 
     Always evaluated on the BASELINE frame, never the scenario one. These targets ask
     whether the model reproduces Spain, and a rent cap moving a number is not evidence
@@ -525,7 +525,12 @@ def diagnostics_tab(baseline_frame, scenario_frame, params: dict, lever: str) ->
 
 
 def how_it_works_tab() -> None:
-    st.markdown(texts.MODEL_EXPLANATION)
+    # The list of red targets is read from diagnostics, not retyped here: this tab claimed
+    # "the baseline reproduces the validation targets" for three phases after it stopped
+    # being true, precisely because the claim was prose nothing checked.
+    st.markdown(
+        texts.MODEL_EXPLANATION.format(xfail_targets=", ".join(diagnostics.xfail_targets()))
+    )
 
 
 def main() -> None:
