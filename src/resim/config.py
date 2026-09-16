@@ -867,20 +867,24 @@ class CapResponseConfig:
     magnet_gain: float = 1.05
     magnet_gain_range: tuple[float, float] = (1.00, 1.10)
 
-    # Horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth rate
-    # into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
-    # horizon `agents/landlord` sums the monthly shortfall `(r_req - cap)` over — UNDISCOUNTED
-    # months; there is no present value anywhere in §7.2, unlike this comment used to claim
-    # (stale wording from the retired-hazard era, on a parameter the UI now exposes directly).
-    # `holding_years` stays a [guess]: Spanish holding periods ARE in docs/sources.md, since
-    # 2026-09-15 (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d,
-    # cited as a bound in §7.2's own Sources subsection), but the REALISED holding period is
-    # not the same quantity as the decision horizon a landlord weighs when comparing the
-    # withdrawal margin — treating them as one would be the error, which is exactly why the
-    # label stays. [guess]
+    # `wedge_annualisation` turns a per-tick growth rate into a per-year one (4 quarters —
+    # arithmetic, not a guess). It survives §7.2b: the trapezoid it feeds is now applied over
+    # the ticks remaining in the cap's declared term (`PolicyConfig.cap_term_ticks`), not over
+    # the horizon below, but the quarterly-to-annual conversion is unchanged.
     wedge_annualisation: float = 4.0
-    holding_years: float = 5.0
-    holding_years_range: tuple[float, float] = (3.0, 10.0)
+
+    # RETIRED (2026-09-16, §7.2b). Was `holding_years: float = 5.0`, `holding_years_range:
+    # tuple[float, float] = (3.0, 10.0)` — the horizon `agents/landlord` summed the monthly
+    # shortfall `(r_req - cap)` over. [guess]: Spanish holding periods ARE in docs/sources.md
+    # (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d), but the
+    # REALISED holding period is not the same quantity as the decision horizon a landlord
+    # weighs when comparing the withdrawal margin, and no source gave that horizon directly —
+    # hence the [guess]. §7.2b replaces it with a measured one: the shortfall now accrues over
+    # the ticks remaining in the cap's declared statutory term (`PolicyConfig.cap_term_ticks`,
+    # `RentCap.term_ticks`), which is sourced (BOE ZMRT resolutions, three-year vigencia) where
+    # `holding_years` was a bare guess with no empirical band. Kept as a dated note rather than
+    # deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2b, "Parameter ledger".
 
     # Share of dwelling sales that go through an agency, which decides how many landlords have
     # a CHEAP exit and therefore how many leave at a given cap (model-spec §7.2b). Agencies

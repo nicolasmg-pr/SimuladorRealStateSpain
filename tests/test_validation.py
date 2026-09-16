@@ -829,15 +829,21 @@ def _rent_cap_response(
     *,
     index_binds_all: bool = False,
     selling_cost_share: float | None = None,
-    holding_years: float | None = None,
 ) -> dict[str, float]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
     the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1.
 
-    `selling_cost_share` and `holding_years` are the two structural parameters that now carry
-    the supply-response dispute under model-spec §7.2 — there is no elasticity argument here,
-    because the dial it used to set (`rental_supply_elasticity`) is retired. `None` leaves the
-    baseline `MarketConfig` / `CapResponseConfig` value untouched.
+    `selling_cost_share` is the structural parameter that now carries the supply-response
+    dispute's price leg under model-spec §7.2 — there is no elasticity argument here, because
+    the dial it used to set (`rental_supply_elasticity`) is retired. `None` leaves the baseline
+    `MarketConfig` value untouched.
+
+    RETIRED (2026-09-16, §7.2b): this helper also took a `holding_years: float | None = None`
+    parameter, forwarded to `RentCap(holding_years=...)`. Both are gone — the withdrawal
+    horizon is now the cap's own declared statutory term, not a swept structural parameter —
+    and every caller below was updated to drop it. Kept as a dated note rather than deleted
+    outright: this project keeps the archaeology of its parameters. See model-spec.md §7.2b,
+    "Parameter ledger".
     """
     from resim.scenario import RentCap
 
@@ -855,7 +861,6 @@ def _rent_cap_response(
                             start_tick=20,
                             index_binds_all=index_binds_all,
                             selling_cost_share=selling_cost_share,
-                            holding_years=holding_years,
                         ),
                     ),
                 )
@@ -969,21 +974,24 @@ def test_the_supply_elasticity_lands_inside_the_monras_span():
     model is currently producing swings up to +64%, where the divergence is material —
     so do not "simplify" this back to `leases / rent`; that would adjudicate a claim
     the studies did not make.
+
+    RETIRED SECOND DIMENSION (2026-09-16, §7.2b): `CapResponseConfig.holding_years_range`
+    no longer exists — the withdrawal horizon is now the cap's own remaining statutory term,
+    not a swept structural parameter — so only `selling_cost_share`'s two corners remain
+    below. This is §7.2's F1, which §7.2b replaces with the stricter G1 (a witness anywhere
+    in the ranges was too weak a bar); this test is left as a historical record and is
+    expected to stay red rather than being repaired or deleted here.
     """
     cfg = SimConfig.baseline()
     cost_lo, cost_hi = cfg.market.selling_cost_share_range
-    horizon_lo, horizon_hi = cfg.cap_response.holding_years_range
     ratios = []
     for cost in (cost_lo, cost_hi):
-        for horizon in (horizon_lo, horizon_hi):
-            r = _rent_cap_response(
-                index_binds_all=True, selling_cost_share=cost, holding_years=horizon
-            )
-            rent, leases = r["rent"], r["leases"]
-            # log1p is undefined at/below -1 (a 100%+ drop), and the ratio is only
-            # meaningful where the price leg actually fell; skip any corner that can't
-            # produce a well-defined log-difference rather than let it contribute a
-            # garbage value.
-            if -1.0 < rent < -0.001 and leases > -1.0:
-                ratios.append(math.log1p(leases) / math.log1p(rent))
+        r = _rent_cap_response(index_binds_all=True, selling_cost_share=cost)
+        rent, leases = r["rent"], r["leases"]
+        # log1p is undefined at/below -1 (a 100%+ drop), and the ratio is only
+        # meaningful where the price leg actually fell; skip any corner that can't
+        # produce a well-defined log-difference rather than let it contribute a
+        # garbage value.
+        if -1.0 < rent < -0.001 and leases > -1.0:
+            ratios.append(math.log1p(leases) / math.log1p(rent))
     assert any(0.07 <= x <= 2.0 for x in ratios), f"no corner inside the span: {ratios}"
