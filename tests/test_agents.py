@@ -2,6 +2,7 @@
 
 import collections
 import copy
+import math
 
 import numpy as np
 
@@ -14,7 +15,7 @@ from resim.agents.landlord import SmallLandlords, cap_level, required_rent
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
 from resim.market.stock import LARGE_INVESTOR_ID, Tenure
-from resim.scenario import Scenario
+from resim.scenario import RentCap, Scenario
 from resim.state import HouseholdState, HouseholdStatus
 
 
@@ -184,6 +185,57 @@ def test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone():
     sd = (sum((x - mean) ** 2 for x in ratios) / (len(ratios) - 1)) ** 0.5
     cv = sd / mean
     assert cv < 0.10, f"cap/r_req is NOT near-uniform: cv={cv:.3f}, mean={mean:.3f}"
+
+
+def test_the_real_cap_to_reservation_ratio_under_the_shipped_policy():
+    """The real number `test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone` cannot
+    give: that test's `mean` is forced to equal its own `cap_ratio` input by construction of
+    `_capped_state` (`zs.reference_rent = cap_ratio * floor / quality`), so it measures the
+    fixture, not the model. This test runs the shipped policy instead — `SimConfig.baseline`
+    plus a `RentCap` intervention at its own default `cap_reference_discount` (0.05,
+    config.py), under Ley 11/2020 (`index_binds_all=True`) — and samples the population a few
+    ticks after the cap activates.
+
+    This is a MEASUREMENT, not a gate: no particular value is asserted, only that the run
+    produced a usable number over a population large enough to trust. `cap / r_req`'s distance
+    from 1.0 is the cap's "bite" on the reservation hurdle, and §7.2b's design turns on where
+    the resulting shortfall lands relative to the two sourced exit-cost bands (private
+    0.005-0.015, agency 0.04-0.07) — Task 2 and Task 5 need this number, not this test's
+    opinion of it.
+    """
+    cfg = SimConfig.baseline(seed=42, ticks=12)
+    scenario = Scenario(
+        name="cap", baseline=cfg, interventions=(RentCap(start_tick=8, index_binds_all=True),)
+    )
+    engine = Engine(scenario)
+    state = engine.initialise()
+    for _ in range(12):  # 4 ticks past the cap's own default start_tick=8
+        engine.step(state)
+
+    zone = ZoneType.TENSIONED
+    ratios = []
+    for unit in state.stock.units.values():
+        if unit.zone is not zone or unit.owner_id < 0:  # small landlords only — owner_id < 0
+            continue  # is LARGE_INVESTOR_ID, not this regime
+        value = state.zones[zone].price_index * unit.quality
+        r_req = required_rent(state, zone, value)
+        cap = cap_level(
+            state,
+            zone,
+            unit.quality,
+            previous_rent=unit.rent or unit.last_contract_rent,
+            large_holder=False,
+        )
+        if cap is None or r_req <= 0:
+            continue
+        ratios.append(cap / r_req)
+
+    assert len(ratios) >= 50, f"too few capped units to measure: {len(ratios)}"
+    mean = sum(ratios) / len(ratios)
+    assert math.isfinite(mean) and mean > 0, f"unusable mean: {mean}"
+    sd = (sum((x - mean) ** 2 for x in ratios) / (len(ratios) - 1)) ** 0.5
+    cv = sd / mean if mean else float("nan")
+    print(f"\nreal cap/r_req: n={len(ratios)} mean={mean:.6f} cv={cv:.3e}")
 
 
 def test_household_cannot_bid_above_credit_limit():
