@@ -94,6 +94,24 @@ def test_a_cap_that_binds_but_clears_the_hurdle_produces_no_withdrawal():
     assert withdrawals == [], f"{len(withdrawals)} withdrawals from a cap that clears the hurdle"
 
 
+def test_sale_requires_the_shortfall_to_beat_the_cost_of_leaving():
+    """§7.2 sale rule. The cumulative shortfall over the holding horizon must exceed the
+    cost of leaving. A cap one euro below the reservation rent does not pay for a sale.
+    """
+    state, landlord = _capped_state(cap_ratio=0.999)
+    intents = [i for _ in range(200) for i in landlord.decide(state)]
+    withdrawals = [i for i in intents if isinstance(i, WithdrawRental)]
+    assert not withdrawals, f"{len(withdrawals)} withdrawals from a shortfall too small to sell"
+
+
+def test_a_deep_cap_pays_for_the_sale():
+    """The same landlord, with the cap far below the reservation rent, sells."""
+    state, landlord = _capped_state(cap_ratio=0.4, seasonal_closed=True)
+    intents = [i for _ in range(200) for i in landlord.decide(state)]
+    dests = {i.destination for i in intents if isinstance(i, WithdrawRental)}
+    assert dests == {"sale"}
+
+
 def test_household_cannot_bid_above_credit_limit():
     """Ability-to-pay binds before willingness-to-pay."""
     engine, state = small_state()

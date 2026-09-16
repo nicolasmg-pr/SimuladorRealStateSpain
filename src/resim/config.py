@@ -799,12 +799,15 @@ class CapResponseConfig:
     # This value is deliberately NOT re-fitted to recover them: the old number was produced
     # by a floor built from two exogenous constants, and re-fitting a scale factor to
     # reproduce a result that a defect was generating is the one move this project's
-    # standard forbids. The arbitrage condition that replaces this machinery is now WRITTEN
-    # (spec §7.2, 2026-09-16) and retires `hazard_scale` outright rather than re-deriving it —
-    # along with `rental_supply_elasticity`, which becomes an output. Nothing here has moved
-    # yet: §7.2 is specification, and this reduced form is still what runs.
-    hazard_scale: float = 0.7
-    hazard_scale_range: tuple[float, float] = (0.5, 1.0)
+    # standard forbids. The arbitrage condition that replaces this machinery was WRITTEN
+    # (spec §7.2, 2026-09-16) to retire `hazard_scale` outright rather than re-derive it —
+    # along with `rental_supply_elasticity`, which becomes an output.
+    #
+    # RETIRED (2026-09-16). `Landlord._exit_destination` (agents/landlord.py) now decides the
+    # withdrawal deterministically — cumulative shortfall over the holding horizon against the
+    # cost of leaving — with no fitted scale anywhere in it. Kept as a dated note rather than
+    # deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2 for what runs instead.
 
     # Below-reference asks drift up toward the cap: ask × this, capped at the cap itself.
     # [guess — the mechanism (a cap read as a target) is documented in the Catalan evaluations;
