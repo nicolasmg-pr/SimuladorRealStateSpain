@@ -2124,8 +2124,80 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   at ANY corner of its two swept parameters' declared ranges, and — before `holding_years` was
   retired — it passed at exactly one of the four corners while three inverted the sign; a
   single-corner pass is a failure by G1's own standard. G1 requires the rent sign correct in ALL
-  TEN seeds at the SHIPPED values, with no parameter swept at all. See Task 5's report for G1's
-  measured result.
+  TEN seeds at the SHIPPED values, with no parameter swept at all. G1's measured result is
+  recorded in the verdict bullet immediately below.
+- **Task 1's premise gate: `cap / r_req` is a point mass, not merely near-uniform
+  (2026-09-16).** The test that licensed §7.2b's whole design
+  (`test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone`, threshold `cv < 0.10`)
+  measured **cv = 0.000** in the hand-built fixture and **cv = 1.4×10⁻¹⁶** — machine epsilon —
+  over 4,693 small-landlord units in a real `Engine` run (seed 42, Ley 11/2020, 4 ticks after
+  activation). `quality` cancels identically between `required_rent` and the index branch of
+  `cap_level`; the scale-invariance §7.2b diagnosed is confirmed at machine precision, not merely
+  "small enough." **A caution belongs on the record with the pass.** The fixture's *mean* of
+  0.800 is tautological: `_capped_state` sets `zone.reference_rent` directly from the
+  `cap_ratio` argument, so the test could print nothing else — it would report `mean = 0.4` if
+  called with `cap_ratio=0.4`. The real-run mean is **0.8039** and a robustness sweep (seed ∈
+  {1, 7, 42} × ticks-since-activation ∈ {2, 4, 8}) found it drifting **0.61–1.03**, while `cv`
+  stayed at machine epsilon throughout. **The bite is not constant in time** — neither §7.2b nor
+  the plan that implemented it anticipated this, and it is not tested by any of G1–G4, which all
+  condition on a fixed post-activation window.
+- **G1–G4, run at the shipped parameters (2026-09-16, §7.2b Task 5/6): G1 FAILS, G2/G3/G4
+  PASS.** Ley 11/2020, ten seeds unless noted.
+
+  | gate | result | measured |
+  |---|---|---|
+  | G1 | **FAILS** | rent −16.2% (sign correct, all ten seeds individually), leases −46.6%, Δln ratio **3.563** against Monràs's 0.07–2.0 span |
+  | G2 | PASSES | \|Δleases\| = **34.7pp** across the sourced `intermediation_share` corners: 0.40 → −61.6% leases (rent −7.0%); 0.85 → −26.8% leases (rent −17.7%) |
+  | G3 | PASSES | 133 withdrawals ticks 20–25 against 84 ticks 26–31 (one seed, `start_tick=20`, `term_ticks=12`) — front-loaded within the declared term |
+  | G4 | PASSES | rent sign negative at all four sourced anchors (1/2/4/8%/yr), ten seeds each; the pre-§7.2b boundary (0/10 below 4%/yr, 10/10 at 6%/yr+) is gone at the three anchors that discriminate (1, 2, 4%/yr each moved 0/10 → 10/10) — 8%/yr was already 10/10 before this branch and discriminates nothing |
+
+  **G1's failure is purely magnitude, not sign dispersion.** Its per-seed sign assertion passed:
+  all ten seeds are individually correctly signed, so there is no sign inversion hiding under
+  the pooled mean the way §7.2's F1 had. The `3.563` ratio comes from the quantity leg
+  (−46.6% new leases) moving far more than the price leg (−16.2% rent) — the model still sheds
+  contracts several times faster than the sourced studies' own quantity-to-price ratio allows.
+
+  **Two findings, neither predicted, that belong in this record with the gates themselves.**
+
+  1. **G2's corner locates where the remaining error is NOT.** At `intermediation_share=0.85` —
+     the top of the sourced regional range, the all-agency-exit corner — leases still fall 26.8%
+     against Monràs's −10% tenancies. The model over-responds even at the extreme edge of what
+     the evidence admits: re-calibrating `intermediation_share` anywhere inside its sourced band
+     cannot reach the measured response, so the excess sits elsewhere in the channel, not in
+     this parameter.
+  2. **The two gates that turned green in Task 3 were checked, not assumed.**
+     `test_cap_coverage_scales_the_rent_cap` and `test_rent_cap_lowers_contract_rents` — two of
+     the four tests red since §7.2 — flipped green as a side effect of Piece B (commit
+     `e47bbda`), with no test file touched in that task. Verified independently for this record:
+     `git diff 03456e8..e47bbda -- tests/test_validation.py tests/test_engine.py` is **empty**.
+     The assertions that now pass are byte-identical to the ones that were red — the mechanism
+     earned the green, no threshold, band or comparison-direction was edited to get there.
+
+  **The magnitude is registered separately, per §7.2b's own Falsification subsection, and not
+  folded into G1 beyond G1 itself failing on it.** G1 is the gate built to carry the magnitude
+  question — a co-movement ratio, not a bare sign check — and it is the one that fails. The
+  sign of who exits is repaired; the size of the response is not, and the excess sits in the
+  quantity leg (new leases, against Monràs's −10% and Pérez García's −13% tenancies), not in
+  the price leg alone.
+
+  **Suite at `ea7a795`: 3 failed / 177 passed / 9 xfailed.** The three reds:
+  `test_shadow_rent_stays_anchored_under_a_cap` and
+  `test_rent_cap_reproduces_the_monras_co_movement` — both inherited from §7.2 and never claimed
+  by §7.2b — plus `test_g1_the_co_movement_emerges_at_the_shipped_parameters`, §7.2b's own
+  falsification firing as designed. Fix round 1 (`ce61351`, current HEAD of
+  `spec-7-2b-anchor`) tightened G1 to a genuine per-seed sign check and G4 to the full ten-seed,
+  sourced-grid form; neither change moved a verdict — the model's randomness is fully seeded, so
+  G1's ratio is byte-identical, `3.5627...`, before and after the fix.
+
+  **What this does and does not license.** Three of four falsifications passing means the
+  dispersed-exit mechanism does what §7.2b claims — it is not a step function in the growth
+  anchor any more, and withdrawal concentrates inside the statutory term the way a declared,
+  renewable cap should. **It does not mean the rent cap is reportable.** The rent cap under Ley
+  11/2020 stays **not reportable** under `model-spec §13.2`: the sign of the withdrawal channel
+  is now a defensible **direction** claim, and the size of the quantity response is an **open,
+  registered magnitude error** — not a guess awaiting a parameter fit, since G2's own corner
+  shows the sourced range of `intermediation_share` cannot close it. Ley 12/2023 (§7.2's F4) is
+  still not run: it stays gated on the Ley 11/2020 tests being green, and G1 is red.
 - **§7.2 F3 does not fire, and the probe that settled it found something larger
   (2026-09-16).** F3 asked whether `min_required_yield` — a `[guess]` — was governing the SIGN of
   the rent-cap result, by flooring `required_yield = max(min_required_yield, bond + π·risk − E[g])`
