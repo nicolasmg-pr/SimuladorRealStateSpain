@@ -432,6 +432,8 @@ def diagnostics_tab(baseline_frame, scenario_frame, params: dict, lever: str) ->
     """
     st.subheader("Diagnóstico del modelo — objetivos de la fase 0")
     st.markdown(texts.DIAGNOSTICS_INTRO)
+    with st.expander("Qué puede decir el modelo, y qué no", expanded=False):
+        st.markdown(texts.REPORTING_CONTRACT)
 
     frame = baseline_frame
     if scenario_frame is not None:

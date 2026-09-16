@@ -786,3 +786,20 @@ sobrevivió 60 trimestres y 3 semillas sin que nada saltara.
 Un test que no puede correr no es evidencia de nada, y un xfail sobre un mecanismo ausente
 sería decoración. Está diferido a fase C y registrado en `docs/holdout-2008-2013.md`.
 """
+
+
+# What the variance rule (model-spec §13.2) leaves reportable, after the phase-G Sobol run of
+# 2026-09-15. On screen because a slider invites reading every number as an estimate, and half
+# of them are not.
+REPORTING_CONTRACT = """
+**Qué se puede leer como cifra y qué sólo como signo.** Ninguna cantidad se reporta como
+magnitud si un parámetro sin fuente explica más del 25% de su varianza (1.792 evaluaciones de
+Sobol, `model-spec §13.2`).
+
+- **Magnitudes** — precio y precio sobre renta, transacciones, terminaciones, morosidad,
+  tiempo de venta y pujas por anuncio. Van con su banda: el precio sobre renta es 8,13 y
+  7,2–9,1 sobre los rangos que la evidencia admite.
+- **Sólo dirección** — todo el lado del alquiler (nivel de renta, vacancia tensionada,
+  sobrecarga), la tasa de propiedad, el ratio de precios entre zonas, la cuota al contado y
+  el margen de negociación. De estos lee el signo y el recuento de semillas, nunca el tamaño.
+"""

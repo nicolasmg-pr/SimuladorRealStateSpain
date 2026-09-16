@@ -54,6 +54,30 @@ def lever_params(lever: str) -> dict:
     st.caption(f"≈ año {params['start_tick'] / 4:.1f} de la simulación")
 
     if lever == "tope de alquiler":
+        # WHICH LAW. Added 2026-09-15 with model-spec §5b.1: the two statutes are different
+        # instruments and the model is only calibrated in one of them. Without this control the
+        # UI silently ran the statute whose size the model may not report.
+        regime = st.radio(
+            "Qué ley se aplica",
+            ("Ley 11/2020 — Cataluña 2020–22", "Ley 12/2023 — la ley vigente"),
+            help="Ley 11/2020 ataba el índice de referencia a TODOS los caseros, y es el "
+            "mundo que miden los tres estudios catalanes con los que está calibrado el dial "
+            "de abajo. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
+            "zona); al resto lo topa su propio contrato anterior más el IRAV, y nada si no "
+            "hubo contrato en cinco años. Los particulares tienen el 85–92% del parque, así "
+            "que la diferencia es casi todo el mercado.",
+        )
+        params["index_binds_all"] = regime.startswith("Ley 11/2020")
+        if not params["index_binds_all"]:
+            st.warning(
+                "**El tamaño de este resultado no es reportable.** Con el índice atando a un "
+                "casero de cada diez, el canal que domina es la retirada de oferta — y su "
+                "hazard se identificó en el otro régimen, donde el índice ataba a todos. "
+                "Nadie lo ha vuelto a identificar aquí: el modelo llega a subir las rentas "
+                "un 16,6%, y eso es una extrapolación fuera de régimen, no una predicción. "
+                "Léase el signo, no el número (model-spec §5b.1).",
+                icon="⚠️",
+            )
         params["supply_response_elasticity"] = st.slider(
             "Elasticidad de retirada de oferta",
             0.0,
