@@ -68,16 +68,32 @@ def lever_params(lever: str) -> dict:
             "que la diferencia es casi todo el mercado.",
         )
         params["index_binds_all"] = regime.startswith("Ley 11/2020")
-        if not params["index_binds_all"]:
-            st.warning(
-                "**El tamaño de este resultado no es reportable.** Con el índice atando a un "
-                "casero de cada diez, el canal que domina es la retirada de oferta — y su "
-                "hazard se identificó en el otro régimen, donde el índice ataba a todos. "
-                "Nadie lo ha vuelto a identificar aquí: el modelo llega a subir las rentas "
-                "un 16,6%, y eso es una extrapolación fuera de régimen, no una predicción. "
-                "Léase el signo, no el número (model-spec §5b.1).",
-                icon="⚠️",
-            )
+        # The warning is UNCONDITIONAL since 2026-09-16. It used to fire only for Ley 12/2023,
+        # on the ground that the withdrawal hazard had been identified in the other regime.
+        # §7.2 retired that hazard, and the arbitrage condition that replaced it flips the rent
+        # sign in BOTH regimes — including the calibrated one. Showing the caveat on one tab
+        # would now tell the user the other tab is sound.
+        st.error(
+            "**Este resultado no es reportable en ninguno de los dos regímenes — ni su tamaño "
+            "ni su signo.** El canal de retirada de oferta se reescribió sobre una condición de "
+            "arbitraje (model-spec §7.2) y esa condición no tiene fricciones: el casero vende en "
+            "cuanto el tope rompe su rentabilidad, casi siempre y casi a la vez. El tope acaba "
+            "**subiendo** las rentas un 53,6% y costando un 78,7% de los contratos incluso bajo "
+            "la Ley 11/2020, que es el régimen contra el que está calibrado. Tres pruebas de "
+            "calibración fallan por esto, a propósito y registradas.",
+            icon="⛔",
+        )
+        st.info(
+            "**Lo que sí se ha medido**, y por qué el fallo es informativo: la inversión viene de "
+            "la rama de **venta**, no de la evasión a temporada — cerrar el segmento estacional "
+            "apenas mueve el resultado (+52,2% frente a +53,6%). Y el signo **se corrige** si el "
+            "ancla de crecimiento de precios sube al 8% anual (rentas −37,2%, contratos −13,2%, "
+            "esto último encima del −13% de Pérez García). La línea base corre al 2% anual "
+            "mientras el episodio catalán que juzga estas puertas tuvo el IPV al +12,7%. "
+            "Tres semillas, curva no monótona: es una hipótesis con mecanismo, no un resultado. "
+            "Detalle y límites en docs/validation.md.",
+            icon="🔎",
+        )
         params["selling_cost_share"] = st.slider(
             "Coste de vender (fracción del precio)",
             0.01,

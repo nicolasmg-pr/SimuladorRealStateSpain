@@ -603,6 +603,17 @@ and re-identifying that hazard for the current statute is the one piece of rent-
 project leaves open. **§7.2 below is that work**: it retires the hazard rather than
 re-identifying it.
 
+**Outcome (2026-09-16).** §7.2 was written and implemented, and it **failed**. The arbitrage
+condition is frictionless: once the cap breaks the reservation rent, the cumulative shortfall over
+any horizon beats a one-off transaction cost, so nearly every capped landlord sells at once. The
+cap now **raises** tensioned rents 53.6% and costs 78.7% of new leases under **Ley 11/2020 as
+well** — the regime it is calibrated against — so the rent cap is no longer reportable in either
+statute, in size or in sign. The paragraph above said the +16.6% under the statute in force was
+out-of-regime extrapolation; it is now superseded by a refutation that covers both regimes. F4 was
+**not run**: this section's own procedure gates it on the three Ley 11/2020 tests being green, and
+they are red, so spending the Ley 12/2023 evidence on a mechanism already known to be broken would
+have bought nothing. The repair is §7.2b.
+
 ### 7.2 The withdrawal margin, from the reservation rent (2026-09-16)
 
 §7.2 has been cited since phase A — here, twice in `docs/validation.md` and once in
@@ -749,6 +760,21 @@ clothes and must be declared as one. This is §5c.8's own test applied to itself
 that the 2024–26 Catalan boom produces no withdrawal at all while three independent instruments
 say withdrawal occurred, then a `[guess]` floor is governing the sign of the result. The repair is
 to rebuild how E[g] enters `r_req`, not to retune the floor.
+
+> **RUN 2026-09-16 — F3 DOES NOT FIRE.** The floor never binds: rebuilding the same comparison
+> `required_rent` makes, the unfloored yield is +0.0784 against a 0.0050 floor at a 1%/yr growth
+> anchor and still **+0.0212 at an 8%/yr anchor**, in every zone. The route F3 would fire through
+> is closed by construction in this calibration.
+>
+> The probe did find that the cap's response is strongly decreasing in the growth anchor through
+> the *unfloored* term: −27.2% leases at 1%/yr, −31.4% at 2%, −35.6% at 4%, and **−13.2% with the
+> rent sign corrected to −37.2% at 8%/yr**. The model's baseline anchor is 2%/yr; the Catalan
+> evaluations these gates are judged against measure a period of HPI +12.7% (2025) and +12.2% y/y
+> (2026Q2). **F1 was therefore adjudicated at an anchor far below the episode it adjudicates
+> against**, and re-running F1 across the anchor is the first thing §7.2b should do, before any
+> mechanism is changed. Three seeds, non-monotone curve, floor check on one seed at the final
+> tick — a hypothesis with a mechanism and a number, not a result. Full record and limits in
+> `docs/validation.md`.
 
 **F4 — out of sample, Ley 12/2023 still produces a rent rise.** If after §7.2 the statute in
 force still produces a **rise** in tensioned contract rents, outside the in-regime span running

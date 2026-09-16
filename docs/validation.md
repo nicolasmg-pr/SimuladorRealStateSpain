@@ -2068,6 +2068,36 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **§7.2 F3 does not fire, and the probe that settled it found something larger
+  (2026-09-16).** F3 asked whether `min_required_yield` — a `[guess]` — was governing the SIGN of
+  the rent-cap result, by flooring `required_yield = max(min_required_yield, bond + π·risk − E[g])`
+  in a boom, collapsing `r_req` and stopping `cap < r_req` from firing. **It is not.** Rebuilding
+  the same comparison `required_rent` makes, the floor never binds in any zone at any growth
+  anchor: at a 1%/yr anchor the unfloored yield is +0.0784 against a floor of 0.0050, and even at
+  an **8%/yr** anchor it is +0.0212 — still four times the floor. The route F3 would fire through
+  is closed by construction in this calibration.
+  **What the sweep found instead.** The cap's response is strongly decreasing in the exogenous
+  growth anchor, through the *unfloored* term rather than the floor — a larger E[g] lowers
+  `bond + π·risk − E[g]`, lowers `r_req`, and fires `cap < r_req` less often:
+
+  | anchor /tick | ≈%/yr | rent | new leases |
+  |---|---|---|---|
+  | 0.0025 | 1.0% | +31.7% | −27.2% |
+  | 0.0050 | 2.0% | +43.8% | −31.4% |
+  | 0.0100 | 4.0% | +33.3% | −35.6% |
+  | 0.0200 | 8.0% | **−37.2%** | **−13.2%** |
+
+  At the 8%/yr anchor **the sign corrects**: the cap lowers rents and costs 13.2% of leases — a
+  figure sitting on top of Pérez García's −13% tenancies. The model's baseline anchor is
+  **2%/yr**, while the Catalan evaluations the gates are adjudicated against measure a period of
+  **HPI +12.7% nominal (2025) and +12.2% y/y (2026Q2)** [INE IPV, kb-refresh-2026-09]. The
+  calibration is being run in a low-growth world against evidence generated in a high-growth one.
+  **What this is not.** Three seeds; the curve is **not monotone** (+31.7 → +43.8 → +33.3 → −37.2),
+  and that non-monotonicity is unseparated — it may be seed noise or a threshold effect. The floor
+  check is one seed at the final tick. This is a hypothesis with a mechanism and a number, not a
+  result: it says the rent-cap sign depends strongly on the growth anchor, and that F1 was
+  adjudicated at an anchor far below the episode it is judged against. Re-running F1 across the
+  anchor is the first thing §7.2b should do, before any mechanism is changed.
 - **`selling_cost_share` is sourced as a BAND, and the point value is deliberately not shipped
   yet (2026-09-16).** §7.2 makes this parameter the rent cap's exit threshold, so it stopped being
   tolerable as a `[guess, order of magnitude from buyer_fees]`. Two institutional viewpoints now
