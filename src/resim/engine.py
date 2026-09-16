@@ -855,10 +855,18 @@ class Engine:
                 state.sale_listings[unit.id] = SaleListing(
                     unit_id=unit.id, ask=ask, reserve=ask * (1.0 - discount)
                 )
-            elif w.destination == "seasonal":
-                unit.tenure = Tenure.SEASONAL
             else:
-                unit.withheld = True
+                # "seasonal" is the only other destination `Landlord._exit_destination`
+                # (agents/landlord.py) ever returns. RETIRED (2026-09-16): a trailing
+                # `else: unit.withheld = True` used to catch a "vacant" destination that
+                # `Landlord._exit` (deleted, §7.2) produced as its residual share. Vacancy is
+                # not a branch (model-spec §7.2) — `grep -rn "WithdrawRental(" src` confirms
+                # the cap channel is the only producer left, and it never emits anything but
+                # "sale" and "seasonal" — so the vacancy fallback is dead code, deleted rather
+                # than kept, unlike a retired *parameter*.
+                if w.destination != "seasonal":
+                    raise ValueError(f"unexpected withdrawal destination: {w.destination!r}")
+                unit.tenure = Tenure.SEASONAL
 
         for ls in bundle.sale_listings:
             if ls.unit_id not in state.sale_listings:

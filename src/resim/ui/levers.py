@@ -61,32 +61,65 @@ def lever_params(lever: str) -> dict:
             "Qué ley se aplica",
             ("Ley 11/2020 — Cataluña 2020–22", "Ley 12/2023 — la ley vigente"),
             help="Ley 11/2020 ataba el índice de referencia a TODOS los caseros, y es el "
-            "mundo que miden los tres estudios catalanes con los que está calibrado el dial "
-            "de abajo. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
+            "mundo que miden los tres estudios catalanes que los dos parámetros de abajo "
+            "recorren. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
             "zona); al resto lo topa su propio contrato anterior más el IRAV, y nada si no "
             "hubo contrato en cinco años. Los particulares tienen el 85–92% del parque, así "
             "que la diferencia es casi todo el mercado.",
         )
         params["index_binds_all"] = regime.startswith("Ley 11/2020")
-        if not params["index_binds_all"]:
-            st.warning(
-                "**El tamaño de este resultado no es reportable.** Con el índice atando a un "
-                "casero de cada diez, el canal que domina es la retirada de oferta — y su "
-                "hazard se identificó en el otro régimen, donde el índice ataba a todos. "
-                "Nadie lo ha vuelto a identificar aquí: el modelo llega a subir las rentas "
-                "un 16,6%, y eso es una extrapolación fuera de régimen, no una predicción. "
-                "Léase el signo, no el número (model-spec §5b.1).",
-                icon="⚠️",
-            )
-        params["supply_response_elasticity"] = st.slider(
-            "Elasticidad de retirada de oferta",
-            0.0,
-            2.0,
-            1.0,
-            help="EL parámetro en disputa. 0 = Jofre-Monseny et al. 2023 (rentas "
-            "−4/−5%, sin efecto en oferta). 2 = Monràs y García-Montalvo (−5% "
-            "rentas, −10% contratos). Medio/alto ≈ Pérez García 2026 (−13% "
-            "contratos, efecto en precios débil).",
+        # The warning is UNCONDITIONAL since 2026-09-16. It used to fire only for Ley 12/2023,
+        # on the ground that the withdrawal hazard had been identified in the other regime.
+        # §7.2 retired that hazard, and the arbitrage condition that replaced it flips the rent
+        # sign in BOTH regimes — including the calibrated one. Showing the caveat on one tab
+        # would now tell the user the other tab is sound.
+        st.error(
+            "**Este resultado no es reportable en ninguno de los dos regímenes — ni su tamaño "
+            "ni su signo.** El canal de retirada de oferta se reescribió sobre una condición de "
+            "arbitraje (model-spec §7.2) y esa condición no tiene fricciones: el casero vende en "
+            "cuanto el tope rompe su rentabilidad, casi siempre y casi a la vez. El tope acaba "
+            "**subiendo** las rentas un 53,6% y costando un 78,7% de los contratos incluso bajo "
+            "la Ley 11/2020, que es el régimen contra el que está calibrado. Tres pruebas de "
+            "calibración fallan por esto, a propósito y registradas.",
+            icon="⛔",
+        )
+        st.info(
+            "**Lo que sí se ha medido**, y por qué el fallo es informativo: la inversión viene de "
+            "la rama de **venta**, no de la evasión a temporada — cerrar el segmento estacional "
+            "apenas mueve el resultado (+52,2% frente a +53,6%). Y el signo **se corrige** si el "
+            "ancla de crecimiento de precios sube al 8% anual (rentas −37,2%, contratos −13,2%, "
+            "esto último encima del −13% de Pérez García). La línea base corre al 2% anual "
+            "mientras el episodio catalán que juzga estas puertas tuvo el IPV al +12,7%. "
+            "Tres semillas, curva no monótona: es una hipótesis con mecanismo, no un resultado. "
+            "Detalle y límites en docs/validation.md.",
+            icon="🔎",
+        )
+        params["selling_cost_share"] = st.slider(
+            "Coste de vender (fracción del precio)",
+            0.01,
+            0.07,
+            0.02,
+            0.005,
+            help="Umbral de salida de §7.2: el casero vende cuando el déficit acumulado del "
+            "alquiler topado supera este coste. Los dos extremos son dos rutas de venta reales, "
+            "no un margen de error: **0,01 = venta propia** (sólo matriz, plusvalía y aranceles; "
+            "Código Civil art. 1455) y **0,07 = venta con agencia** (comisión 3–5% + IVA, redes "
+            "grandes hasta 7%). El valor fundamentado es 0,04 — pondera las dos rutas por la "
+            "cuota de "
+            "intermediación: las agencias intervienen en el 64% de las compraventas de segunda "
+            "mano (Fotocasa) y ~70% del total (idealista). El modelo aún envía 0,02: moverlo "
+            "descoloca tres canales ajenos al tope, y ese cambio va en su propia rama. "
+            "No incluye el IRPF de la ganancia.",
+        )
+        params["holding_years"] = st.slider(
+            "Horizonte de la decisión (años)",
+            3.0,
+            10.0,
+            5.0,
+            0.5,
+            help="Sobre cuántos años suma el casero el déficit antes de decidir. Con estos "
+            "dos se recorre el vano de Monràs (Δln contratos/Δln renta: OLS 0,07, IV 2,0), "
+            "que el modelo ahora PRODUCE en vez de recibirlo como dial (model-spec §7.2).",
         )
         params["cap_reference_discount"] = st.slider(
             "Índice de referencia por debajo del mercado",
@@ -115,11 +148,15 @@ def lever_params(lever: str) -> dict:
             "país ≈ 0,42 de la zona tensionada del modelo (BOE 29-jul-2026). Madrid, "
             "Andalucía, Valencia, Murcia y Castilla y León: 0. ⚠️ Con cobertura parcial hay "
             "que mirar los dos segmentos por separado: el alquiler medio del conjunto mezcla "
-            "pisos topados y no topados y se mueve con la mezcla. Con 0,42 y elasticidad 2 el "
-            "segmento declarado queda plano y pierde un 37% de contratos, mientras el no "
-            "declarado firma un 7% más a precios un 8% más altos — el desbordamiento que "
-            "muestra Cataluña (zonas tensionadas +1,6% frente a +9,4% fuera). "
-            "docs/validation.md T7.",
+            "pisos topados y no topados y se mueve con la mezcla. Medido ANTES de §7.2 "
+            "(2026-09-16), bajo el hazard fitted y el dial de elasticidad ya retirados: con "
+            "0,42 y elasticidad 2 el segmento declarado quedaba plano y perdía un 37% de "
+            "contratos, mientras el no declarado firmaba un 7% más a precios un 8% más "
+            "altos — el desbordamiento que muestra Cataluña (zonas tensionadas +1,6% frente "
+            "a +9,4% fuera). Bajo §7.2 la condición de arbitraje retira la elasticidad como "
+            "dial (ahora es un resultado) y el signo del alquiler cambia (ver "
+            "docs/validation.md, «Honest qualifications»); esta cifra concreta queda sin "
+            "remedir. docs/validation.md T7.",
         )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(

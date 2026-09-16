@@ -13,7 +13,7 @@ Two decisions worth knowing before reading any output:
   points is the parameters and not the seed. Without it the elementary effects of a stochastic
   ABM are mostly noise.
 
-Baseline only: parameters that act through an intervention (the rent cap's `hazard_scale`, for
+Baseline only: parameters that act through an intervention (the rent cap's `holding_years`, for
 one) correctly show zero here, and their sensitivity is the elasticity sweep in
 `docs/experiments/rent-cap.md`.
 
@@ -59,7 +59,10 @@ SPACE: dict[str, tuple[float, float]] = {
     "small_landlord_premium": (0.020, 0.030),  # narrowed by §7.1b, 2026-09-15
     "landlord_cost_share": (0.20, 0.24),
     "landlord_zone_risk_premium": (0.010, 0.020),
-    "hazard_scale": (0.4, 1.2),
+    # spec §7.2 (2026-09-16): horizon of the sale decision, in place of the retired
+    # `hazard_scale`. [guess]; range taken from `CapResponseConfig.holding_years_range`,
+    # not invented here.
+    "holding_years": (3.0, 10.0),
     "congestion_gain": (0.02, 0.15),
     "search_burden_escalation": (0.02, 0.06),
     "premium_secondary": (0.75, 0.95),
@@ -82,7 +85,7 @@ SPACE: dict[str, tuple[float, float]] = {
     "auction_increment": (0.002, 0.010),
     "momentum_gain": (1.5, 3.5),
     "max_listing_ticks": (4.0, 8.0),
-    "selling_cost_share": (0.01, 0.03),
+    "selling_cost_share": (0.01, 0.07),  # widened to the sourced band, 2026-09-16
     # --- phase C, insolvency (model-spec §6c) ---------------------------------------------
     # The jobless PATH is data and is not here: screening it would measure the world's
     # uncertainty, not the model's. What is here is everything the model had to assume.
@@ -196,7 +199,7 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         reo_discount=x["reo_discount"],
         reo_release_share=x["reo_release_share"],
     )
-    cap_response = dataclasses.replace(cfg.cap_response, hazard_scale=x["hazard_scale"])
+    cap_response = dataclasses.replace(cfg.cap_response, holding_years=x["holding_years"])
     return dataclasses.replace(
         cfg,
         cap_response=cap_response,
@@ -213,11 +216,14 @@ def evaluate(x: dict[str, float], seed: int = 1, ticks: int = 40) -> dict[str, f
     """Run the model once at `x` and return the moments the analysis is judged on."""
     cfg = _config_for(x, seed, ticks)
     # Behavioural constants that still live at module level; set and restore them around the
-    # run. `hazard_scale` is NOT among them any more — phase A moved it into
+    # run. `hazard_scale` used to trip this exact bug — phase A moved it into
     # `CapResponseConfig`, and this module went on patching a module attribute that no longer
-    # existed, so every sweep since has silently held it at its default. Fixed in phase E;
-    # the cap-response sweep in docs/experiments/rent-cap.md was unaffected because it moves
-    # the config field directly.
+    # existed, so every sweep since had silently held it at its default (fixed in phase E).
+    # It is moot now: model-spec §7.2 retired `hazard_scale` outright, so there is no field
+    # left to patch, correctly or not. `holding_years`, its replacement in the swept set, is
+    # a `CapResponseConfig` field like `selling_cost_share`, so it goes through
+    # `dataclasses.replace` in `_config_for` above, never through this module-level
+    # save/restore.
     saved = (
         landlord_mod.CONGESTION_GAIN,
         household_mod.SEARCH_BURDEN_ESCALATION,
@@ -367,7 +373,7 @@ def getattr_default(name: str) -> float:
     """The shipped value of a swept parameter, for scoring the defaults on the same design."""
     cfg = SimConfig.baseline(seed=1, ticks=4)
     lookups: dict[str, float] = {
-        "hazard_scale": cfg.cap_response.hazard_scale,
+        "holding_years": cfg.cap_response.holding_years,
         "congestion_gain": landlord_mod.CONGESTION_GAIN,
         "search_burden_escalation": household_mod.SEARCH_BURDEN_ESCALATION,
         "momentum_gain": clearing_mod.MOMENTUM_GAIN,

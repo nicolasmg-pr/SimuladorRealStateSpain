@@ -486,10 +486,50 @@ class MarketConfig:
     # not reach the sourced 6.2% at any markup, and the old value was reproducing the ask, not
     # the negotiation. It is identified on the discount and nothing else
     seller_bargaining_power: float = 0.25
-    # Selling costs the seller must cover out of the price before the loan is repaid
-    # (notary, registry, plusvalía, agency) — the reserve's debt leg is debt + this
-    # [guess, order of magnitude from buyer_fees]
+    # Selling costs the seller must cover out of the price before the loan is repaid — the
+    # reserve's debt leg is debt + this. SOURCED 2026-09-16 (model-spec §7.2), two institutional
+    # viewpoints, because §7.2 makes this the rent cap's EXIT THRESHOLD and an exit threshold
+    # cannot be a guess.
+    #
+    # STATUTORY LEG. Código Civil art. 1455: the seller pays the `escritura matriz`, the buyer the
+    # first authorised copy and everything after — "salvo pacto en contrario", and the pacto in
+    # practice shifts more onto the buyer, so this is the seller's FLOOR. IIVTNU (TRLRHL arts.
+    # 104–110): the transmitente is the taxpayer, levied on the cadastral LAND value rather than
+    # the price, which is why it is small as a share of price. Aranceles RD 1426/1989 (notarial)
+    # and RD 1427/1989 (registry). Energy certificate and cédula are de minimis.
+    #   => self-sold, no agency: 0.005–0.015 of price.
+    #
+    # MARKET LEG. Agency commission 3–5% + IVA; at 21% IVA a 4% fee costs 4.84% of price. Large
+    # networks 5–7%, small agencies 1–4%.
+    #   => agency sale: 0.04–0.07 of price.
+    #
+    # WHICH ROUTE, and this is what fixes the point value rather than only the band: agencies
+    # intermediate **64% of second-hand purchases** [Fotocasa Research] and ~70% of all operations
+    # [idealista] — two portals, independently collected, agreeing within 6pp while competing for
+    # the same sellers. At a 0.66 weight:
+    #   0.66 * 0.055 + 0.34 * 0.010 = 0.040.
+    #
+    # EXCLUDED DELIBERATELY: IRPF on the realised gain (19–28% OF THE GAIN, not of the price). It
+    # is a real cost of exiting, but §7.2's `r_req` already nets E[g] and the model carries no
+    # per-unit gain basis, so pricing it here would double-count appreciation or invent a basis.
+    # Same discipline by which `landlord_cost_share` excludes vacancy.
+    #
+    # THE SOURCED VALUE IS 0.040 AND THIS SHIPS 0.02 — deliberately, and not for long. Measured
+    # on 2026-09-16, moving it to 0.040 fixes one registered strict xfail and breaks two targets
+    # in channels that have nothing to do with the rent cap:
+    #   XPASS   test_non_resident_surcharge_removes_foreign_purchases  (restored)
+    #   FAIL    test_rate_shock_cuts_transactions_before_prices        (regression)
+    #   FAIL    test_forbearance_raises_the_arrears_stock_and_lowers_the_flow (regression)
+    # The mechanism is `market/clearing.py`'s reserve floor, max(debt*(1+k), ask*(1-discount)):
+    # raising k lifts the floor for every INDEBTED seller and suppresses sales. This parameter was
+    # a [guess] co-calibrated with other guesses, and sourcing it alone breaks that joint.
+    # Shipping the change belongs on its own branch with its own write-up of those three channels,
+    # so that §7.2's own falsifications (F1–F3) stay attributable to the MECHANISM rather than to
+    # a parameter that moved underneath them. The BAND below is sourced and is swept; only the
+    # point value waits.
     selling_cost_share: float = 0.02
+    # The sourced band, spanning the two real sale routes — NOT an error margin.
+    selling_cost_share_range: tuple[float, float] = (0.01, 0.07)
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]
@@ -571,11 +611,28 @@ class MarketConfig:
     # 10.95% comunidad charge) and Balears at the bottom (18.8%). The legitimate zone
     # difference is in vacancy, not in cost.
     #
-    # QUALIFICATION, carried in docs/validation.md: every quantified figure for this traces
-    # back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so it rests on
-    # ONE institutional source against this project's ≥2 rule. DO 2432 also states 2pp off a
-    # ~5.5% RBA ⇒ ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same
-    # object while citing it; recorded unresolved, and neither figure IS `c`.
+    # SECOND SOURCE, 2026-09-16 (model-spec §13.7). Until today every quantified figure for
+    # this traced back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so
+    # it rested on ONE institutional source against this project's ≥2 rule. INE's national
+    # accounts now supply the second: CNE table 69069 publishes branch `68a alquileres
+    # imputados` on its own, and its cost side is EPF-built (COICOP 04.3.3 plus insurer
+    # payouts), not IRPF-built [INE, Inventario de fuentes y métodos de la RNB rev. 2024,
+    # §§3.18.2 and 3.18.5]. Adding IBI back — ESA books it as D.29, not as intermediate
+    # consumption — gives (CI + D.29)/output = 10.9% (2023) and 15.3–18.0% across 2013–22.
+    #
+    # That is a LOWER BOUND on `c`, not a rival estimate: national-accounts IC carries only the
+    # repair-and-renovation slice of a comunidad quota and no management or letting cost, both
+    # of which are inside AEAT's deductible rows. ≈16% vs 22% is the size of those two items,
+    # and the sign is right. The shipped 0.22 is NOT moved by this.
+    #
+    # What the series does dispute is that `c` is a CONSTANT: it falls monotonically from ≈31%
+    # (1997–99) to ≈16% (2016–22) — the denominator tracks rents, maintenance spending does
+    # not — and 2023's 10.9% is a level break from the 2024 statistical revision. A constant
+    # here is calibrated to the recent end of a falling trend. Declared, not hidden.
+    #
+    # STILL UNRESOLVED, recorded rather than closed: DO 2432 states 2pp off a ~5.5% RBA ⇒
+    # ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same object while
+    # citing it. Neither figure IS `c` — both carry depreciation and interest.
     landlord_cost_share: float = 0.22
     landlord_cost_share_range: tuple[float, float] = (0.20, 0.24)
     # Floor on the required rent YIELD once appreciation is netted off. Without it a boom in
@@ -585,9 +642,13 @@ class MarketConfig:
     # extra spread outside tensioned metros, range .01–.02: reproduces the observed
     # 5.2 / 7.0 / 8.0 zone yield ladder [BdE RBA gradient — medium]
     landlord_zone_risk_premium: float = 0.015
-    # Δln offered/Δln regulated rent; RANGE 0.0–2.0 — the three-Catalonia-studies parameter
-    # [rent-cap §4 — high as range]
-    rental_supply_elasticity: float = 1.0
+    # RETIRED (2026-09-16). Was Δln offered/Δln regulated rent, RANGE 0.0–2.0 — the
+    # three-Catalonia-studies parameter [rent-cap §4 — high as range]. The arbitrage condition
+    # of model-spec §7.2 makes the supply response an OUTPUT of `selling_cost_share` (above)
+    # and `holding_years` (CapResponseConfig) rather than an input anyone dials; the disputed
+    # range moved to those two structural parameters' own ranges. Kept as a dated note rather
+    # than deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2, "Parameter ledger".
     # share of capped new contracts diverted; range .05–.25 [Incasòl — medium]
     seasonal_evasion_share: float = 0.15
     default_rate: float = 0.05  # actual tenant non-payment /yr; range .03–.07 [Arag/OESA — medium]
@@ -753,18 +814,18 @@ class CapResponseConfig:
     forbids reporting any magnitude the span dominates.
     """
 
-    # Where a withdrawn unit goes: sale / seasonal let / held vacant. Shares, sum to 1.
-    # [guess — open question investor-small §7.1. No Spanish study decomposes withdrawals.]
-    exit_split_sale: float = 0.50
-    exit_split_seasonal: float = 0.35
-    exit_split_vacant: float = 0.15
-    # Span admitted for the sale leg; the other two absorb the remainder proportionally.
-    exit_split_sale_range: tuple[float, float] = (0.35, 0.65)
-
-    # The seasonal evasion level EXIT_SPLIT was written at; the seasonal branch scales
-    # proportionally when `MarketConfig.seasonal_evasion_share` is swept away from it.
-    # [Incasòl — medium]
-    exit_split_evasion_base: float = 0.15
+    # RETIRED (2026-09-16). `exit_split_sale` (0.50), `exit_split_seasonal` (0.35),
+    # `exit_split_vacant` (0.15), `exit_split_sale_range` ((0.35, 0.65)) and
+    # `exit_split_evasion_base` (0.15) used to fix, as a proportional rescaling, where a
+    # withdrawn unit went — [guess — open question investor-small §7.1. No Spanish study
+    # decomposes withdrawals], a convention `docs/assumptions.md` itself called "a convention
+    # with no episode behind it". §7.2's direct branches (`Landlord._exit_destination`) no
+    # longer need a split to rescale: SEASONAL is a draw against
+    # `MarketConfig.seasonal_evasion_share` gated on the segment being open, SALE is the
+    # deterministic shortfall-vs-cost-of-leaving rule, and vacancy was never a destination
+    # (model-spec §7.2, "Vacancy is not a branch") — the empty share left withdrawal is now an
+    # output of the sale channel's own clearing delay, not an input split. Kept as a dated
+    # note rather than deleted outright: this project keeps the archaeology of its parameters.
 
     # Maps the per-listing quarterly exit hazard onto the studies' annual contract-flow
     # elasticity. FITTED, not observed [docs/experiments/rent-cap.md]. A fitted constant with
@@ -782,10 +843,15 @@ class CapResponseConfig:
     # This value is deliberately NOT re-fitted to recover them: the old number was produced
     # by a floor built from two exogenous constants, and re-fitting a scale factor to
     # reproduce a result that a defect was generating is the one move this project's
-    # standard forbids. Phase B replaces this machinery with the arbitrage condition
-    # (spec §7.2), and the dial is re-derived there rather than re-tuned here.
-    hazard_scale: float = 0.7
-    hazard_scale_range: tuple[float, float] = (0.5, 1.0)
+    # standard forbids. The arbitrage condition that replaces this machinery was WRITTEN
+    # (spec §7.2, 2026-09-16) to retire `hazard_scale` outright rather than re-derive it —
+    # along with `rental_supply_elasticity`, which becomes an output.
+    #
+    # RETIRED (2026-09-16). `Landlord._exit_destination` (agents/landlord.py) now decides the
+    # withdrawal deterministically — cumulative shortfall over the holding horizon against the
+    # cost of leaving — with no fitted scale anywhere in it. Kept as a dated note rather than
+    # deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2 for what runs instead.
 
     # Below-reference asks drift up toward the cap: ask × this, capped at the cap itself.
     # [guess — the mechanism (a cap read as a target) is documented in the Catalan evaluations;
@@ -793,10 +859,17 @@ class CapResponseConfig:
     magnet_gain: float = 1.05
     magnet_gain_range: tuple[float, float] = (1.00, 1.10)
 
-    # PV horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth
-    # rate into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
-    # horizon a landlord discounts the capped stream over, and IS a guess: Spanish holding
-    # periods are not in docs/sources.md. [guess]
+    # Horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth rate
+    # into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
+    # horizon `agents/landlord` sums the monthly shortfall `(r_req - cap)` over — UNDISCOUNTED
+    # months; there is no present value anywhere in §7.2, unlike this comment used to claim
+    # (stale wording from the retired-hazard era, on a parameter the UI now exposes directly).
+    # `holding_years` stays a [guess]: Spanish holding periods ARE in docs/sources.md, since
+    # 2026-09-15 (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d,
+    # cited as a bound in §7.2's own Sources subsection), but the REALISED holding period is
+    # not the same quantity as the decision horizon a landlord weighs when comparing the
+    # withdrawal margin — treating them as one would be the error, which is exactly why the
+    # label stays. [guess]
     wedge_annualisation: float = 4.0
     holding_years: float = 5.0
     holding_years_range: tuple[float, float] = (3.0, 10.0)

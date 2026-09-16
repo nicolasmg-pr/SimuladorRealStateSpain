@@ -2068,6 +2068,109 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **§7.2 F3 does not fire, and the probe that settled it found something larger
+  (2026-09-16).** F3 asked whether `min_required_yield` — a `[guess]` — was governing the SIGN of
+  the rent-cap result, by flooring `required_yield = max(min_required_yield, bond + π·risk − E[g])`
+  in a boom, collapsing `r_req` and stopping `cap < r_req` from firing. **It is not.** Rebuilding
+  the same comparison `required_rent` makes, the floor never binds in any zone at any growth
+  anchor: at a 1%/yr anchor the unfloored yield is +0.0784 against a floor of 0.0050, and even at
+  an **8%/yr** anchor it is +0.0212 — still four times the floor. The route F3 would fire through
+  is closed by construction in this calibration.
+  **What the sweep found instead.** The cap's response is strongly decreasing in the exogenous
+  growth anchor, through the *unfloored* term rather than the floor — a larger E[g] lowers
+  `bond + π·risk − E[g]`, lowers `r_req`, and fires `cap < r_req` less often:
+
+  | anchor /tick | ≈%/yr | rent | new leases |
+  |---|---|---|---|
+  | 0.0025 | 1.0% | +31.7% | −27.2% |
+  | 0.0050 | 2.0% | +43.8% | −31.4% |
+  | 0.0100 | 4.0% | +33.3% | −35.6% |
+  | 0.0200 | 8.0% | **−37.2%** | **−13.2%** |
+
+  At the 8%/yr anchor **the sign corrects**: the cap lowers rents and costs 13.2% of leases — a
+  figure sitting on top of Pérez García's −13% tenancies. The model's baseline anchor is
+  **2%/yr**, while the Catalan evaluations the gates are adjudicated against measure a period of
+  **HPI +12.7% nominal (2025) and +12.2% y/y (2026Q2)** [INE IPV, kb-refresh-2026-09]. The
+  calibration is being run in a low-growth world against evidence generated in a high-growth one.
+  **What this is not.** Three seeds; the curve is **not monotone** (+31.7 → +43.8 → +33.3 → −37.2),
+  and that non-monotonicity is unseparated — it may be seed noise or a threshold effect. The floor
+  check is one seed at the final tick. This is a hypothesis with a mechanism and a number, not a
+  result: it says the rent-cap sign depends strongly on the growth anchor, and that F1 was
+  adjudicated at an anchor far below the episode it is judged against. Re-running F1 across the
+  anchor is the first thing §7.2b should do, before any mechanism is changed.
+- **`selling_cost_share` is sourced as a BAND, and the point value is deliberately not shipped
+  yet (2026-09-16).** §7.2 makes this parameter the rent cap's exit threshold, so it stopped being
+  tolerable as a `[guess, order of magnitude from buyer_fees]`. Two institutional viewpoints now
+  bound it. **Statutory**: Código Civil art. 1455 puts the `escritura matriz` on the seller and
+  everything after it on the buyer — *salvo pacto*, and the pacto shifts more onto the buyer, so
+  this is a floor; IIVTNU falls on the transmitente but is levied on cadastral **land** value, not
+  on price; aranceles RD 1426/1989 and RD 1427/1989. That gives **0.5–1.5% for a self-sold
+  dwelling**. **Market**: agency commission 3–5% + IVA — at 21% IVA a 4% fee costs 4.84% of price
+  — giving **4–7% for an agency sale**. What fixes the point rather than the band is the
+  intermediation share: agencies handle **64% of second-hand purchases** [Fotocasa Research] and
+  **≈70% of all operations** [idealista], two portals competing for the same sellers and agreeing
+  within 6pp. Weighting the two routes at 0.66 gives **0.040**.
+  **The model still ships 0.02.** Moving it to 0.040 was measured on the full suite and it fixes
+  one registered strict xfail while breaking two targets in channels unrelated to the rent cap:
+  `test_non_resident_surcharge_removes_foreign_purchases` **XPASSes** (restored — its note recorded
+  that the surcharge no longer cleared the 25% threshold because the foreign base had fallen to
+  2.28%), while `test_rate_shock_cuts_transactions_before_prices` and
+  `test_forbearance_raises_the_arrears_stock_and_lowers_the_flow` **regress**. The mechanism is
+  `market/clearing.py`'s reserve floor, `max(debt·(1+k), ask·(1−discount))`: raising `k` lifts the
+  floor for every indebted seller and suppresses sales. The parameter was a guess co-calibrated
+  with other guesses, and sourcing it alone breaks that joint — which is this register's recurring
+  finding, not a new one. Shipping the value belongs on its own branch with its own write-up of
+  those three channels, so that §7.2's falsifications stay attributable to the mechanism rather
+  than to a parameter that moved underneath them. The **band is sourced and is swept**; only the
+  point waits.
+- **`landlord_cost_share` now has two institutions behind it, and they do not say the same
+  thing — on purpose.** The shipped `c = 0.22` (range 0.20–0.24) comes from AEAT's declared-rent
+  P&L with depreciation and mortgage interest stripped out. Since 2026-09-16 the second source is
+  INE's national accounts: CNE table 69069 publishes branch `68a alquileres imputados` separately,
+  its cost side is built from the EPF (COICOP 04.3.3) and insurer payouts rather than from IRPF,
+  and adding IBI back as D.29 gives **(CI + D.29)/output = 10.9% (2023), 15.3–18.0% (2013–2022)**.
+  That is a **lower bound**, not a competing estimate: national-accounts IC carries only the
+  repair slice of a comunidad quota and no management or letting cost, and both are inside AEAT's
+  rows. ≈16% against 22% is the size of those two items and the sign is right, so **the parameter
+  was not moved.** Two things the second source does establish that the first could not. First,
+  the ≥2 rule is satisfied for `c` — previously every figure traced back to AEAT through DO 2432
+  and the Informe Anual. Second, **`c` is not a constant**: the ratio falls monotonically from
+  ≈31% (1997–99) to ≈16% (2016–22), because the denominator tracks rents and maintenance spending
+  does not, and 2023's 10.9% is a level break from the 2024 statistical revision rather than a
+  behavioural one. The model ships a constant calibrated to the recent end of a falling trend.
+  Unchanged and still unreconciled: DO 2432's ≈36% of gross rent against AEAT's own 41–45% on the
+  same object while citing it — neither of which **is** `c`, since both carry depreciation and
+  interest.
+- **§7.2 did not exist until 2026-09-16; it is now written AND implemented.** It had been cited
+  in `model-spec §13.7`, twice in this file and once in `config.CapResponseConfig` as the
+  arbitrage condition that would replace the rent cap's fitted `hazard_scale`, and it had never
+  been written. The spec also said until 2026-09-16 that §7.1 and §7.2 were "not coded until
+  [`c`] is retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was coded with it, so that
+  sentence was stale in both halves. §7.2 is now written (`model-spec §7.2`) **and the code has
+  moved**: `hazard_scale`, `rental_supply_elasticity`, `exit_split_sale`, `exit_split_vacant`
+  and `exit_split_evasion_base` are retired, and the cap's withdrawal margin is the arbitrage
+  condition `cap < r_req`, decided in `agents/landlord._exit_destination`. Its F1–F4 have been
+  run against Ley 11/2020 (F4, the Ley 12/2023 out-of-sample test, is deferred until F1–F3 pass
+  per §7.2's own protocol), and three of the four calibration gates fail **on purpose** — see
+  the falsification recorded immediately below. The rent cap under Ley 12/2023 therefore stays
+  **not reportable** (`model-spec §13.7`, "Reporting consequence"); it does not move to
+  **direction** until F1–F3 pass and F4 lands inside the span.
+- **§7.2's arbitrage condition triggers mass withdrawal, and the rent leg flips sign — a
+  recorded, user-approved falsification (2026-09-16).** Under Ley 11/2020 the withdrawal
+  channel is meant to lower tensioned contract rents (target 8, F1); instead it RAISES them.
+  Measured, three seeds: **rent +53.6%, leases −78.7%** with the seasonal segment open;
+  **+52.2%, −76.7%** with it closed. This is not repaired here — it is a faithful, measured
+  consequence of the specified rule, registered for a later spec revision rather than tuned,
+  softened or skipped away.
+  **Diagnosis, which matters for that repair.** The sign flip comes from the **sale branch**,
+  not the seasonal one: closing the seasonal segment barely moves the rent figure (+52.2%
+  against +53.6%), so the seasonal diversion is a minor leak, not the driver. The sale
+  threshold compares **60 undiscounted months** of `(r_req − cap)` against `0.02·V`
+  (`selling_cost_share` shipped at 0.02), and since `r_req ≈ V·yield/(12·(1−c))`, a monthly
+  shortfall of roughly **15% of `r_req`** already clears that threshold over the horizon — so
+  nearly every binding cap ends up selling. The parameters that will decide the repair are
+  `holding_years` and `selling_cost_share` (both structural, both swept in F1/F2), **not**
+  `seasonal_evasion_share`, which the diagnosis above rules out as the lever.
 - **Index bases matter.** The price index is a quality-adjusted *transaction* index
   (IPV-like); its boom growth (+5–6%/yr) sits below the +12.7% (2025) IPV peak. The rent
   index agents see is an *asking* basis (idealista-like); the transacted median

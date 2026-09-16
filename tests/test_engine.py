@@ -318,13 +318,16 @@ def test_cap_coverage_scales_the_rent_cap():
     contract rents within noise of the baseline. Coverage 1 = the whole zone is declared and
     contract rents fall. Phase-7 experiment design (cap at tick 20 of 40, 16 post ticks).
 
-    CLOSED BY PHASE D (2026-09-14), and by the mechanism the xfail predicted would
-    close it. The §7.1 hurdle made the landlord's reservation rent a function of the
-    dwelling's VALUE, and the sale side had no scarcity-to-price channel, so that floor
-    only ever fell. With expectations reaching the sale price through the auction's
-    valuation anchor (§5c.1), the value rises when the market is tight, the reservation
-    rent rises with it, and the rent side inherits the channel. Finding 2 of the redesign
-    spec is closed on both sides by the same change.
+    History: closed by phase D (2026-09-14) under the since-retired `hazard_scale` dial — the
+    §7.1 hurdle made the landlord's reservation rent a function of the dwelling's VALUE,
+    giving the sale side a scarcity-to-price channel it lacked, which the rent side inherited.
+
+    REOPENED by model-spec §7.2 (2026-09-16): withdrawal is now decided by the arbitrage
+    condition `cap < r_req` rather than that dial, and at full coverage under Ley 11/2020 it
+    drives enough mass withdrawal that contract rents RISE rather than fall (measured ≈+54%,
+    three seeds) — the same sign flip as test_rent_cap_lowers_contract_rents
+    (test_validation.py), for the same reason. Recorded as a known falsification
+    (model-spec §7.2's Falsification subsection), not tuned away here.
     """
     from resim.scenario import RentCap
 
@@ -502,7 +505,7 @@ def test_partial_coverage_pushes_demand_into_the_free_segment():
         sc = Scenario(
             name="c",
             baseline=cfg,
-            interventions=(RentCap(start_tick=20, supply_response_elasticity=2.0, coverage=0.42),),
+            interventions=(RentCap(start_tick=20, coverage=0.42),),
         )
         frame = metrics.to_frame(Engine(sc).run()).loc[24:]
         declared_gap.append(

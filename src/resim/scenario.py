@@ -35,7 +35,11 @@ class RentCap(Intervention):
     start_tick: int = 8
     zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED,)
     cap_reference_discount: float = 0.05  # 0–0.10
-    supply_response_elasticity: float = 1.0  # 0–2 — the three-studies parameter
+    # RETIRED (2026-09-16). Was `supply_response_elasticity: float = 1.0  # 0–2 — the
+    # three-studies parameter`. The arbitrage condition of model-spec §7.2 makes the supply
+    # response an OUTPUT of `selling_cost_share` and `holding_years`, not an input this lever
+    # can set — those two fields below replace it. Kept as a dated note rather than deleted
+    # outright: this project keeps the archaeology of its parameters. See model-spec.md §7.2.
     compliance: float = 0.85  # 0.25–0.95
     seasonal_segment_capped: bool = False
     # share of the zone inside DECLARED municipalities (PolicyConfig.cap_coverage). 1.0 =
@@ -46,6 +50,10 @@ class RentCap(Intervention):
     # 12/2023: it binds grandes tenedores, and the rest are held to their own
     # previous contract plus IRAV (agents/landlord.cap_level)
     index_binds_all: bool = False
+    # The two structural parameters that now carry the supply-response dispute (model-spec
+    # §7.2). None = leave the baseline MarketConfig / CapResponseConfig value untouched.
+    selling_cost_share: float | None = None
+    holding_years: float | None = None
 
     def apply(self, config: SimConfig) -> SimConfig:
         cfg = config.with_policy(
@@ -57,8 +65,14 @@ class RentCap(Intervention):
             cap_coverage=self.coverage,
             seasonal_segment_capped=self.seasonal_segment_capped,
         )
-        market = replace(cfg.market, rental_supply_elasticity=self.supply_response_elasticity)
-        return replace(cfg, market=market)
+        if self.selling_cost_share is not None:
+            market = replace(cfg.market, selling_cost_share=self.selling_cost_share)
+            cfg = replace(cfg, market=market)
+        if self.holding_years is not None:
+            cfg = replace(
+                cfg, cap_response=replace(cfg.cap_response, holding_years=self.holding_years)
+            )
+        return cfg
 
 
 @dataclass(frozen=True)

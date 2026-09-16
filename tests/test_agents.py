@@ -1,15 +1,16 @@
 """Agent decision tests — each actor in isolation, against a hand-built WorldState."""
 
+import collections
 import copy
 
 import numpy as np
 
 from resim.agents.bank import max_price
-from resim.agents.base import ListForSale, MakeOffer, StartConstruction
+from resim.agents.base import ListForSale, MakeOffer, StartConstruction, WithdrawRental
 from resim.agents.developer import Developer
 from resim.agents.household import Households
 from resim.agents.investor import LargeInvestor
-from resim.agents.landlord import SmallLandlords
+from resim.agents.landlord import SmallLandlords, required_rent
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
 from resim.market.stock import LARGE_INVESTOR_ID, Tenure
@@ -23,6 +24,128 @@ def small_state(seed: int = 9):
     state = engine.initialise()
     engine.step(state)  # one settled tick so indices/expectations exist
     return engine, state
+
+
+def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
+    """Return (state, landlord_agent) with a rent cap active in the tensioned zone.
+
+    `cap_ratio` is the cap expressed as a fraction of the unit's reservation rent
+    (`agents.landlord.required_rent`): > 1.0 binds the posted ask but still clears the
+    hurdle; < 1.0 breaks the hurdle. `seasonal_closed` sets
+    `PolicyConfig.seasonal_segment_capped` (unused in Task 1; Task 3 needs it).
+    """
+    _, state = small_state()
+    zone = ZoneType.TENSIONED
+    # cap_coverage=0.0 makes every naturally-drawn unit (declaration_draw in [0, 1)) UNCOVERED,
+    # so only the one unit we mark below (declaration_draw < 0.0) sits under the cap — the rest
+    # of the tensioned-zone stock cannot contaminate the withdrawal count with unrelated caps.
+    state.config = state.config.with_policy(
+        rent_cap_enabled=True,
+        cap_index_binds_all=True,
+        cap_coverage=0.0,
+        seasonal_segment_capped=seasonal_closed,
+    )
+    unit = next(
+        u
+        for u in state.stock.units.values()
+        if u.zone is zone
+        and u.owner_id >= 0
+        and u.tenure is Tenure.VACANT
+        and not u.withheld
+        and u.id not in state.rent_listings
+        and u.id not in state.sale_listings
+    )
+    unit.declaration_draw = -1.0  # the one unit `is_covered` returns True for
+    zs = state.zones[zone]
+    value = zs.price_index * unit.quality
+    floor = required_rent(state, zone, value)
+    cap = cap_ratio * floor
+    zs.reference_rent = cap / unit.quality  # cap_level(index_binds_all=True) reads this back
+    # push the fundamental ask well above the cap, so the cap binds the posted rent regardless
+    # of which side of the hurdle `cap_ratio` lands on
+    zs.shadow_rent = (2.0 * max(cap, floor)) / (unit.quality * (1.0 + zs.expected_rent_growth))
+    fundamental_ask = max(floor, zs.shadow_rent * unit.quality * (1.0 + zs.expected_rent_growth))
+
+    # precondition: `cap_ratio` must land on the intended side of the hurdle, and the cap must
+    # actually bind the ask — otherwise the test below would pass by testing nothing.
+    clears_hurdle = cap >= floor
+    assert clears_hurdle == (cap_ratio >= 1.0), (
+        f"cap_ratio={cap_ratio} landed on the wrong side of the hurdle: "
+        f"floor={floor:.2f} cap={cap:.2f}"
+    )
+    assert cap < fundamental_ask, (
+        f"cap does not bind the ask: cap={cap:.2f} fundamental_ask={fundamental_ask:.2f}"
+    )
+
+    landlord = SmallLandlords(-11, np.random.default_rng(7))
+    return state, landlord
+
+
+def _exit_destinations(state, landlord: SmallLandlords, *, draws: int = 200) -> collections.Counter:
+    """Counter of `WithdrawRental.destination` over `draws` calls to `landlord.decide`.
+
+    State is never mutated by `decide` (agents are read-only, engine.py is the only writer —
+    CLAUDE.md), so the same candidate unit is redrawn every call rather than being consumed
+    after its first exit.
+    """
+    counter: collections.Counter = collections.Counter()
+    for _ in range(draws):
+        for intent in landlord.decide(state):
+            if isinstance(intent, WithdrawRental):
+                counter[intent.destination] += 1
+    return counter
+
+
+def test_a_cap_that_binds_but_clears_the_hurdle_produces_no_withdrawal():
+    """§7.2. The trigger is the reservation rent, not the cap binding at all.
+
+    A cap set between the landlord's reservation rent and its fundamental ask binds —
+    the posted rent falls — but the dwelling still clears the total-return hurdle, so
+    there is nothing to arbitrage against and the landlord stays let. Under the
+    pre-§7.2 hazard this configuration produced exits at any positive elasticity.
+    """
+    state, landlord = _capped_state(cap_ratio=1.1)
+    intents = [landlord.decide(state) for _ in range(200)]
+    withdrawals = [i for batch in intents for i in batch if isinstance(i, WithdrawRental)]
+    assert withdrawals == [], f"{len(withdrawals)} withdrawals from a cap that clears the hurdle"
+
+
+def test_sale_requires_the_shortfall_to_beat_the_cost_of_leaving():
+    """§7.2 sale rule. The cumulative shortfall over the holding horizon must exceed the
+    cost of leaving. A cap one euro below the reservation rent does not pay for a sale.
+
+    Seasonal closed (`seasonal_closed=True`) isolates the sale rule under test: since Task 3
+    the seasonal branch is evaluated first and diverts independently of the shortfall, so an
+    open segment would let seasonal exits through here regardless of this test's premise.
+    """
+    state, landlord = _capped_state(cap_ratio=0.999, seasonal_closed=True)
+    intents = [i for _ in range(200) for i in landlord.decide(state)]
+    withdrawals = [i for i in intents if isinstance(i, WithdrawRental)]
+    assert not withdrawals, f"{len(withdrawals)} withdrawals from a shortfall too small to sell"
+
+
+def test_a_deep_cap_pays_for_the_sale():
+    """The same landlord, with the cap far below the reservation rent, sells."""
+    state, landlord = _capped_state(cap_ratio=0.4, seasonal_closed=True)
+    intents = [i for _ in range(200) for i in landlord.decide(state)]
+    dests = {i.destination for i in intents if isinstance(i, WithdrawRental)}
+    assert dests == {"sale"}
+
+
+def test_closing_the_seasonal_segment_pushes_exits_into_sales():
+    """§7.2 branch order, and the comparative static Catalonia dated for us.
+
+    Seasonal is the cheap exit — it pays no transaction cost — so it is taken first.
+    Closing the segment (Ley 11/2025, in force 1 Jan 2026) must therefore convert
+    seasonal exits into sales, not into staying let. Incasòl measured the quarter:
+    seasonal contracts −1,233, the first fall since the cap began.
+    """
+    open_ = _exit_destinations(*_capped_state(cap_ratio=0.4))
+    closed = _exit_destinations(*_capped_state(cap_ratio=0.4, seasonal_closed=True))
+    assert open_["seasonal"] > 0
+    assert closed["seasonal"] == 0
+    assert closed["sale"] > open_["sale"]
+    assert "vacant" not in open_ and "vacant" not in closed
 
 
 def test_household_cannot_bid_above_credit_limit():

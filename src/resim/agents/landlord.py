@@ -2,15 +2,17 @@
 
 One agent object manages all household-owned rental units (owner_id >= 0).
 
-Rules (investor-small §3, rent-cap §5):
+Rules (investor-small §3, rent-cap §5, withdrawal margin §7.2):
   - Asking rent = max(required-yield rent, market rent shaded by expectations),
     clipped by the cap where one binds (compliance is probabilistic).
   - Required yield = bond + 3–5pp spread, + risk premium in low-income zones,
     + perceived (not actual) default risk markup.
-  - When a cap binds, withdrawal probability per tick ≈ elasticity × relative rent gap
-    — the single exposed parameter that spans the Monràs (ε≈2) / Jofre-Monseny (ε≈0) /
-    Pérez García worlds. Exits split between sale, seasonal segment (while uncapped)
-    and vacancy.
+  - A cap that still clears the landlord's reservation rent is nothing to arbitrage
+    against: no withdrawal. A cap that breaks the reservation hurdle is weighed against
+    the alternative uses of the capital: the seasonal-segment diversion first, because it
+    is the cheaper exit, then sale, which beats letting when the cumulative shortfall over
+    the holding horizon exceeds the cost of leaving (`_exit_destination`, §7.2). Vacancy is
+    not a branch — it is the sale channel waiting for `clear_sales` to match it.
   - Below-cap units drift UP toward the reference (the cap is a magnet, Monràs).
 """
 
@@ -19,7 +21,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..config import ZoneType
-from ..market.stock import Tenure
+from ..market.stock import Tenure, Unit
 from ..state import WorldState
 from .base import Intent, ListForRent, WithdrawRental
 
@@ -206,50 +208,24 @@ class SmallLandlords:
                 cap = None  # not a declared municipality: no cap applies to this unit
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
-                if fundamental_ask > cap and complies:
-                    # withdrawal margin: the disputed elasticity parameter. The gap is the
-                    # PV shortfall of the capped stream over the landlord's holding horizon.
-                    #
-                    # The free stream grows at the SHADOW's rate, not at the asking index's:
-                    # under a cap `expected_rent_growth` is an expectation formed on capped
-                    # asks, and feeding it back in double-counts the cap (model-spec §5b).
-                    #
-                    # PHASE A (spec §2, finding 9). The wedge is built from two EXOGENOUS
-                    # constants — the shadow's growth anchor and the statutory update — so it
-                    # is a constant. It used to be ADDED to the level gap:
-                    #
-                    #     gap = log(ask / cap) + 5 * wedge
-                    #
-                    # which is discontinuous at the point the cap starts to bind. A cap
-                    # binding by one euro produced the same `5 * wedge` term as a cap binding
-                    # by a third of the rent, so the exit hazard jumped from zero to a fixed
-                    # positive floor the instant the cap touched the ask, and stayed there
-                    # however mild the cap was. The floor came from two constants nobody
-                    # chose as a hazard, and the headline cap result rode on it.
-                    #
-                    # The wedge is a real PV term and stays. What changes is that it SCALES
-                    # the level gap instead of being added to it: the shortfall of a capped
-                    # stream is proportional to how far the cap is below the free rent, and
-                    # the growth divergence compounds that shortfall over the holding
-                    # horizon. A cap that binds on nothing costs nothing, however long it is
-                    # held — which is the property the additive form did not have.
-                    level_gap = np.log(fundamental_ask / cap)
-                    growth_wedge = max(
-                        0.0,
-                        capcfg.wedge_annualisation * zs.shadow_growth
-                        - cfg.policy.within_contract_update,
-                    )
-                    gap = level_gap * (1.0 + capcfg.holding_years * growth_wedge)
-                    # HAZARD_SCALE maps the per-listing quarterly exit hazard onto the
-                    # studies' annual contract-flow elasticity: calibrated so that
-                    # elasticity=2 reproduces Monràs & García-Montalvo's Δln contracts
-                    # / Δln rent ≈ 2 (−10% tenancies at −5% rents)
-                    p_exit = min(
-                        0.9, cfg.market.rental_supply_elasticity * capcfg.hazard_scale * gap
-                    )
-                    if self.rng.random() < p_exit:
-                        intents.append(self._exit(unit.id, state))
+                # §7.2: the trigger is the landlord's RESERVATION rent (`floor`), not the cap
+                # binding at all. A cap that binds but leaves `cap >= floor` still clears the
+                # landlord's total-return hurdle, so there is nothing to arbitrage against and
+                # nothing is withdrawn — only a cap that breaks the hurdle triggers an exit.
+                #
+                # RETIRED (2026-09-16): a fitted exit hazard used to sit here — a PV level gap
+                # (`log(fundamental_ask / cap)`, scaled by a growth wedge) drawn against a
+                # fitted `hazard_scale`. It is replaced by the deterministic sale rule of
+                # model-spec §7.2: which alternative use, if any, beats letting at the cap.
+                # See `_exit_destination`.
+                if complies and cap < floor:
+                    dest = self._exit_destination(unit, state, cap=cap, r_req=floor, value=value)
+                    if dest is not None:
+                        intents.append(
+                            WithdrawRental(agent_id=self.id, unit_id=unit.id, destination=dest)
+                        )
                         continue
+                if complies and fundamental_ask > cap:
                     ask, capped = min(ask, cap), True
                 elif ask < cap:
                     # magnet effect: below-reference asks drift up toward the cap
@@ -257,21 +233,35 @@ class SmallLandlords:
             intents.append(ListForRent(agent_id=self.id, unit_id=unit.id, ask=ask, capped=capped))
         return intents
 
-    def _exit(self, unit_id: int, state: WorldState) -> WithdrawRental:
-        pol = state.config.policy
-        capcfg = state.config.cap_response
-        u = self.rng.random()
+    def _exit_destination(
+        self, unit: Unit, state: WorldState, *, cap: float, r_req: float, value: float
+    ) -> str | None:
+        """§7.2. Which alternative use beats letting at the cap, or None if none does.
+
+        Evaluated in the branch order the spec fixes ("Branch order, and the natural
+        experiment that tests it"): SEASONAL first, then SALE. There is no third branch —
+        vacancy is not a destination this method ever returns (spec §7.2, "Vacancy is not a
+        branch"); a unit that sells sits empty only while waiting for `clear_sales` to match
+        it, which is an output of the sale channel, not a choice made here.
+        """
+        cfg = state.config
+        capcfg, pol, zs = cfg.cap_response, cfg.policy, state.zones[unit.zone]
+        # SEASONAL, evaluated FIRST because it is the cheap exit: diverting to a seasonal
+        # contract pays no transaction cost and selling does. Closing the segment therefore
+        # pushes exits into sales, which is the comparative static Ley 11/2025 dated.
         seasonal_open = not pol.seasonal_segment_capped
-        p_sale = capcfg.exit_split_sale
-        p_seasonal = capcfg.exit_split_seasonal * (
-            state.config.market.seasonal_evasion_share / capcfg.exit_split_evasion_base
-            if seasonal_open
-            else 0.0
+        if seasonal_open and self.rng.random() < cfg.market.seasonal_evasion_share:
+            return "seasonal"
+        # SALE. The shortfall WIDENS over the horizon: the cap grows at the statutory IRAV
+        # while the reservation rent grows with V and E[g]. The (1 + H·wedge/2) factor is the
+        # trapezoid of that widening gap — arithmetic, not a parameter. No double-counting of
+        # appreciation: `r_req` already nets E[g], so `r_req - cap` is the monthly shortfall
+        # against the best alternative use of the capital, appreciation included.
+        growth_wedge = max(
+            0.0, capcfg.wedge_annualisation * zs.shadow_growth - pol.within_contract_update
         )
-        if u < p_sale:
-            dest = "sale"
-        elif u < p_sale + p_seasonal:
-            dest = "seasonal"
-        else:
-            dest = "vacant"
-        return WithdrawRental(agent_id=self.id, unit_id=unit_id, destination=dest)
+        horizon = capcfg.holding_years
+        shortfall = (r_req - cap) * 12.0 * horizon * (1.0 + horizon * growth_wedge / 2.0)
+        if shortfall > value * cfg.market.selling_cost_share:
+            return "sale"
+        return None
