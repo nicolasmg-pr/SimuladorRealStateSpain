@@ -802,6 +802,154 @@ reportable** to **direction** under §13.2 — not to magnitude, which the varia
 refuse while `holding_years` and `selling_cost_share` remain guesses. The warning in
 `ui/levers.py` is then rewritten to say what may be read rather than only what may not.
 
+> **SUPERSEDED (2026-09-16).** F1 passed at exactly one corner of the declared ranges while three
+> inverted the sign, F3 did not fire, and F4 was never run because this section gates it on the
+> Ley 11/2020 tests being green and they are red. The rent cap is not reportable under either
+> statute, in size or in sign. §7.2b replaces F1 with the stricter G1 and retires `holding_years`
+> outright; read that section's falsifications, not these, for the current state.
+
+### 7.2b The withdrawal margin, dispersed and time-limited (2026-09-16)
+
+§7.2 failed its own F1. This section repairs it. It is specification only until its plan runs.
+
+**The measured diagnosis, and it is sharper than "no friction".** §7.2's exit trigger is
+`cap < r_req`, where `r_req = V·(i_bond + π·risk − E[g]) / (12·(1−c))`. Inside a zone every
+landlord shares `i_bond`, `π`, `E[g]` and `c`, and differs only in `V`, which scales with
+`quality` — **and the reference index scales with quality too**. The ratio `cap / r_req` is
+therefore near-identical across the units of a zone, so when it crosses 1 it crosses for all of
+them at once. The exit decision is **scale-invariant**, and that is why it behaves as a step
+function in E[g]: low E[g] raises `r_req` and everyone sells; high E[g] collapses `r_req` and
+nobody does. The ten-seed anchor sweep in `docs/validation.md` measures the boundary between 4%
+and 6%/yr — 0/10 seeds with the rent sign right below it, 10/10 above — and shows that moving the
+anchor relocates the step without removing it. **Re-anchoring is a closed line of repair.**
+
+Any repair must break the scale-invariance of `cap / r_req` inside a zone. §7.2b does it with two
+pieces that do different jobs.
+
+#### Piece A — the exit cost belongs to the landlord
+
+`Unit` gains a second persistent draw, the sibling of `declaration_draw`: `sale_route_draw`,
+U(0,1) from the engine's seeded Generator, drawn once at creation and never redrawn. A landlord
+sells through an agency or sells privately, and that is its route for the whole run — persistent
+for the same reason coverage is, so a unit cannot cross the threshold and come back, and so two
+scenarios stay comparable.
+
+The draw maps monotonically onto the exit cost, cheap routes first:
+
+```
+u ∈ [0, 1−s)   → private sale:  k = 0.005 + 0.010·u/(1−s)
+u ∈ [1−s, 1)   → agency sale:   k = 0.04  + 0.030·(u−(1−s))/s
+```
+
+`k` increases in `u`, so the landlords who are cheap to extract leave first and agency sellers
+hold out longest. **Raising the cap's bite adds landlords to the exiting set rather than
+reshuffling it** — the monotonicity property `declaration_draw`'s own comment prizes for coverage,
+here for the same reason.
+
+Why this disperses where §7.2 could not: with `shortfall/V ≈ H·y/(1−c)·(1 − cap/r_req)`, a
+landlord sells when that exceeds `k`. At `y ≈ 0.05`, `c = 0.22` and a three-year term the bite
+required to trigger a sale runs from **≈3% at the cheapest private sale to ≈37% at the dearest
+agency one** (private 3–8%, agency 21–37%) — an order of magnitude between two landlords facing
+the identical cap. The exit share then sweeps the
+`k` distribution continuously instead of jumping.
+
+#### Piece B — the cap has a statutory life, and the landlord is myopic about renewal
+
+`RentCap` gains a declared term, default **12 ticks (3 years)**: ZMRT are declared for three years
+and renewable, and the BOE resolutions with their `vigencia inicio–fin` are already registered in
+`docs/sources.md`. The cumulative shortfall accrues over **the ticks remaining in the current
+declared term**, not over a holding horizon. `wedge_annualisation` and the trapezoid survive,
+applied to that shorter span.
+
+The statute renews — Catalonia extended to 302 municipalities to 2027 — so the cap stays in force
+while the scenario says so, and the term resets on renewal. **The landlord does not anticipate the
+renewal.** That is the friction, stated as a modelling assumption rather than smuggled in as a
+discount: a renewal is a political act a landlord cannot bank on, so it discounts less shortfall
+than it will actually suffer. It is falsifiable — if the model needs landlords to anticipate
+renewal in order to match the Catalan evaluations, the assumption is wrong.
+
+Piece B alone would not disperse anything: a shorter horizon moves the step for everyone
+together. Piece A alone operates in a narrower window and may not bite. **B brings the scales
+together; A separates the landlords.**
+
+#### Parameter ledger, and a count that does not flatter this section
+
+Retired: `holding_years` (5.0, range 3–10, **[guess]**), `holding_years_range`, and the sweep entry
+added for it on 2026-09-16.
+
+Added: `intermediation_share` (0.64, range 0.64–0.70), the two exit-cost bands (0.005–0.015 and
+0.04–0.07), `cap_term_ticks` (12), `cap_renews` (True). `Unit.sale_route_draw` is per-unit state,
+not a parameter.
+
+**§7.2 retired five parameters and §7.2b returns five.** On a headcount this is a regression, and
+it is recorded as one. The project's criterion is not the count but the **unsourced share of
+variance** (§13.2): what dies is a `[guess]` that governed the whole channel, and what is born is
+five quantities with published sources — three committed on 2026-09-16, two from the BOE. There is
+also an asymmetry worth naming: `holding_years` was a guess with **no empirical band**, so
+sweeping it measured the model's ignorance; the new bands are ranges of evidence, so sweeping them
+measures disagreement between sources.
+
+#### Sources
+
+- **`intermediation_share`** — agencies handle **64% of second-hand purchases** [Fotocasa
+  Research] and ≈70% of all operations [idealista]. The model takes **0.64**: a landlord selling a
+  let dwelling makes a second-hand sale, not an operation of any kind. Regional spread is wide
+  (Murcia, Navarra, Baleares high; Extremadura, País Vasco, Andalucía low).
+- **The two exit-cost bands** — the statutory and market rows registered in `docs/sources.md` on
+  2026-09-16. Uniform within band is a declared convention: the sources give ranges, not
+  distributions.
+- **`cap_term_ticks`** — ZMRT resolutions, MIVAU's compiled table (317 municipalities, vigencia
+  inicio–fin), already in `docs/sources.md`.
+
+**A declared debt.** `MarketConfig.selling_cost_share` survives for the **household** seller's debt
+leg in `market/clearing.py`. That leaves two consumers of one real quantity: a single value for
+the household, a dispersed one for the landlord. §7.2 rejected its own hybrid approach for exactly
+this kind of seam, so it is stated rather than hidden — same evidence, two consumers, and the
+landlord needs the dispersion while the household reserve floor does not. Unifying them is future
+work.
+
+#### Falsification
+
+**G1 — the co-movement does not emerge at the SHIPPED parameters.** §7.2's F1 asked only for a
+witness somewhere in the declared ranges, and that proved too weak: it passed at one corner while
+three inverted the sign. G1 requires the rent sign correct in **all ten seeds at the shipped
+values**, with Δln contracts / Δln rent inside Monràs's 0.07–2.0. A single-corner pass is a
+failure.
+
+**G2 — the intermediation share moves nothing.** Sweeping `intermediation_share` from 0.5 to 0.8
+must move withdrawal. If it does not, Piece A is decorative.
+
+**G3 — withdrawal is not front-loaded within a term.** It must concentrate after each declaration
+and taper toward expiry; nobody sells to escape a cap about to lapse. Flat withdrawal means Piece
+B is inert. Testable against Incasòl's quarterly counts.
+
+**G4 — the regime boundary survives.** Re-run the ten-seed anchor sweep recorded in
+`docs/validation.md`. If 0/10 below some anchor and 10/10 above persists, the step function
+survived and the dispersion is too narrow for the shortfall it faces. This is the direct test that
+§7.2b did what it was written to do, and the table to compare against is already committed.
+
+**And the magnitude is not in scope.** Where §7.2 got the sign right it gave −37% rents against
+Monràs's −5%. §7.2b attacks *who exits*, not the size of the price response. That less withdrawal
+yields a smaller rent move is plausible, not certain. If the sign corrects and the magnitude stays
+seven times too large, that is a separate finding and is registered as one rather than folded into
+G1.
+
+#### What §7.2b does not touch
+
+`cap_level` and the two statutes; the previous-contract anchor; coverage and the declared segment
+mix; compliance, which stays in front of everything; the seasonal branch and its ordering; and
+vacancy as the sale channel's waiting state. §7.2b changes the **threshold**, not the branch
+structure.
+
+#### UI
+
+The `holding_years` slider dies with the parameter. `selling_cost_share` is no longer the
+landlord's exit threshold and stops being the rent cap's dial. In their place the panel exposes
+**the share of landlords who sell through an agency**, centred on 0.64 and ranging **0.40–0.85** —
+wider than the two national sources measure, because the regional spread is real and large. The
+help text names that widening explicitly, and names Monràs's OLS-to-IV span as the thing the
+slider traverses.
+
 ### 5c.8 The tick is a quarter, the market is not (2026-09-15)
 
 Three registered failures had one cause, and it was the clearing calendar.
