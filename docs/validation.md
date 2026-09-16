@@ -2111,6 +2111,21 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   — the option value of waiting for a cap declared for a fixed term — is not optional, and this
   sweep is the evidence for why. Re-anchoring is now a **closed** line of repair, recorded so it is
   not reopened.
+- **§7.2's F1 is deleted, superseded by G1 (2026-09-16, §7.2b Task 5).**
+  `test_the_supply_elasticity_lands_inside_the_monras_span` swept two structural parameters —
+  `MarketConfig.selling_cost_share_range` and `CapResponseConfig.holding_years_range` — and
+  asked only for a witness at ANY corner of the declared ranges. §7.2b retired `holding_years`
+  outright (the withdrawal horizon is now the cap's own remaining statutory term, not a swept
+  structural parameter), so the second dimension F1 swept no longer exists in the model. A test
+  that can only vary a parameter the model no longer reads cannot be evaluated — it is not a
+  falsification, it is a probe of retired machinery — so it is deleted rather than xfailed, which
+  would misrecord a defect that is not there. §7.2b's own Falsification subsection (model-spec.md
+  §7.2b) names G1 as F1's declared successor, and G1 is strictly stricter: F1 accepted a witness
+  at ANY corner of its two swept parameters' declared ranges, and — before `holding_years` was
+  retired — it passed at exactly one of the four corners while three inverted the sign; a
+  single-corner pass is a failure by G1's own standard. G1 requires the rent sign correct in ALL
+  TEN seeds at the SHIPPED values, with no parameter swept at all. See Task 5's report for G1's
+  measured result.
 - **§7.2 F3 does not fire, and the probe that settled it found something larger
   (2026-09-16).** F3 asked whether `min_required_yield` — a `[guess]` — was governing the SIGN of
   the rent-cap result, by flooring `required_yield = max(min_required_yield, bond + π·risk − E[g])`
