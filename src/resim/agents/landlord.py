@@ -206,7 +206,11 @@ class SmallLandlords:
                 cap = None  # not a declared municipality: no cap applies to this unit
             if cap is not None:
                 complies = self.rng.random() < cfg.policy.cap_compliance
-                if fundamental_ask > cap and complies:
+                # §7.2: the trigger is the landlord's RESERVATION rent (`floor`), not the cap
+                # binding at all. A cap that binds but leaves `cap >= floor` still clears the
+                # landlord's total-return hurdle, so there is nothing to arbitrage against and
+                # nothing is withdrawn — only a cap that breaks the hurdle starts the hazard.
+                if complies and cap < floor:
                     # withdrawal margin: the disputed elasticity parameter. The gap is the
                     # PV shortfall of the capped stream over the landlord's holding horizon.
                     #
@@ -250,6 +254,7 @@ class SmallLandlords:
                     if self.rng.random() < p_exit:
                         intents.append(self._exit(unit.id, state))
                         continue
+                if complies and fundamental_ask > cap:
                     ask, capped = min(ask, cap), True
                 elif ask < cap:
                     # magnet effect: below-reference asks drift up toward the cap
