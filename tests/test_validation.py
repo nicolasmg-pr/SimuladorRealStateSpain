@@ -6,6 +6,7 @@ seed noise (3 seeds averaged, last 20 of 60 ticks).
 """
 
 import dataclasses
+import math
 
 import numpy as np
 import pytest
@@ -960,6 +961,14 @@ def test_the_supply_elasticity_lands_inside_the_monras_span():
     `CapResponseConfig.holding_years_range` — the model must produce Δln contracts / Δln rent
     inside Monràs's own OLS-to-IV span of 0.07–2.0. If no corner reaches it, §7.2 is false and
     is NOT rescued by restoring a scale factor.
+
+    Monràs & García-Montalvo's ≈2 is a LOG-difference elasticity, not an arithmetic
+    percent-change ratio: `_rent_cap_response` returns `mean/base_mean - 1`, and
+    `log1p` of that is `ln(mean/base_mean)`, the actual Δln quantity the regression
+    estimates. The two agree for small moves and diverge for large ones — and this
+    model is currently producing swings up to +64%, where the divergence is material —
+    so do not "simplify" this back to `leases / rent`; that would adjudicate a claim
+    the studies did not make.
     """
     cfg = SimConfig.baseline()
     cost_lo, cost_hi = cfg.market.selling_cost_share_range
@@ -970,6 +979,11 @@ def test_the_supply_elasticity_lands_inside_the_monras_span():
             r = _rent_cap_response(
                 index_binds_all=True, selling_cost_share=cost, holding_years=horizon
             )
-            if r["rent"] < -0.001:
-                ratios.append(r["leases"] / r["rent"])
+            rent, leases = r["rent"], r["leases"]
+            # log1p is undefined at/below -1 (a 100%+ drop), and the ratio is only
+            # meaningful where the price leg actually fell; skip any corner that can't
+            # produce a well-defined log-difference rather than let it contribute a
+            # garbage value.
+            if -1.0 < rent < -0.001 and leases > -1.0:
+                ratios.append(math.log1p(leases) / math.log1p(rent))
     assert any(0.07 <= x <= 2.0 for x in ratios), f"no corner inside the span: {ratios}"
