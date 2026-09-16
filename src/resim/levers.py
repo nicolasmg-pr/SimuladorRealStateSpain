@@ -53,11 +53,16 @@ COLUMNS = (
 # the dial the evidence admits".
 RUNS: dict[str, tuple[str, dict]] = {
     # The ledger reports the CATALAN regime (Ley 11/2020, the index binding every landlord),
-    # because that is the world the three evaluation studies measure and the one the model's
-    # `hazard_scale` was identified in. The state regime (Ley 12/2023, the index binding
-    # grandes tenedores only) is run alongside it and is NOT reportable: with the cap barely
-    # binding on individuals the withdrawal channel runs on a hazard calibrated for the other
-    # regime, and it produces a rent RISE that no evidence covers (docs/validation.md).
+    # because that is the world the three evaluation studies measure and the one §7.2's
+    # arbitrage condition (model-spec §7.2) is tested against, F1-F4. The state regime
+    # (Ley 12/2023, the index binding grandes tenedores only) is run alongside it and is NOT
+    # reportable: there is no hazard any more — `hazard_scale` was retired with §7.2 — so that
+    # is no longer the reason. The reason now is that §7.2's own falsification tests against
+    # Ley 11/2020 (F1-F3) are FAILING on purpose: the arbitrage condition triggers mass
+    # withdrawal and the rent leg flips sign (measured +53.6% rent / -78.7% leases,
+    # docs/validation.md "Honest qualifications"). Per §7.2's reporting consequence
+    # (model-spec §13.7), the weaker-binding state law stays not reportable until F1-F3 pass
+    # and F4 is run once against Ley 12/2023 — not before.
     "rent-cap": ("rent-cap", {"index_binds_all": True}),
     # RETIRED (2026-09-16). `rent-cap-e2` swept `supply_response_elasticity=2.0`, the top of
     # the OLS-to-IV dial. The dial is gone (model-spec §7.2): elasticity is now an OUTPUT of

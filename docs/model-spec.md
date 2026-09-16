@@ -665,9 +665,10 @@ monthly shortfall against the best alternative use of the capital, appreciation 
 `− vacancy_tax·V/12` against a strictly positive capped rent. Vacancy is dominated by letting at
 *any* cap, however harsh. The 15% of withdrawals that sit empty are not landlords choosing
 vacancy — they are units **waiting for the sale channel to clear**, which takes time because
-`clear_sales` matches over sub-periods. So `exit_split_vacant` dies with a mechanism behind it,
-and the share of withdrawn units standing empty becomes a model **output** to be checked rather
-than an input to be assumed.
+`clear_sales` matches over sub-periods. So `exit_split_vacant` dies with a mechanism behind it.
+The share of withdrawn units standing empty *should* become a model output, checked against
+evidence, rather than an input assumed — but that is a declared gap, not something this branch
+built: no such metric exists in `metrics.py`, and nothing checks it yet.
 
 **Branch order, and the natural experiment that tests it.** Seasonal is evaluated **before** sale,
 because leaving to seasonal pays no transaction cost and selling does: whoever exits prefers the
@@ -696,8 +697,9 @@ span.
 
 Carried, with changed roles: `holding_years` (5.0, range 3–10, **[guess]**) becomes the horizon of
 the sale decision rather than a term inside a gap — more exposure, not less, and it enters the
-Sobol sweep on that basis. `selling_cost_share` (0.02, **[guess, order of magnitude from
-buyer_fees]**) becomes the **exit threshold**. Unchanged: `cap_compliance` (still in front of
+Sobol sweep on that basis. `selling_cost_share` (0.02 shipped; **band sourced 2026-09-16,
+0.01–0.07, weighted point value 0.040 known but deliberately not shipped** — see Sources below)
+becomes the **exit threshold**. Unchanged: `cap_compliance` (still in front of
 everything), `magnet_gain`, `seasonal_evasion_share`, and all of `cap_level`.
 
 **One parameter becomes load-bearing without anyone having chosen it.** `min_required_yield`
@@ -712,10 +714,21 @@ would be governing the **sign** of the regime that matters. See F3.
 
 The arbitrage arithmetic needs no source — it is accounting. The quantities do, under the ≥2 rule:
 
-- **`selling_cost_share` — pending.** Needs two independent institutional viewpoints: published
-  notarial and registry tariffs (regulated schedule) against agency fees and plusvalía municipal
-  (market and municipal ordinance). Until then it stays `[guess]` and §7.2's output is
-  direction-only regardless of what the tests say.
+- **`selling_cost_share` — sourced as a band; the point value is known and deliberately not
+  shipped (2026-09-16).** Two independent institutional viewpoints now bound it: the statutory
+  leg (Código Civil art. 1455, IIVTNU, RD 1426/1989, RD 1427/1989 — a self-sold dwelling's
+  floor, 0.5–1.5% of price) against the market leg (agency commission 3–5% + IVA, 4–7% for an
+  agency sale), weighted by the intermediation share agencies handle (64% [Fotocasa Research],
+  ≈70% [idealista]). That gives a sourced band **0.01–0.07** and a weighted point value
+  **0.040** — commit `8fd0c90`, three new rows in `docs/sources.md`, `config.py`
+  `MarketConfig.selling_cost_share` around lines 486–520. **The model still ships 0.02**, below
+  the sourced point, because moving to 0.040 fixes one registered strict xfail while regressing
+  two targets in channels that have nothing to do with the rent cap (`market/clearing.py`'s
+  reserve floor tightens for every indebted seller); see `docs/validation.md` "Honest
+  qualifications". §7.2's output therefore stays **direction-only regardless of what the tests
+  say** — not because the parameter is an unsourced guess any more, but because the shipped
+  value is a deliberate choice below the sourced point, pending its own branch to resolve the
+  three-channel interaction.
 - **`holding_years` — bounded, not set.** `docs/sources.md` carries Registradores ERI 2020:
   mean holding period **15 years 256 days**, series minimum 7 years 106 days (2009). That is the
   *realised* holding period, not the decision horizon, and treating them as the same quantity
@@ -1166,7 +1179,7 @@ commented with unit + source + confidence). Headline rows (all sourced in dossie
 | Households (level) | 19,874,860 at 1 Jul 2026 (ECP) — the 1:2,000 anchor | households | INE ECP 2T 2026 | high |
 | Formation zone weights | T 0.55 / S 0.286 / R 0.164 (None = household shares 0.45/0.35/0.20). Screened 0.45–0.65 on 3 seeds: 0.55 puts the tensioned queue at ≈1 applicant per listing (was 0.5) with every §9 moment in band | share of new households | EC Country Report 2026 Annex 16 (Madrid+Barcelona ≈27% of household growth), INE ECP; level calibrated [validation.md tensioned-tightness] | medium (direction) / guess (level) |
 | Shadow-rent anchor | median renter paying capacity (burden × income) over non-owners, ratio to the asking index fixed at cap activation, smoothing = `price_index_smoothing` 0.3 | €/month, standard unit | mechanism (§5); no free parameter beyond the smoothing it shares with the price index | mechanism high |
-| Exit hazard scale (`HAZARD_SCALE`) | maps the per-listing quarterly hazard onto the studies' annual contract elasticity; re-fitted after the shadow rent so elasticity 2 reaches Monràs's −10% contracts — value and sweep in validation.md / experiments/rent-cap.md | dimensionless | Monràs & García-Montalvo 2023/2025 (IV ≈2) | calibrated |
+| ~~Exit hazard scale (`HAZARD_SCALE`)~~ | ~~maps the per-listing quarterly hazard onto the studies' annual contract elasticity; re-fitted after the shadow rent so elasticity 2 reaches Monràs's −10% contracts — value and sweep in validation.md / experiments/rent-cap.md~~ **RETIRED, §7.2 (2026-09-16)**: replaced by the arbitrage condition `cap < r_req`; no fitted hazard remains | dimensionless | was Monràs & García-Montalvo 2023/2025 (IV ≈2) | **retired**, phase §7.2 |
 | Public social-rental stock | 1.5–3.3% of stock | % stock | MIVAU/Provivienda [government §6] | medium |
 | Unemployment path (level) | exogenous quarterly path; baseline 0.105 (2026Q2), bust leg reaches 0.263 (2013Q1) | share of active population | Eurostat/INE EPA `une_rt_q` | high — it is an input, not a result |
 | Zone unemployment gradient | T 0.94 / S 1.06 / R 1.03 of the national rate, renormalised on household weights | dimensionless | Eurostat `lfst_r_urgau` 2006–2025 | high (direction and level) |
@@ -1592,13 +1605,16 @@ number.
 > the episode that identifies it and the range the evidence admits. There is no third category.
 
 A reduced-form rule with no identifying episode is a defect, not a simplification.
-**Twenty** rules currently fail this test: the nine named in the redesign spec §3.1, plus
-eleven the phase-0 register pass added — `NET_INCOME_FACTOR`, `buy_attempt_prob`,
-`max_listing_ticks`, the frictionless leg of assortative rental matching, the 5% over-budget
-search tolerance, `EXIT_SPLIT_EVASION_BASE`, the investor's ×1.15 accumulation band,
-`PRIME_HURDLE_SPREAD`, `EXIT_LIST_SHARE`, `MAX_BUYS_PER_TICK` and the pace leg of
-`SEARCH_BURDEN_ESCALATION`. The criterion, the full list and the scope of the count are in
-`docs/assumptions.md`; a rule with no row there is a finding against the register.
+**Twenty** rules were named as failing this test when the phase-0 register pass was written:
+the nine named in the redesign spec §3.1, plus eleven the phase-0 register pass added —
+`NET_INCOME_FACTOR`, `buy_attempt_prob`, `max_listing_ticks`, the frictionless leg of
+assortative rental matching, the 5% over-budget search tolerance, `EXIT_SPLIT_EVASION_BASE`
+(**retired, §7.2, 2026-09-16** — the parameter and the mechanism it patched are both gone, not
+replaced by a sourced rule), the investor's ×1.15 accumulation band, `PRIME_HURDLE_SPREAD`,
+`EXIT_LIST_SHARE`, `MAX_BUYS_PER_TICK` and the pace leg of `SEARCH_BURDEN_ESCALATION`. The
+criterion, the full list and the **current, running** count are in `docs/assumptions.md`, not
+restated here as a number so it cannot drift out of step again; a rule with no row there is a
+finding against the register.
 
 ### 13.4 Calibration protocol
 
@@ -1709,9 +1725,16 @@ Neither figure **is** `c` — both carry depreciation and interest.
 **§7.2 was a different blocker, and it was never this one.** It had been referenced here, twice
 in `docs/validation.md` and once in `config.CapResponseConfig` as the arbitrage condition that
 would replace the rent cap's fitted `hazard_scale`, and it had **never been written** — it was
-waiting on being specified, not on a parameter. It is written as of 2026-09-16 and is
-specification only: no code has moved yet, and the cap's withdrawal margin is still the reduced
-form in `agents/landlord` until it does.
+waiting on being specified, not on a parameter. It was written as of 2026-09-16, and **is now
+implemented**: `hazard_scale`, `rental_supply_elasticity`, `exit_split_sale`,
+`exit_split_vacant` and `exit_split_evasion_base` are retired, and the cap's withdrawal margin
+in `agents/landlord` is the arbitrage condition `cap < r_req` described above, not the reduced
+form. Three of §7.2's own calibration gates fail **on purpose**: under Ley 11/2020 the
+arbitrage condition triggers mass withdrawal and the rent leg flips sign — measured **rent
++53.6%, leases −78.7%** with the seasonal segment open, **+52.2% / −76.7%** with it closed. This
+is the recorded falsification §7.2's own Falsification subsection calls for, not an
+implementation defect; see `docs/validation.md` "Honest qualifications" for the full diagnosis
+and the repair this leaves for a later spec revision.
 
 ### 13.8 Migration: interior and exterior, reported separately (decided 2026-09-12, phase B)
 

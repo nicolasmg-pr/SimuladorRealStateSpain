@@ -2111,14 +2111,36 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   Unchanged and still unreconciled: DO 2432's ≈36% of gross rent against AEAT's own 41–45% on the
   same object while citing it — neither of which **is** `c`, since both carry depreciation and
   interest.
-- **§7.2 did not exist until 2026-09-16, and is now specification only.** It had been cited in
-  `model-spec §13.7`, twice in this file and once in `config.CapResponseConfig` as the arbitrage
-  condition that would replace the rent cap's fitted `hazard_scale`, and it had never been
-  written. The spec also said until 2026-09-16 that §7.1 and §7.2 were "not coded until [`c`] is
-  retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was coded with it, so that sentence was
-  stale in both halves. §7.2 is now written (`model-spec §7.2`) and **no code has moved**: the
-  cap's withdrawal margin is still `hazard_scale`, and the Ley 12/2023 result stays
-  out-of-regime (`model-spec §5b.1`) until §7.2 is implemented and its F1–F4 are run.
+- **§7.2 did not exist until 2026-09-16; it is now written AND implemented.** It had been cited
+  in `model-spec §13.7`, twice in this file and once in `config.CapResponseConfig` as the
+  arbitrage condition that would replace the rent cap's fitted `hazard_scale`, and it had never
+  been written. The spec also said until 2026-09-16 that §7.1 and §7.2 were "not coded until
+  [`c`] is retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was coded with it, so that
+  sentence was stale in both halves. §7.2 is now written (`model-spec §7.2`) **and the code has
+  moved**: `hazard_scale`, `rental_supply_elasticity`, `exit_split_sale`, `exit_split_vacant`
+  and `exit_split_evasion_base` are retired, and the cap's withdrawal margin is the arbitrage
+  condition `cap < r_req`, decided in `agents/landlord._exit_destination`. Its F1–F4 have been
+  run against Ley 11/2020 (F4, the Ley 12/2023 out-of-sample test, is deferred until F1–F3 pass
+  per §7.2's own protocol), and three of the four calibration gates fail **on purpose** — see
+  the falsification recorded immediately below. The rent cap under Ley 12/2023 therefore stays
+  **not reportable** (`model-spec §13.7`, "Reporting consequence"); it does not move to
+  **direction** until F1–F3 pass and F4 lands inside the span.
+- **§7.2's arbitrage condition triggers mass withdrawal, and the rent leg flips sign — a
+  recorded, user-approved falsification (2026-09-16).** Under Ley 11/2020 the withdrawal
+  channel is meant to lower tensioned contract rents (target 8, F1); instead it RAISES them.
+  Measured, three seeds: **rent +53.6%, leases −78.7%** with the seasonal segment open;
+  **+52.2%, −76.7%** with it closed. This is not repaired here — it is a faithful, measured
+  consequence of the specified rule, registered for a later spec revision rather than tuned,
+  softened or skipped away.
+  **Diagnosis, which matters for that repair.** The sign flip comes from the **sale branch**,
+  not the seasonal one: closing the seasonal segment barely moves the rent figure (+52.2%
+  against +53.6%), so the seasonal diversion is a minor leak, not the driver. The sale
+  threshold compares **60 undiscounted months** of `(r_req − cap)` against `0.02·V`
+  (`selling_cost_share` shipped at 0.02), and since `r_req ≈ V·yield/(12·(1−c))`, a monthly
+  shortfall of roughly **15% of `r_req`** already clears that threshold over the horizon — so
+  nearly every binding cap ends up selling. The parameters that will decide the repair are
+  `holding_years` and `selling_cost_share` (both structural, both swept in F1/F2), **not**
+  `seasonal_evasion_share`, which the diagnosis above rules out as the lever.
 - **Index bases matter.** The price index is a quality-adjusted *transaction* index
   (IPV-like); its boom growth (+5–6%/yr) sits below the +12.7% (2025) IPV peak. The rent
   index agents see is an *asking* basis (idealista-like); the transacted median

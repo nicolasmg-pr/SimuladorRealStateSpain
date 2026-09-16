@@ -864,7 +864,8 @@ class Engine:
                 # the cap channel is the only producer left, and it never emits anything but
                 # "sale" and "seasonal" — so the vacancy fallback is dead code, deleted rather
                 # than kept, unlike a retired *parameter*.
-                assert w.destination == "seasonal", w.destination
+                if w.destination != "seasonal":
+                    raise ValueError(f"unexpected withdrawal destination: {w.destination!r}")
                 unit.tenure = Tenure.SEASONAL
 
         for ls in bundle.sale_listings:

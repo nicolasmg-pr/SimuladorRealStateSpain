@@ -132,11 +132,15 @@ def lever_params(lever: str) -> dict:
             "país ≈ 0,42 de la zona tensionada del modelo (BOE 29-jul-2026). Madrid, "
             "Andalucía, Valencia, Murcia y Castilla y León: 0. ⚠️ Con cobertura parcial hay "
             "que mirar los dos segmentos por separado: el alquiler medio del conjunto mezcla "
-            "pisos topados y no topados y se mueve con la mezcla. Con 0,42 y elasticidad 2 el "
-            "segmento declarado queda plano y pierde un 37% de contratos, mientras el no "
-            "declarado firma un 7% más a precios un 8% más altos — el desbordamiento que "
-            "muestra Cataluña (zonas tensionadas +1,6% frente a +9,4% fuera). "
-            "docs/validation.md T7.",
+            "pisos topados y no topados y se mueve con la mezcla. Medido ANTES de §7.2 "
+            "(2026-09-16), bajo el hazard fitted y el dial de elasticidad ya retirados: con "
+            "0,42 y elasticidad 2 el segmento declarado quedaba plano y perdía un 37% de "
+            "contratos, mientras el no declarado firmaba un 7% más a precios un 8% más "
+            "altos — el desbordamiento que muestra Cataluña (zonas tensionadas +1,6% frente "
+            "a +9,4% fuera). Bajo §7.2 la condición de arbitraje retira la elasticidad como "
+            "dial (ahora es un resultado) y el signo del alquiler cambia (ver "
+            "docs/validation.md, «Honest qualifications»); esta cifra concreta queda sin "
+            "remedir. docs/validation.md T7.",
         )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(

@@ -859,10 +859,17 @@ class CapResponseConfig:
     magnet_gain: float = 1.05
     magnet_gain_range: tuple[float, float] = (1.00, 1.10)
 
-    # PV horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth
-    # rate into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
-    # horizon a landlord discounts the capped stream over, and IS a guess: Spanish holding
-    # periods are not in docs/sources.md. [guess]
+    # Horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth rate
+    # into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
+    # horizon `agents/landlord` sums the monthly shortfall `(r_req - cap)` over — UNDISCOUNTED
+    # months; there is no present value anywhere in §7.2, unlike this comment used to claim
+    # (stale wording from the retired-hazard era, on a parameter the UI now exposes directly).
+    # `holding_years` stays a [guess]: Spanish holding periods ARE in docs/sources.md, since
+    # 2026-09-15 (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d,
+    # cited as a bound in §7.2's own Sources subsection), but the REALISED holding period is
+    # not the same quantity as the decision horizon a landlord weighs when comparing the
+    # withdrawal margin — treating them as one would be the error, which is exactly why the
+    # label stays. [guess]
     wedge_annualisation: float = 4.0
     holding_years: float = 5.0
     holding_years_range: tuple[float, float] = (3.0, 10.0)
