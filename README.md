@@ -22,11 +22,15 @@ uv sync --dev            # or: pip install -e ".[dev]"
 ## Run
 
 ```bash
-streamlit run src/resim/ui/app.py   # UI
-resim --help                        # headless run
-pytest                              # tests
-ruff check . && ruff format .       # lint + format
+uv run streamlit run src/resim/ui/app.py   # UI  (bare `streamlit` is not on PATH)
+uv run resim --help                        # headless run
+uv run pytest                              # tests
+uv run ruff check . && uv run ruff format .  # lint + format
+uv run python -m resim.levers --jobs 10    # the lever sweep behind docs/claims.md
 ```
+
+Everything runs through `uv run`, which uses the project venv without activating it. If you
+would rather type the bare commands, `source .venv/bin/activate` once per shell.
 
 ## Layout
 

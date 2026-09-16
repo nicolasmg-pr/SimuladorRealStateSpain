@@ -13,9 +13,12 @@ prices. Currently a scaffold — no model logic implemented. Roadmap: `docs/plan
 ## Commands
 
 - Setup: `uv sync --dev`
-- UI: `streamlit run src/resim/ui/app.py`
-- Test: `pytest`
-- Lint/format: `ruff check . && ruff format .`
+- UI: `uv run streamlit run src/resim/ui/app.py` (the bare `streamlit` is not on PATH — it
+  lives in the uv venv; `source .venv/bin/activate` once if you prefer the short form)
+- Test: `uv run pytest`
+- Lint/format: `uv run ruff check . && uv run ruff format .`
+- Lever sweep behind the claims ledger: `uv run python -m resim.levers --jobs 10`
+- Sensitivity: `uv run python -m resim.sensitivity morris --jobs 10` / `... sobol --jobs 10`
 
 ## Conventions
 
