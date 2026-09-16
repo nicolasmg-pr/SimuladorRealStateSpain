@@ -824,16 +824,25 @@ def test_ine_projection_vintages_all_decline_and_were_cut():
     assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
 
 
-def _rent_cap_response(
-    seeds=(1, 2, 3),
+def _rent_cap_response_per_seed(
+    seeds,
     *,
     index_binds_all: bool = False,
     selling_cost_share: float | None = None,
     intermediation_share: float | None = None,
     long_run_growth: float | None = None,
-) -> dict[str, float]:
+) -> dict[str, list[float]]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
-    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1.
+    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1. Returns the
+    PER-SEED list for each key rather than its mean — `_rent_cap_response`, below, is this
+    function averaged, and exists for every caller that only needs the pooled figure.
+
+    Split out 2026-09-16 (§7.2b Task 5, fix round 1) for G1, which the review found was
+    checking the SIGN of the pooled mean rather than "the rent sign correct in all ten seeds"
+    (model-spec §7.2b) — a model with six correctly-signed seeds and four inverted, averaging
+    negative, would have passed the mean check. G1 needs every seed's rent individually; the
+    ratio it also asserts stays on the pooled figures, computed from this same per-seed data so
+    the ten seeds are only run once.
 
     `selling_cost_share` is the structural parameter that now carries the supply-response
     dispute's price leg under model-spec §7.2 — there is no elasticity argument here, because
@@ -887,6 +896,28 @@ def _rent_cap_response(
         post = slice(24, 40)
         for key, col in (("rent", "rent_transacted_tensioned"), ("leases", "new_leases_tensioned")):
             out[key].append(cap[col].iloc[post].mean() / base[col].iloc[post].mean() - 1.0)
+    return out
+
+
+def _rent_cap_response(
+    seeds=(1, 2, 3),
+    *,
+    index_binds_all: bool = False,
+    selling_cost_share: float | None = None,
+    intermediation_share: float | None = None,
+    long_run_growth: float | None = None,
+) -> dict[str, float]:
+    """Mean over seeds of `_rent_cap_response_per_seed` — see there for what each run measures
+    and what every parameter does. Kept as the pooled-figure entry point every caller other
+    than G1 uses.
+    """
+    out = _rent_cap_response_per_seed(
+        seeds,
+        index_binds_all=index_binds_all,
+        selling_cost_share=selling_cost_share,
+        intermediation_share=intermediation_share,
+        long_run_growth=long_run_growth,
+    )
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
@@ -1034,9 +1065,17 @@ def test_g1_the_co_movement_emerges_at_the_shipped_parameters():
     witness somewhere in the declared ranges, and passed at ONE corner while three inverted
     the sign. G1 requires the rent sign right at the shipped values, with Δln contracts /
     Δln rent inside Monràs's 0.07–2.0 OLS-to-IV span.
+
+    The sign check is PER SEED, not on the pooled mean: model-spec §7.2b says "the rent sign
+    correct in all ten seeds", and a mean check would pass a model with six seeds right and
+    four inverted. Only the ratio, which is not a per-seed claim, stays on the pooled figures.
     """
-    r = _rent_cap_response(index_binds_all=True, seeds=tuple(range(1, 11)))
-    assert r["rent"] < 0, f"rent sign wrong at the shipped parameters: {r['rent']:+.1%}"
+    per_seed = _rent_cap_response_per_seed(tuple(range(1, 11)), index_binds_all=True)
+    assert all(rent < 0 for rent in per_seed["rent"]), (
+        f"rent sign wrong in at least one of the ten seeds: "
+        f"{[f'{rent:+.1%}' for rent in per_seed['rent']]}"
+    )
+    r = {k: float(np.mean(v)) for k, v in per_seed.items()}
     ratio = math.log1p(r["leases"]) / math.log1p(r["rent"])
     assert 0.07 <= ratio <= 2.0, f"co-movement outside Monràs's span: {ratio:.3f}"
 
@@ -1070,7 +1109,15 @@ def test_g4_the_growth_anchor_no_longer_flips_the_sign():
     10/10 above — a step function relocated, not removed, by the anchor. The table is in
     docs/validation.md. If the boundary survives, the dispersion is too narrow for the
     shortfall it faces.
+
+    Ten seeds, matching the table it is compared against — §7.2b's own text says "re-run the
+    TEN-SEED anchor sweep", and the anchors come from `MarketConfig.long_run_growth_sweep`
+    rather than a literal here, the same discipline G2 reads its corners from
+    `intermediation_share_regional_range` under.
     """
-    for anchor in (0.0025, 0.0050, 0.0100, 0.0200):
-        r = _rent_cap_response(index_binds_all=True, long_run_growth=anchor)
+    anchors = SimConfig.baseline().market.long_run_growth_sweep
+    for anchor in anchors:
+        r = _rent_cap_response(
+            index_binds_all=True, seeds=tuple(range(1, 11)), long_run_growth=anchor
+        )
         assert r["rent"] < 0, f"rent sign still flips at anchor {anchor}: {r['rent']:+.1%}"

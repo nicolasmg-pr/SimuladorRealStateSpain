@@ -533,6 +533,14 @@ class MarketConfig:
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]
+    # The §7.2b G4 comparison grid (model-spec §7.2b, Falsification): the four anchors the
+    # ten-seed rent-cap sweep in docs/validation.md re-runs `long_run_growth` at, spanning the
+    # pre-§7.2b regime boundary the sweep found between 4%/yr (0/10 seeds correctly signed) and
+    # 6%/yr (9/10) — 1%, 2%, 4%/yr sit inside the old 0/10 band, 8%/yr was already 10/10. A
+    # config field rather than a literal in the test, so the grid is declared once and the test
+    # reads it rather than retyping it (the same discipline `intermediation_share_regional_range`
+    # is read from, not hardcoded, in G2).
+    long_run_growth_sweep: tuple[float, float, float, float] = (0.0025, 0.0050, 0.0100, 0.0200)
     # Weight of this tick's median transaction in the index update. **MEASURED 2026-09-15**,
     # where it was a bare guess, and it is the second-largest term in the price level's
     # variance (Sobol ST 0.26). The observable: the price signal Spanish buyers, sellers and
