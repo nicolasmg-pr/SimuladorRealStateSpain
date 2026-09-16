@@ -486,10 +486,50 @@ class MarketConfig:
     # not reach the sourced 6.2% at any markup, and the old value was reproducing the ask, not
     # the negotiation. It is identified on the discount and nothing else
     seller_bargaining_power: float = 0.25
-    # Selling costs the seller must cover out of the price before the loan is repaid
-    # (notary, registry, plusvalía, agency) — the reserve's debt leg is debt + this
-    # [guess, order of magnitude from buyer_fees]
+    # Selling costs the seller must cover out of the price before the loan is repaid — the
+    # reserve's debt leg is debt + this. SOURCED 2026-09-16 (model-spec §7.2), two institutional
+    # viewpoints, because §7.2 makes this the rent cap's EXIT THRESHOLD and an exit threshold
+    # cannot be a guess.
+    #
+    # STATUTORY LEG. Código Civil art. 1455: the seller pays the `escritura matriz`, the buyer the
+    # first authorised copy and everything after — "salvo pacto en contrario", and the pacto in
+    # practice shifts more onto the buyer, so this is the seller's FLOOR. IIVTNU (TRLRHL arts.
+    # 104–110): the transmitente is the taxpayer, levied on the cadastral LAND value rather than
+    # the price, which is why it is small as a share of price. Aranceles RD 1426/1989 (notarial)
+    # and RD 1427/1989 (registry). Energy certificate and cédula are de minimis.
+    #   => self-sold, no agency: 0.005–0.015 of price.
+    #
+    # MARKET LEG. Agency commission 3–5% + IVA; at 21% IVA a 4% fee costs 4.84% of price. Large
+    # networks 5–7%, small agencies 1–4%.
+    #   => agency sale: 0.04–0.07 of price.
+    #
+    # WHICH ROUTE, and this is what fixes the point value rather than only the band: agencies
+    # intermediate **64% of second-hand purchases** [Fotocasa Research] and ~70% of all operations
+    # [idealista] — two portals, independently collected, agreeing within 6pp while competing for
+    # the same sellers. At a 0.66 weight:
+    #   0.66 * 0.055 + 0.34 * 0.010 = 0.040.
+    #
+    # EXCLUDED DELIBERATELY: IRPF on the realised gain (19–28% OF THE GAIN, not of the price). It
+    # is a real cost of exiting, but §7.2's `r_req` already nets E[g] and the model carries no
+    # per-unit gain basis, so pricing it here would double-count appreciation or invent a basis.
+    # Same discipline by which `landlord_cost_share` excludes vacancy.
+    #
+    # THE SOURCED VALUE IS 0.040 AND THIS SHIPS 0.02 — deliberately, and not for long. Measured
+    # on 2026-09-16, moving it to 0.040 fixes one registered strict xfail and breaks two targets
+    # in channels that have nothing to do with the rent cap:
+    #   XPASS   test_non_resident_surcharge_removes_foreign_purchases  (restored)
+    #   FAIL    test_rate_shock_cuts_transactions_before_prices        (regression)
+    #   FAIL    test_forbearance_raises_the_arrears_stock_and_lowers_the_flow (regression)
+    # The mechanism is `market/clearing.py`'s reserve floor, max(debt*(1+k), ask*(1-discount)):
+    # raising k lifts the floor for every INDEBTED seller and suppresses sales. This parameter was
+    # a [guess] co-calibrated with other guesses, and sourcing it alone breaks that joint.
+    # Shipping the change belongs on its own branch with its own write-up of those three channels,
+    # so that §7.2's own falsifications (F1–F3) stay attributable to the MECHANISM rather than to
+    # a parameter that moved underneath them. The BAND below is sourced and is swept; only the
+    # point value waits.
     selling_cost_share: float = 0.02
+    # The sourced band, spanning the two real sale routes — NOT an error margin.
+    selling_cost_share_range: tuple[float, float] = (0.01, 0.07)
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]

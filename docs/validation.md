@@ -2068,6 +2068,31 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **`selling_cost_share` is sourced as a BAND, and the point value is deliberately not shipped
+  yet (2026-09-16).** §7.2 makes this parameter the rent cap's exit threshold, so it stopped being
+  tolerable as a `[guess, order of magnitude from buyer_fees]`. Two institutional viewpoints now
+  bound it. **Statutory**: Código Civil art. 1455 puts the `escritura matriz` on the seller and
+  everything after it on the buyer — *salvo pacto*, and the pacto shifts more onto the buyer, so
+  this is a floor; IIVTNU falls on the transmitente but is levied on cadastral **land** value, not
+  on price; aranceles RD 1426/1989 and RD 1427/1989. That gives **0.5–1.5% for a self-sold
+  dwelling**. **Market**: agency commission 3–5% + IVA — at 21% IVA a 4% fee costs 4.84% of price
+  — giving **4–7% for an agency sale**. What fixes the point rather than the band is the
+  intermediation share: agencies handle **64% of second-hand purchases** [Fotocasa Research] and
+  **≈70% of all operations** [idealista], two portals competing for the same sellers and agreeing
+  within 6pp. Weighting the two routes at 0.66 gives **0.040**.
+  **The model still ships 0.02.** Moving it to 0.040 was measured on the full suite and it fixes
+  one registered strict xfail while breaking two targets in channels unrelated to the rent cap:
+  `test_non_resident_surcharge_removes_foreign_purchases` **XPASSes** (restored — its note recorded
+  that the surcharge no longer cleared the 25% threshold because the foreign base had fallen to
+  2.28%), while `test_rate_shock_cuts_transactions_before_prices` and
+  `test_forbearance_raises_the_arrears_stock_and_lowers_the_flow` **regress**. The mechanism is
+  `market/clearing.py`'s reserve floor, `max(debt·(1+k), ask·(1−discount))`: raising `k` lifts the
+  floor for every indebted seller and suppresses sales. The parameter was a guess co-calibrated
+  with other guesses, and sourcing it alone breaks that joint — which is this register's recurring
+  finding, not a new one. Shipping the value belongs on its own branch with its own write-up of
+  those three channels, so that §7.2's falsifications stay attributable to the mechanism rather
+  than to a parameter that moved underneath them. The **band is sourced and is swept**; only the
+  point waits.
 - **`landlord_cost_share` now has two institutions behind it, and they do not say the same
   thing — on purpose.** The shipped `c = 0.22` (range 0.20–0.24) comes from AEAT's declared-rent
   P&L with depreciation and mortgage interest stripped out. Since 2026-09-16 the second source is

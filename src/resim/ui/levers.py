@@ -81,12 +81,19 @@ def lever_params(lever: str) -> dict:
         params["selling_cost_share"] = st.slider(
             "Coste de vender (fracción del precio)",
             0.01,
-            0.03,
+            0.07,
             0.02,
-            0.01,
+            0.005,
             help="Umbral de salida de §7.2: el casero vende cuando el déficit acumulado del "
-            "alquiler topado supera este coste. Aranceles notariales y registrales, plusvalía "
-            "municipal y comisión de agencia. Barato = salidas fáciles.",
+            "alquiler topado supera este coste. Los dos extremos son dos rutas de venta reales, "
+            "no un margen de error: **0,01 = venta propia** (sólo matriz, plusvalía y aranceles; "
+            "Código Civil art. 1455) y **0,07 = venta con agencia** (comisión 3–5% + IVA, redes "
+            "grandes hasta 7%). El valor fundamentado es 0,04 — pondera las dos rutas por la "
+            "cuota de "
+            "intermediación: las agencias intervienen en el 64% de las compraventas de segunda "
+            "mano (Fotocasa) y ~70% del total (idealista). El modelo aún envía 0,02: moverlo "
+            "descoloca tres canales ajenos al tope, y ese cambio va en su propia rama. "
+            "No incluye el IRPF de la ganancia.",
         )
         params["holding_years"] = st.slider(
             "Horizonte de la decisión (años)",

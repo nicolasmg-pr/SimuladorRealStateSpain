@@ -85,7 +85,7 @@ SPACE: dict[str, tuple[float, float]] = {
     "auction_increment": (0.002, 0.010),
     "momentum_gain": (1.5, 3.5),
     "max_listing_ticks": (4.0, 8.0),
-    "selling_cost_share": (0.01, 0.03),
+    "selling_cost_share": (0.01, 0.07),  # widened to the sourced band, 2026-09-16
     # --- phase C, insolvency (model-spec §6c) ---------------------------------------------
     # The jobless PATH is data and is not here: screening it would measure the world's
     # uncertainty, not the model's. What is here is everything the model had to assume.
