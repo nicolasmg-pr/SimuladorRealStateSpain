@@ -2068,6 +2068,49 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **§7.2b step 1: re-anchoring does NOT rescue §7.2, and the sweep that tested it refutes the
+  hypothesis that proposed it (2026-09-16).** §7.2's F3 record said the cap's sign depends on the
+  growth anchor, that the baseline runs at 2%/yr against Catalan evidence generated at HPI +12.7%,
+  and that re-running F1 across the anchor was the first thing §7.2b should do before changing any
+  mechanism. Done, properly: **ten seeds**, seven anchors, Ley 11/2020 (`index_binds_all=True`),
+  cap at tick 20 of 40, mean over the 16 post-cap ticks, scenario over baseline − 1, sweeping
+  `MarketConfig.long_run_growth`.
+
+  | anchor /tick | ≈%/yr | rent | new leases | Δln ratio | seeds with the rent sign right |
+  |---|---|---|---|---|---|
+  | 0.0025 | 1% | +32.6% ± 6.4 | −26.6% ± 2.4 | — | 0/10 |
+  | 0.0050 | 2% | +45.3% ± 14.6 | −33.1% ± 2.7 | — | 0/10 |
+  | 0.0075 | 3% | +52.1% ± 12.7 | −34.1% ± 3.5 | — | 0/10 |
+  | 0.0100 | 4% | +36.1% ± 13.6 | −35.1% ± 2.7 | — | 0/10 |
+  | 0.0150 | 6% | −12.7% ± 23.3 | −31.9% ± 5.2 | 2.392 | 9/10 |
+  | 0.0200 | 8% | −36.9% ± 5.4 | −7.7% ± 9.0 | **0.206** | 10/10 |
+  | 0.0300 | 12% | −40.5% ± 5.0 | −0.1% ± 2.6 | 0.003 | 10/10 |
+
+  **It is not seed noise.** 0/10 below 4%/yr, 9/10 at 6%, 10/10 at 8% and above: a sharp regime
+  boundary between 4% and 6%, which is what the earlier three-seed probe had seen as a
+  non-monotone curve.
+
+  **But re-anchoring moves the model from one pathology to another, so it is not the repair.**
+  Below ≈5%/yr the cap triggers mass exit and raises rents. At the **observed** anchor — 12%/yr,
+  matching HPI +12.7% (2025) — the supply response vanishes entirely: new leases −0.1% ± 2.6,
+  a cap with no quantity effect at all, against a rent cut of 40.5%. The Δln contracts / Δln rent
+  ratio is inside Monràs's 0.07–2.0 span at **exactly one anchor, 8%/yr**, and that anchor is
+  neither the baseline nor the observed one. And the rent MAGNITUDE is wrong everywhere: Monràs
+  measures −5%, the model gives −36.9% and −40.5% where it gets the sign right — a factor of
+  seven to eight.
+
+  **Diagnosis, and it is the frictionless condition seen from its other side.** The exit decision
+  is a **step function in E[g]**. With E[g] low, `r_req` is high, the cap breaks it on nearly every
+  unit, and everyone sells. With E[g] high, `r_req` collapses because appreciation alone pays the
+  required return, the cap never breaks it, and nobody sells. There is no stable intermediate
+  regime — only a narrow boundary the curve passes through. A mechanism with no friction cannot
+  produce Monràs's −10% of tenancies at ANY anchor, because it has no way to make *some* landlords
+  leave and others stay.
+
+  **Consequence: §7.2b is a redesign, not a recalibration.** The friction declined in §7.2's design
+  — the option value of waiting for a cap declared for a fixed term — is not optional, and this
+  sweep is the evidence for why. Re-anchoring is now a **closed** line of repair, recorded so it is
+  not reopened.
 - **§7.2 F3 does not fire, and the probe that settled it found something larger
   (2026-09-16).** F3 asked whether `min_required_yield` — a `[guess]` — was governing the SIGN of
   the rent-cap result, by flooring `required_yield = max(min_required_yield, bond + π·risk − E[g])`
