@@ -964,7 +964,13 @@ G1.
 >   gate re-runs — 0/10 seeds correctly signed below 4%/yr, 10/10 at 6%/yr and above — is gone:
 >   the three anchors that actually discriminate (1, 2 and 4%/yr, each inside the old 0/10 band)
 >   moved to **10/10**. The 8%/yr corner was already 10/10 before this branch and discriminates
->   nothing.
+>   nothing. **G4 verified only the rent SIGN at these ten seeds; the per-anchor rent and lease
+>   MAGNITUDES were not captured**, so the quantity leg's behaviour across the anchor sweep
+>   remains unmeasured at full statistical power. A superseded three-seed probe (disclaimed as
+>   not this gate's own measurement) had shown new leases turning **positive (+0.76%)** at the
+>   8%/yr anchor even while rent stayed negative — the same large-quantity-response pattern G1
+>   falsifies at the shipped anchor, visible again across the anchor but not confirmed at ten
+>   seeds.
 >
 > **Two findings, neither predicted, that belong on the record with the gates themselves.**
 >
@@ -986,6 +992,13 @@ G1.
 > co-movement ratio, not a bare sign check — and it is the one that fails. The sign is repaired;
 > the size is not, and the excess sits in the quantity leg (new leases −46.6% against Monràs's
 > −10% and Pérez García's −13% tenancies), not in the price leg alone.
+>
+> **The price leg carries its own excess too, and it has a number.** Rent −16.2% against
+> Monràs's −5% point estimate is **≈3.2×** the sourced magnitude — smaller than §7.2's ≈7×
+> overshoot at the one anchor where §7.2's sign was correct, but not close to closed: three
+> times the sourced figure is a registered excess, not a rounding difference. This sits
+> alongside the quantity leg's excess above, not instead of it — both legs are too large, not
+> only the ratio between them.
 >
 > **Suite at `ea7a795`: 3 failed / 177 passed / 9 xfailed.** The three reds:
 > `test_shadow_rent_stays_anchored_under_a_cap` and

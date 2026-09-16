@@ -2149,13 +2149,21 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   | G1 | **FAILS** | rent −16.2% (sign correct, all ten seeds individually), leases −46.6%, Δln ratio **3.563** against Monràs's 0.07–2.0 span |
   | G2 | PASSES | \|Δleases\| = **34.7pp** across the sourced `intermediation_share` corners: 0.40 → −61.6% leases (rent −7.0%); 0.85 → −26.8% leases (rent −17.7%) |
   | G3 | PASSES | 133 withdrawals ticks 20–25 against 84 ticks 26–31 (one seed, `start_tick=20`, `term_ticks=12`) — front-loaded within the declared term |
-  | G4 | PASSES | rent sign negative at all four sourced anchors (1/2/4/8%/yr), ten seeds each; the pre-§7.2b boundary (0/10 below 4%/yr, 10/10 at 6%/yr+) is gone at the three anchors that discriminate (1, 2, 4%/yr each moved 0/10 → 10/10) — 8%/yr was already 10/10 before this branch and discriminates nothing |
+  | G4 | PASSES | rent sign negative at all four sourced anchors (1/2/4/8%/yr), ten seeds each; the pre-§7.2b boundary (0/10 below 4%/yr, 10/10 at 6%/yr+) is gone at the three anchors that discriminate (1, 2, 4%/yr each moved 0/10 → 10/10) — 8%/yr was already 10/10 before this branch and discriminates nothing. **Sign only** — per-anchor rent/lease magnitudes were not captured at ten seeds |
 
   **G1's failure is purely magnitude, not sign dispersion.** Its per-seed sign assertion passed:
   all ten seeds are individually correctly signed, so there is no sign inversion hiding under
   the pooled mean the way §7.2's F1 had. The `3.563` ratio comes from the quantity leg
   (−46.6% new leases) moving far more than the price leg (−16.2% rent) — the model still sheds
   contracts several times faster than the sourced studies' own quantity-to-price ratio allows.
+
+  **G4's magnitude at ten seeds is unmeasured — only the sign was checked.** The per-anchor rent
+  and lease magnitudes were not captured at ten seeds, so the quantity leg's behaviour across
+  the anchor sweep remains unverified at full statistical power. A superseded three-seed probe
+  (explicitly disclaimed at the time as not this gate's own measurement) had shown new leases
+  turning **positive (+0.76%)** at the 8%/yr anchor while rent stayed negative — the same
+  large-quantity-response pattern G1 falsifies at the shipped anchor, seen again across the
+  anchor but not confirmed at the ten seeds G4 actually runs.
 
   **Two findings, neither predicted, that belong in this record with the gates themselves.**
 
@@ -2179,6 +2187,13 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   sign of who exits is repaired; the size of the response is not, and the excess sits in the
   quantity leg (new leases, against Monràs's −10% and Pérez García's −13% tenancies), not in
   the price leg alone.
+
+  **The price leg carries its own excess too, and it has a number.** Rent −16.2% against
+  Monràs's −5% point estimate is **≈3.2×** the sourced magnitude — smaller than §7.2's ≈7×
+  overshoot at the one anchor where §7.2's sign was correct, but not close to closed: three
+  times the sourced figure is a registered excess, not a rounding difference. It sits alongside
+  the quantity leg's excess above, not instead of it — both legs are too large, not only the
+  ratio between them.
 
   **Suite at `ea7a795`: 3 failed / 177 passed / 9 xfailed.** The three reds:
   `test_shadow_rent_stays_anchored_under_a_cap` and
