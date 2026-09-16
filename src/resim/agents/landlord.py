@@ -9,9 +9,10 @@ Rules (investor-small §3, rent-cap §5, withdrawal margin §7.2):
     + perceived (not actual) default risk markup.
   - A cap that still clears the landlord's reservation rent is nothing to arbitrage
     against: no withdrawal. A cap that breaks the reservation hurdle is weighed against
-    the alternative uses of the capital — sale beats letting when the cumulative
-    shortfall over the holding horizon exceeds the cost of leaving (`_exit_destination`,
-    §7.2). The seasonal-segment diversion, the cheaper exit, is not yet wired in.
+    the alternative uses of the capital: the seasonal-segment diversion first, because it
+    is the cheaper exit, then sale, which beats letting when the cumulative shortfall over
+    the holding horizon exceeds the cost of leaving (`_exit_destination`, §7.2). Vacancy is
+    not a branch — it is the sale channel waiting for `clear_sales` to match it.
   - Below-cap units drift UP toward the reference (the cap is a magnet, Monràs).
 """
 
@@ -237,11 +238,20 @@ class SmallLandlords:
     ) -> str | None:
         """§7.2. Which alternative use beats letting at the cap, or None if none does.
 
-        Task 2 scope: the sale branch only (the seasonal branch, evaluated before it because
-        it is the cheaper exit, is Task 3's). Until then this returns "sale" or None.
+        Evaluated in the branch order the spec fixes ("Branch order, and the natural
+        experiment that tests it"): SEASONAL first, then SALE. There is no third branch —
+        vacancy is not a destination this method ever returns (spec §7.2, "Vacancy is not a
+        branch"); a unit that sells sits empty only while waiting for `clear_sales` to match
+        it, which is an output of the sale channel, not a choice made here.
         """
         cfg = state.config
         capcfg, pol, zs = cfg.cap_response, cfg.policy, state.zones[unit.zone]
+        # SEASONAL, evaluated FIRST because it is the cheap exit: diverting to a seasonal
+        # contract pays no transaction cost and selling does. Closing the segment therefore
+        # pushes exits into sales, which is the comparative static Ley 11/2025 dated.
+        seasonal_open = not pol.seasonal_segment_capped
+        if seasonal_open and self.rng.random() < cfg.market.seasonal_evasion_share:
+            return "seasonal"
         # SALE. The shortfall WIDENS over the horizon: the cap grows at the statutory IRAV
         # while the reservation rent grows with V and E[g]. The (1 + H·wedge/2) factor is the
         # trapezoid of that widening gap — arithmetic, not a parameter. No double-counting of
@@ -255,22 +265,3 @@ class SmallLandlords:
         if shortfall > value * cfg.market.selling_cost_share:
             return "sale"
         return None
-
-    def _exit(self, unit_id: int, state: WorldState) -> WithdrawRental:
-        pol = state.config.policy
-        capcfg = state.config.cap_response
-        u = self.rng.random()
-        seasonal_open = not pol.seasonal_segment_capped
-        p_sale = capcfg.exit_split_sale
-        p_seasonal = capcfg.exit_split_seasonal * (
-            state.config.market.seasonal_evasion_share / capcfg.exit_split_evasion_base
-            if seasonal_open
-            else 0.0
-        )
-        if u < p_sale:
-            dest = "sale"
-        elif u < p_sale + p_seasonal:
-            dest = "seasonal"
-        else:
-            dest = "vacant"
-        return WithdrawRental(agent_id=self.id, unit_id=unit_id, destination=dest)

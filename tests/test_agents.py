@@ -1,5 +1,6 @@
 """Agent decision tests — each actor in isolation, against a hand-built WorldState."""
 
+import collections
 import copy
 
 import numpy as np
@@ -80,6 +81,21 @@ def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
     return state, landlord
 
 
+def _exit_destinations(state, landlord: SmallLandlords, *, draws: int = 200) -> collections.Counter:
+    """Counter of `WithdrawRental.destination` over `draws` calls to `landlord.decide`.
+
+    State is never mutated by `decide` (agents are read-only, engine.py is the only writer —
+    CLAUDE.md), so the same candidate unit is redrawn every call rather than being consumed
+    after its first exit.
+    """
+    counter: collections.Counter = collections.Counter()
+    for _ in range(draws):
+        for intent in landlord.decide(state):
+            if isinstance(intent, WithdrawRental):
+                counter[intent.destination] += 1
+    return counter
+
+
 def test_a_cap_that_binds_but_clears_the_hurdle_produces_no_withdrawal():
     """§7.2. The trigger is the reservation rent, not the cap binding at all.
 
@@ -97,8 +113,12 @@ def test_a_cap_that_binds_but_clears_the_hurdle_produces_no_withdrawal():
 def test_sale_requires_the_shortfall_to_beat_the_cost_of_leaving():
     """§7.2 sale rule. The cumulative shortfall over the holding horizon must exceed the
     cost of leaving. A cap one euro below the reservation rent does not pay for a sale.
+
+    Seasonal closed (`seasonal_closed=True`) isolates the sale rule under test: since Task 3
+    the seasonal branch is evaluated first and diverts independently of the shortfall, so an
+    open segment would let seasonal exits through here regardless of this test's premise.
     """
-    state, landlord = _capped_state(cap_ratio=0.999)
+    state, landlord = _capped_state(cap_ratio=0.999, seasonal_closed=True)
     intents = [i for _ in range(200) for i in landlord.decide(state)]
     withdrawals = [i for i in intents if isinstance(i, WithdrawRental)]
     assert not withdrawals, f"{len(withdrawals)} withdrawals from a shortfall too small to sell"
@@ -110,6 +130,22 @@ def test_a_deep_cap_pays_for_the_sale():
     intents = [i for _ in range(200) for i in landlord.decide(state)]
     dests = {i.destination for i in intents if isinstance(i, WithdrawRental)}
     assert dests == {"sale"}
+
+
+def test_closing_the_seasonal_segment_pushes_exits_into_sales():
+    """§7.2 branch order, and the comparative static Catalonia dated for us.
+
+    Seasonal is the cheap exit — it pays no transaction cost — so it is taken first.
+    Closing the segment (Ley 11/2025, in force 1 Jan 2026) must therefore convert
+    seasonal exits into sales, not into staying let. Incasòl measured the quarter:
+    seasonal contracts −1,233, the first fall since the cap began.
+    """
+    open_ = _exit_destinations(*_capped_state(cap_ratio=0.4))
+    closed = _exit_destinations(*_capped_state(cap_ratio=0.4, seasonal_closed=True))
+    assert open_["seasonal"] > 0
+    assert closed["seasonal"] == 0
+    assert closed["sale"] > open_["sale"]
+    assert "vacant" not in open_ and "vacant" not in closed
 
 
 def test_household_cannot_bid_above_credit_limit():

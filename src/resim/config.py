@@ -770,18 +770,18 @@ class CapResponseConfig:
     forbids reporting any magnitude the span dominates.
     """
 
-    # Where a withdrawn unit goes: sale / seasonal let / held vacant. Shares, sum to 1.
-    # [guess — open question investor-small §7.1. No Spanish study decomposes withdrawals.]
-    exit_split_sale: float = 0.50
-    exit_split_seasonal: float = 0.35
-    exit_split_vacant: float = 0.15
-    # Span admitted for the sale leg; the other two absorb the remainder proportionally.
-    exit_split_sale_range: tuple[float, float] = (0.35, 0.65)
-
-    # The seasonal evasion level EXIT_SPLIT was written at; the seasonal branch scales
-    # proportionally when `MarketConfig.seasonal_evasion_share` is swept away from it.
-    # [Incasòl — medium]
-    exit_split_evasion_base: float = 0.15
+    # RETIRED (2026-09-16). `exit_split_sale` (0.50), `exit_split_seasonal` (0.35),
+    # `exit_split_vacant` (0.15), `exit_split_sale_range` ((0.35, 0.65)) and
+    # `exit_split_evasion_base` (0.15) used to fix, as a proportional rescaling, where a
+    # withdrawn unit went — [guess — open question investor-small §7.1. No Spanish study
+    # decomposes withdrawals], a convention `docs/assumptions.md` itself called "a convention
+    # with no episode behind it". §7.2's direct branches (`Landlord._exit_destination`) no
+    # longer need a split to rescale: SEASONAL is a draw against
+    # `MarketConfig.seasonal_evasion_share` gated on the segment being open, SALE is the
+    # deterministic shortfall-vs-cost-of-leaving rule, and vacancy was never a destination
+    # (model-spec §7.2, "Vacancy is not a branch") — the empty share left withdrawal is now an
+    # output of the sale channel's own clearing delay, not an input split. Kept as a dated
+    # note rather than deleted outright: this project keeps the archaeology of its parameters.
 
     # Maps the per-listing quarterly exit hazard onto the studies' annual contract-flow
     # elasticity. FITTED, not observed [docs/experiments/rent-cap.md]. A fitted constant with
