@@ -823,9 +823,21 @@ def test_ine_projection_vintages_all_decline_and_were_cut():
     assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
 
 
-def _rent_cap_response(seeds=(1, 2, 3), *, index_binds_all: bool = False) -> dict[str, float]:
+def _rent_cap_response(
+    seeds=(1, 2, 3),
+    *,
+    index_binds_all: bool = False,
+    selling_cost_share: float | None = None,
+    holding_years: float | None = None,
+) -> dict[str, float]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
-    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1."""
+    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1.
+
+    `selling_cost_share` and `holding_years` are the two structural parameters that now carry
+    the supply-response dispute under model-spec §7.2 — there is no elasticity argument here,
+    because the dial it used to set (`rental_supply_elasticity`) is retired. `None` leaves the
+    baseline `MarketConfig` / `CapResponseConfig` value untouched.
+    """
     from resim.scenario import RentCap
 
     out: dict[str, list[float]] = {"rent": [], "leases": []}
@@ -841,6 +853,8 @@ def _rent_cap_response(seeds=(1, 2, 3), *, index_binds_all: bool = False) -> dic
                         RentCap(
                             start_tick=20,
                             index_binds_all=index_binds_all,
+                            selling_cost_share=selling_cost_share,
+                            holding_years=holding_years,
                         ),
                     ),
                 )
@@ -870,75 +884,66 @@ def test_rent_cap_lowers_contract_rents():
     rent rises with it, and the rent side inherits the channel. Finding 2 of the redesign
     spec is closed on both sides by the same change.
 
-    Measured after phase D: contract rents **−3.6%** under the cap, at both ends of the
-    supply-elasticity dial, against +4.9% (the wrong sign) before it.
+    Measured after phase D, under the since-retired `hazard_scale` dial: contract rents
+    **−3.6%** under the cap, at both ends of that dial, against +4.9% (the wrong sign)
+    before it.
+
+    REOPENED by model-spec §7.2 (2026-09-16). `hazard_scale` and `rental_supply_elasticity`
+    are retired; withdrawal is now decided by the arbitrage condition `cap < r_req` instead.
+    At the shipped `selling_cost_share`/`holding_years`, under this same Ley 11/2020 regime,
+    that condition drives enough mass withdrawal that transacted rents in the capped zone
+    RISE rather than fall (measured ≈+54%, three seeds). This is a faithful, measured
+    consequence of the specified rule — recorded as a falsification (§7.2's Falsification
+    subsection), not tuned away here. See
+    test_the_supply_elasticity_lands_inside_the_monras_span for whether the correct sign is
+    reachable anywhere in the declared ranges.
     """
     # Ley 11/2020, for the reason the Monràs test gives: target 8 comes from the Catalan
-    # evaluations, and `hazard_scale` was identified in that regime. Under the current statute
-    # (Ley 12/2023, the index binding grandes tenedores only) the same lever raises rents 1.4%
-    # here and 16.6% over the ledger's longer horizon, because the cap barely binds on
-    # individuals while the withdrawal channel keeps firing on a hazard nothing has
-    # re-identified. That result is recorded in docs/claims.md as NOT reportable rather than
-    # asserted here (model-spec §5b).
+    # evaluations, which is the regime the withdrawal channel is being asked to reproduce.
+    # The current statute's (Ley 12/2023) out-of-sample behaviour under §7.2 is F4, run once
+    # and registered separately (docs/claims.md) rather than asserted here.
     assert _rent_cap_response(index_binds_all=True)["rent"] < -0.01
 
 
-def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
-    """Target 8, supply leg, WEAK form: elasticity 2 must produce a real contraction.
+def test_rent_cap_supply_response_is_negative_at_the_shipped_structural_parameters():
+    """Target 8, supply leg, WEAK form: at the shipped `selling_cost_share` and
+    `holding_years` (model-spec §7.2), the withdrawal channel must still produce a real
+    contraction in new leases — regardless of what the price leg does.
 
     Asserted at −5%, well below what the studies report, so seed noise (σ ≈ 3pp on 3 seeds)
-    does not flip it. This is the leg that survives phase A; the strong form — reaching
-    Monràs — is the strict xfail below.
+    does not flip it. This is the leg that survives §7.2's arbitrage condition and sits BELOW
+    the strong form: test_rent_cap_reproduces_the_monras_co_movement, below, additionally
+    requires the price leg to be correctly signed and inside the studies' band — which is
+    where §7.2 currently fails (test_rent_cap_lowers_contract_rents).
 
     History: this failed as a strict xfail until the tensioned-tightness revision, when
     metro-weighted formation (`formation_zone_weights`) and the shadow rent landlords compare
-    the cap against (`ZoneState.shadow_rent`) fixed it. The full sweep is in
-    docs/experiments/rent-cap.md.
+    the cap against (`ZoneState.shadow_rent`) fixed it. Renamed 2026-09-16 when model-spec
+    §7.2 retired the `rental_supply_elasticity` dial this test's old name referred to — the
+    channel producing this contraction is now the arbitrage condition, not a fitted hazard on
+    a dial, but the quantity-leg contraction itself still holds at the shipped parameters. The
+    full sweep is in docs/experiments/rent-cap.md.
     """
     assert _rent_cap_response(index_binds_all=True)["leases"] < -0.05
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "STILL OPEN, and re-diagnosed on 2026-09-15 after §5b split the cap into the two "
-        "regimes the statutes actually have. Under Catalonia's Ley 11/2020, which is the law "
-        "these three studies measure, the model cuts transacted tensioned rents **20.6%** at "
-        "elasticity 2 against a measured ≈5%, with contracts −51%. Under Ley 12/2023, the law "
-        "in force, the same lever cuts rents 3.8% and contracts 2.1% at elasticity 1 — inside "
-        "the studies' range, but that is a different statute and it is not evidence about "
-        "this one. What is left of the overshoot is now one identified quantity: the model's "
-        "reference index sits **16% below market rents at activation** (measured, three "
-        "seeds), where the published implied cuts are −10…−15% for the Catalan index and "
-        "−20% on average for the state index [Infobae/Cambra de la Propietat, Mar 2024]. The "
-        "model's cap is therefore harder than the one Monràs evaluated, and the rest of the "
-        "gap is compliance, composition and the contracts already below the index — none of "
-        "which the model separates. Closing it means calibrating the reference's distance "
-        "from market per regime, which is a §5b specification decision."
-    ),
-)
 def test_rent_cap_reproduces_the_monras_co_movement():
-    """Target 8, supply leg: Monràs is a CO-MOVEMENT, not a quantity.
+    """Target 8, supply leg. Under §7.2 this measures something strictly stronger than it
+    used to: the co-movement is no longer produced by a dial set to 2.0, it EMERGES from
+    the arbitrage condition at the shipped structural parameters.
 
-    Monràs & García-Montalvo measure Δln contracts / Δln rent ≈ 2 — roughly −10% tenancies AT
-    −5% rents. Both halves are the claim. A model that sheds tenancies while rents RISE has not
-    reproduced that elasticity; it has reproduced one number out of two and inverted the other.
+    Monràs & García-Montalvo: Δln contracts / Δln rent ≈ 2 — roughly −10% tenancies at −5%
+    rents. Both halves are the claim; a model that sheds tenancies while rents RISE has
+    reproduced one number and inverted the other.
 
-    Asserted on both legs at elasticity 2: contracts below −9%, and rents inside the −4…−6% the
-    three studies report, widened a point on each side for seed noise.
-
-
-    CLOSED BY PHASE D (2026-09-14), and by the mechanism the xfail predicted would
-    close it. The §7.1 hurdle made the landlord's reservation rent a function of the
-    dwelling's VALUE, and the sale side had no scarcity-to-price channel, so that floor
-    only ever fell. With expectations reaching the sale price through the auction's
-    valuation anchor (§5c.1), the value rises when the market is tight, the reservation
-    rent rises with it, and the rent side inherits the channel. Finding 2 of the redesign
-    spec is closed on both sides by the same change.
-
-    Measured after phase D: rents **−3.6%** and contracts **−11.1%** at elasticity 2,
-    against +6.8% rents (wrong sign) and −21.8% contracts before it. Monràs and
-    García-Montalvo's −5% / −10% pair now sits inside the dial rather than outside it.
+    History: closed by phase D (2026-09-14) under the since-retired `hazard_scale` dial
+    (rents −3.6%, contracts −11.1% at elasticity 2, against +6.8% rents — the wrong sign —
+    and −21.8% contracts before it). REOPENED by model-spec §7.2 (2026-09-16): the arbitrage
+    condition's mass withdrawal now sends contract rents UP (measured ≈+54%, three seeds)
+    while contracts still contract, so only the quantity leg survives. This is a faithful,
+    measured consequence of the specified rule, not a bug in the test — see
+    test_the_supply_elasticity_lands_inside_the_monras_span (§7.2 F1) for whether the
+    correct sign is reachable anywhere in the declared ranges.
     """
     # Catalonia's Ley 11/2020 bound the index on EVERY landlord, which is the world these
     # three studies measure. The model's default lever is Ley 12/2023, where the index binds
@@ -947,3 +952,24 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     response = _rent_cap_response(index_binds_all=True)
     assert response["leases"] < -0.09, f"quantity leg: {response['leases']:.1%}"
     assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"
+
+
+def test_the_supply_elasticity_lands_inside_the_monras_span():
+    """§7.2 F1. The elasticity is an OUTPUT now. Somewhere in the declared ranges of the two
+    structural parameters — `MarketConfig.selling_cost_share_range` and
+    `CapResponseConfig.holding_years_range` — the model must produce Δln contracts / Δln rent
+    inside Monràs's own OLS-to-IV span of 0.07–2.0. If no corner reaches it, §7.2 is false and
+    is NOT rescued by restoring a scale factor.
+    """
+    cfg = SimConfig.baseline()
+    cost_lo, cost_hi = cfg.market.selling_cost_share_range
+    horizon_lo, horizon_hi = cfg.cap_response.holding_years_range
+    ratios = []
+    for cost in (cost_lo, cost_hi):
+        for horizon in (horizon_lo, horizon_hi):
+            r = _rent_cap_response(
+                index_binds_all=True, selling_cost_share=cost, holding_years=horizon
+            )
+            if r["rent"] < -0.001:
+                ratios.append(r["leases"] / r["rent"])
+    assert any(0.07 <= x <= 2.0 for x in ratios), f"no corner inside the span: {ratios}"
