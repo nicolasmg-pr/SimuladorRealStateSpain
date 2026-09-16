@@ -61,8 +61,8 @@ def lever_params(lever: str) -> dict:
             "Qué ley se aplica",
             ("Ley 11/2020 — Cataluña 2020–22", "Ley 12/2023 — la ley vigente"),
             help="Ley 11/2020 ataba el índice de referencia a TODOS los caseros, y es el "
-            "mundo que miden los tres estudios catalanes con los que está calibrado el dial "
-            "de abajo. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
+            "mundo que miden los tres estudios catalanes que los dos parámetros de abajo "
+            "recorren. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
             "zona); al resto lo topa su propio contrato anterior más el IRAV, y nada si no "
             "hubo contrato en cinco años. Los particulares tienen el 85–92% del parque, así "
             "que la diferencia es casi todo el mercado.",
@@ -78,15 +78,25 @@ def lever_params(lever: str) -> dict:
                 "Léase el signo, no el número (model-spec §5b.1).",
                 icon="⚠️",
             )
-        params["supply_response_elasticity"] = st.slider(
-            "Elasticidad de retirada de oferta",
-            0.0,
-            2.0,
-            1.0,
-            help="EL parámetro en disputa. 0 = Jofre-Monseny et al. 2023 (rentas "
-            "−4/−5%, sin efecto en oferta). 2 = Monràs y García-Montalvo (−5% "
-            "rentas, −10% contratos). Medio/alto ≈ Pérez García 2026 (−13% "
-            "contratos, efecto en precios débil).",
+        params["selling_cost_share"] = st.slider(
+            "Coste de vender (fracción del precio)",
+            0.01,
+            0.03,
+            0.02,
+            0.01,
+            help="Umbral de salida de §7.2: el casero vende cuando el déficit acumulado del "
+            "alquiler topado supera este coste. Aranceles notariales y registrales, plusvalía "
+            "municipal y comisión de agencia. Barato = salidas fáciles.",
+        )
+        params["holding_years"] = st.slider(
+            "Horizonte de la decisión (años)",
+            3.0,
+            10.0,
+            5.0,
+            0.5,
+            help="Sobre cuántos años suma el casero el déficit antes de decidir. Con estos "
+            "dos se recorre el vano de Monràs (Δln contratos/Δln renta: OLS 0,07, IV 2,0), "
+            "que el modelo ahora PRODUCE en vez de recibirlo como dial (model-spec §7.2).",
         )
         params["cap_reference_discount"] = st.slider(
             "Índice de referencia por debajo del mercado",

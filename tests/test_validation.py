@@ -823,9 +823,7 @@ def test_ine_projection_vintages_all_decline_and_were_cut():
     assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
 
 
-def _rent_cap_response(
-    elasticity: float, seeds=(1, 2, 3), *, index_binds_all: bool = False
-) -> dict[str, float]:
+def _rent_cap_response(seeds=(1, 2, 3), *, index_binds_all: bool = False) -> dict[str, float]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
     the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1."""
     from resim.scenario import RentCap
@@ -842,7 +840,6 @@ def _rent_cap_response(
                     interventions=(
                         RentCap(
                             start_tick=20,
-                            supply_response_elasticity=elasticity,
                             index_binds_all=index_binds_all,
                         ),
                     ),
@@ -883,7 +880,7 @@ def test_rent_cap_lowers_contract_rents():
     # individuals while the withdrawal channel keeps firing on a hazard nothing has
     # re-identified. That result is recorded in docs/claims.md as NOT reportable rather than
     # asserted here (model-spec §5b).
-    assert _rent_cap_response(1.0, index_binds_all=True)["rent"] < -0.01
+    assert _rent_cap_response(index_binds_all=True)["rent"] < -0.01
 
 
 def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
@@ -898,7 +895,7 @@ def test_rent_cap_supply_response_is_negative_at_the_top_of_the_dial():
     the cap against (`ZoneState.shadow_rent`) fixed it. The full sweep is in
     docs/experiments/rent-cap.md.
     """
-    assert _rent_cap_response(2.0, index_binds_all=True)["leases"] < -0.05
+    assert _rent_cap_response(index_binds_all=True)["leases"] < -0.05
 
 
 @pytest.mark.xfail(
@@ -947,6 +944,6 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     # three studies measure. The model's default lever is Ley 12/2023, where the index binds
     # grandes tenedores only (§5b, agents/landlord.cap_level) — running the default here would
     # be adjudicating a 2020 evaluation against a 2023 statute.
-    response = _rent_cap_response(2.0, index_binds_all=True)
+    response = _rent_cap_response(index_binds_all=True)
     assert response["leases"] < -0.09, f"quantity leg: {response['leases']:.1%}"
     assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"

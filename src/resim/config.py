@@ -602,9 +602,13 @@ class MarketConfig:
     # extra spread outside tensioned metros, range .01–.02: reproduces the observed
     # 5.2 / 7.0 / 8.0 zone yield ladder [BdE RBA gradient — medium]
     landlord_zone_risk_premium: float = 0.015
-    # Δln offered/Δln regulated rent; RANGE 0.0–2.0 — the three-Catalonia-studies parameter
-    # [rent-cap §4 — high as range]
-    rental_supply_elasticity: float = 1.0
+    # RETIRED (2026-09-16). Was Δln offered/Δln regulated rent, RANGE 0.0–2.0 — the
+    # three-Catalonia-studies parameter [rent-cap §4 — high as range]. The arbitrage condition
+    # of model-spec §7.2 makes the supply response an OUTPUT of `selling_cost_share` (above)
+    # and `holding_years` (CapResponseConfig) rather than an input anyone dials; the disputed
+    # range moved to those two structural parameters' own ranges. Kept as a dated note rather
+    # than deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2, "Parameter ledger".
     # share of capped new contracts diverted; range .05–.25 [Incasòl — medium]
     seasonal_evasion_share: float = 0.15
     default_rate: float = 0.05  # actual tenant non-payment /yr; range .03–.07 [Arag/OESA — medium]

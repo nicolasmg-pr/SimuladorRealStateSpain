@@ -59,7 +59,9 @@ RUNS: dict[str, tuple[str, dict]] = {
     # binding on individuals the withdrawal channel runs on a hazard calibrated for the other
     # regime, and it produces a rent RISE that no evidence covers (docs/validation.md).
     "rent-cap": ("rent-cap", {"index_binds_all": True}),
-    "rent-cap-e2": ("rent-cap", {"supply_response_elasticity": 2.0, "index_binds_all": True}),
+    # RETIRED (2026-09-16). `rent-cap-e2` swept `supply_response_elasticity=2.0`, the top of
+    # the OLS-to-IV dial. The dial is gone (model-spec §7.2): elasticity is now an OUTPUT of
+    # the arbitrage condition, not an input this ledger can set. See §7.2, "Parameter ledger".
     "rent-cap-state-law": ("rent-cap", {}),
     "transaction-tax": ("transaction-tax", {}),
     # the 100% non-EU surcharge of claim F-1, as the lever expresses it

@@ -502,7 +502,7 @@ def test_partial_coverage_pushes_demand_into_the_free_segment():
         sc = Scenario(
             name="c",
             baseline=cfg,
-            interventions=(RentCap(start_tick=20, supply_response_elasticity=2.0, coverage=0.42),),
+            interventions=(RentCap(start_tick=20, coverage=0.42),),
         )
         frame = metrics.to_frame(Engine(sc).run()).loc[24:]
         declared_gap.append(
