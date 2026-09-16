@@ -2,8 +2,8 @@
 
 `resim.diagnostics` is display-only — it gates nothing. What these tests protect is that
 it does not *drift away* from the gate: the bands it shows are the ones asserted in
-`tests/test_validation.py`, the three registered xfails actually come out red in the panel,
-and every column the app plots on this tab exists in a real frame.
+`tests/test_validation.py`, the registered xfails actually come out red in the panel, and
+every column the app plots on this tab exists in a real frame.
 """
 
 import math
@@ -46,14 +46,32 @@ def test_bands_mirror_the_validation_assertions():
     assert bands["gross_yield_rural"] == (0.065, 0.095)
 
 
-def test_the_three_registered_xfails_show_red_in_the_panel(table):
-    """The panel exists to make these visible. If any turns green, phase B landed."""
+def test_the_registered_xfails_show_red_in_the_panel(table):
+    """The panel exists to make these visible. If one turns green, a mechanism landed.
+
+    Updated 2026-09-16: target 12's row used to be asserted here as red on a NEGATIVE
+    cumulative net, on the reading that Spanish interior flows run rural → metro. INE
+    EVR/EMCR contradict that in every year from 2017 (docs/validation.md, "Phase-B
+    finding-11 correction"), so the negative net is the gated pass, and what is still red
+    is the GROSS inbound leg: nobody ever moves into the metro.
+    """
     assert table.loc["gross_yield_rural", "Encaja"] == "🔼"
     assert table.loc["gross_yield_rural", "value"] > 0.095
     assert table.loc["rent_ordering", "Encaja"] == "🔽"
     assert table.loc["rent_ordering", "value"] < 0  # rural rent above the metro index
-    assert table.loc["net_migration_tensioned", "Encaja"] == "🔽"
-    assert table.loc["net_migration_tensioned", "value"] < 0  # wrong sign
+    assert table.loc["migration_in_tensioned", "Encaja"] == "🔽"
+    assert table.loc["migration_in_tensioned", "value"] < 1  # no inbound interior flow at all
+
+
+def test_the_gated_migration_leg_is_the_sign_the_data_gives(table):
+    """Target 12's net leg: the tensioned zone must LOSE interior migrants, and does.
+
+    Mirrors `test_validation.test_interior_migration_runs_out_of_the_metro`, which is the
+    gate. Here only to stop the panel drifting back to the sign that was withdrawn.
+    """
+    assert table.loc["net_migration_tensioned", "Estado"] == str(Registered.GATED)
+    assert table.loc["net_migration_tensioned", "Encaja"] == "✅"
+    assert table.loc["net_migration_tensioned", "value"] < 0
 
 
 def test_the_panel_reports_each_leg_of_target_9_separately(table):
@@ -111,6 +129,22 @@ def test_migration_is_cumulative_not_a_tail_mean(frame, table):
     )
 
 
+def test_the_guide_tab_reads_its_red_targets_from_here(frame):
+    """`app.how_it_works_tab` formats MODEL_EXPLANATION with `diagnostics.xfail_targets()`.
+
+    The guide claimed the baseline met every validation target long after it stopped doing
+    so. This asserts the claim is now generated, not retyped: the placeholder must exist and
+    the list must agree with the panel's own counter.
+    """
+    from resim.ui import texts
+
+    targets = diagnostics.xfail_targets()
+    assert "{xfail_targets}" in texts.MODEL_EXPLANATION
+    assert len(targets) == diagnostics.summary(frame)["xfail"]
+    rendered = texts.MODEL_EXPLANATION.format(xfail_targets=", ".join(targets))
+    assert "{" not in rendered, "another placeholder crept in and nothing fills it"
+
+
 def test_every_column_the_tab_plots_exists(frame):
     """Guards the chart prefixes: a typo here is a blank chart, not an error."""
     for prefix in ("gross_yield", "rent", "net_migration", "tenant_share"):
@@ -121,8 +155,8 @@ def test_every_column_the_tab_plots_exists(frame):
 def test_summary_counts_the_registered_xfails(frame):
     counts = diagnostics.summary(frame)
     assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
-    # targets 9, 11, 12; 15's deliveries leg (phase C). 13c's negotiation margin was the
-    # fifth until §5c.8 closed it on 2026-09-15
+    # targets 9, 11, 12 (its GROSS inbound leg — the net leg is gated), and 15's deliveries
+    # leg (phase C). 13c's negotiation margin was the fifth until §5c.8 closed it 2026-09-15
     assert counts["xfail"] == 4
     assert counts["targets"] == 10  # 1c, 9, 10, 11, 12, 13, 13c, 14, 15, 16 (phase G)
     assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)

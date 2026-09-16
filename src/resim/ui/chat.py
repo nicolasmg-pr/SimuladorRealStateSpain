@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -26,10 +27,17 @@ import streamlit as st
 
 from resim.ui import knowledge
 
+
+class ChatStreamError(RuntimeError):
+    """The API accepted the request and then failed inside the stream."""
+
+
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
 HISTORY_SENT = 12  # messages sent to the API; full history stays in session state
 TIMEOUT_S = 90
+RETRIES = 1  # one retry, and only when the stream came back empty
+RETRY_WAIT_S = 2.0
 
 _FLOAT_CSS = """
 <style>
@@ -199,6 +207,7 @@ def _stream(
         response.encoding = "utf-8"
         reasoning: list[str] = []
         saw_content = False
+        finish: str | None = None
         for line in response.iter_lines(decode_unicode=True):
             if not line or not line.startswith("data:"):
                 continue  # blank keep-alives and SSE comments
@@ -206,18 +215,38 @@ def _stream(
             if payload == "[DONE]":
                 break
             try:
-                delta = json.loads(payload)["choices"][0]["delta"]
-            except (json.JSONDecodeError, KeyError, IndexError):
+                event = json.loads(payload)
+            except json.JSONDecodeError:
                 continue
+            # OpenRouter reports mid-stream failures (upstream rate limit, provider error,
+            # moderation) as a 200 that carries an `error` object instead of a choice. Before
+            # this, every one of those was swallowed and surfaced as "(respuesta vacía)".
+            if isinstance(event, dict) and event.get("error"):
+                error = event["error"]
+                message = error.get("message", error) if isinstance(error, dict) else error
+                raise ChatStreamError(str(message))
+            try:
+                delta = event["choices"][0]["delta"]
+            except (KeyError, IndexError, TypeError):
+                continue
+            finish = event["choices"][0].get("finish_reason") or finish
             piece = delta.get("content")
             if piece:
                 saw_content = True
                 yield piece
             elif delta.get("reasoning"):
                 reasoning.append(delta["reasoning"])
-        if not saw_content and reasoning:
+        if saw_content:
+            return
+        if reasoning:
             # Some models put everything in `reasoning`; better that than a blank reply.
             yield _strip_reasoning("".join(reasoning))
+            return
+        # Nothing at all came back. Say which of the two silent endings it was instead of
+        # letting the caller print "(respuesta vacía)".
+        raise ChatStreamError(
+            f"el modelo cerró el flujo sin escribir nada (finish_reason: {finish or 'ninguno'})"
+        )
 
 
 def screen_context(
@@ -298,16 +327,36 @@ def render(context: str, lever: str = "ninguna") -> None:
 def _render_streamed(
     api_key: str, context: str, evidence: str, history: list[dict[str, str]]
 ) -> str:
-    """Paint the answer token by token; return the final text for the history."""
+    """Paint the answer token by token; return the final text for the history.
+
+    Retried once when the stream dies before writing anything. The free endpoint refuses
+    with `ResourceExhausted: Worker local total request limit reached (16/16)` whenever its
+    shared worker is full, which is transient and common; a second attempt a moment later
+    usually lands. Only the empty case is retried — re-running a half-written answer would
+    print it twice.
+    """
     slot = st.empty()
-    slot.markdown("_Pensando…_")
     answer = ""
-    try:
-        for piece in _hide_thinking(_stream(api_key, context, evidence, history)):
-            answer += piece
-            slot.markdown(answer + "▌")
-    except requests.RequestException as exc:
-        answer = f"⚠️ Error al llamar a OpenRouter: {exc}"
+    failure = ""
+    for attempt in range(1 + RETRIES):
+        slot.markdown("_Pensando…_" if not attempt else "_Reintentando…_")
+        answer = ""
+        try:
+            for piece in _hide_thinking(_stream(api_key, context, evidence, history)):
+                answer += piece
+                slot.markdown(answer + "▌")
+        except requests.RequestException as exc:
+            failure = f"Error al llamar a OpenRouter: {exc}"
+        except ChatStreamError as exc:
+            failure = str(exc)
+        else:
+            failure = ""
+        if answer.strip():
+            break  # partial answers are kept: a stream that dies late still said something
+        if failure and attempt < RETRIES:
+            time.sleep(RETRY_WAIT_S)
+    if failure:
+        answer = f"{answer}\n\n⚠️ {failure}".strip() if answer.strip() else f"⚠️ {failure}"
     answer = answer.strip() or "(respuesta vacía)"
     slot.markdown(answer)
     return answer
