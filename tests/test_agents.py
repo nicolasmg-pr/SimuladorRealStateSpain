@@ -10,7 +10,7 @@ from resim.agents.base import ListForSale, MakeOffer, StartConstruction, Withdra
 from resim.agents.developer import Developer
 from resim.agents.household import Households
 from resim.agents.investor import LargeInvestor
-from resim.agents.landlord import SmallLandlords, required_rent
+from resim.agents.landlord import SmallLandlords, cap_level, required_rent
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
 from resim.market.stock import LARGE_INVESTOR_ID, Tenure
@@ -146,6 +146,44 @@ def test_closing_the_seasonal_segment_pushes_exits_into_sales():
     assert closed["seasonal"] == 0
     assert closed["sale"] > open_["sale"]
     assert "vacant" not in open_ and "vacant" not in closed
+
+
+def test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone():
+    """§7.2b's premise, measured rather than assumed.
+
+    §7.2b claims the exit decision is scale-invariant: `cap` and `r_req` both scale with
+    `Unit.quality`, so `cap / r_req` is near-identical across a zone's units and crosses 1
+    for all of them at once. If that is false, the dispersion §7.2b adds is repairing the
+    wrong thing. Asserted as a coefficient of variation below 0.10 — tight enough that no
+    meaningful share of units sits on the other side of the threshold from the rest.
+
+    Measured under Ley 11/2020 (`cap_index_binds_all=True`, set unconditionally by
+    `_capped_state`): the reference index binds every landlord regardless of `large_holder`
+    or declared-municipality coverage, which is the regime where the scale-invariance claim
+    is strongest.
+    """
+    state, _ = _capped_state(cap_ratio=0.8)
+    ratios = []
+    for unit in state.stock.units.values():
+        if unit.zone is not ZoneType.TENSIONED:
+            continue
+        value = state.zones[unit.zone].price_index * unit.quality
+        r_req = required_rent(state, unit.zone, value)
+        cap = cap_level(
+            state,
+            unit.zone,
+            unit.quality,
+            previous_rent=unit.rent or unit.last_contract_rent,
+            large_holder=False,
+        )
+        if cap is None or r_req <= 0:
+            continue
+        ratios.append(cap / r_req)
+    assert len(ratios) > 50, f"too few capped units to measure: {len(ratios)}"
+    mean = sum(ratios) / len(ratios)
+    sd = (sum((x - mean) ** 2 for x in ratios) / (len(ratios) - 1)) ** 0.5
+    cv = sd / mean
+    assert cv < 0.10, f"cap/r_req is NOT near-uniform: cv={cv:.3f}, mean={mean:.3f}"
 
 
 def test_household_cannot_bid_above_credit_limit():
