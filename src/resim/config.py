@@ -747,6 +747,14 @@ class PolicyConfig:
     # ratio, medium on the exact value]
     within_contract_update: float = 0.015
     seasonal_segment_capped: bool = False  # Jan-2026-style closure of the evasion segment
+    # The tick the current cap term was declared, and its statutory length. ZMRT are declared
+    # for THREE YEARS and renewable (MIVAU's compiled table gives vigencia inicio–fin for all
+    # 317 municipalities), so a landlord's shortfall accrues over what is left of the current
+    # term, not over a holding horizon. The statute renews — Catalonia extended 302
+    # municipalities to 2027 — so the term resets rather than the cap lapsing, and the
+    # landlord does NOT anticipate that renewal: model-spec §7.2b, and that is the friction.
+    cap_start_tick: int = -1
+    cap_term_ticks: int = 12
     # transaction tax (transaction-tax.md)
     itp_delta: float = 0.0  # pp change on zone ITP rate, every buyer
     itp_zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED, ZoneType.SECONDARY, ZoneType.RURAL)

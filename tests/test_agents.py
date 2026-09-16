@@ -163,6 +163,37 @@ def test_closing_the_seasonal_segment_pushes_exits_into_sales():
     assert "vacant" not in open_ and "vacant" not in closed
 
 
+def _exit_share_at_tick(*, cap_ratio: float, ticks_into_term: int) -> float:
+    """§7.2b Piece B. Share of 200 `landlord.decide` draws that produce a `WithdrawRental`,
+    with `PolicyConfig.cap_start_tick` set so the unit sits `ticks_into_term` ticks into a
+    12-tick declared term (`state.tick - cap_start_tick == ticks_into_term`).
+
+    `seasonal_closed=True` isolates the sale rule under test, the same reason
+    `test_sale_requires_the_shortfall_to_beat_the_cost_of_leaving` gives: an open seasonal
+    segment would divert exits before the remaining-term shortfall is ever evaluated.
+    """
+    state, landlord = _capped_state(cap_ratio=cap_ratio, seasonal_closed=True)
+    state.config = state.config.with_policy(cap_start_tick=0)
+    state.tick = ticks_into_term
+    withdrawals = sum(
+        1
+        for _ in range(200)
+        for intent in landlord.decide(state)
+        if isinstance(intent, WithdrawRental)
+    )
+    return withdrawals / 200.0
+
+
+def test_withdrawal_tapers_as_the_declared_term_runs_out():
+    """§7.2b Piece B. The shortfall accrues over the ticks left in the CURRENT declared term,
+    so nobody sells to escape a cap about to lapse. ZMRT are declared for three years and
+    renewed; the landlord does not anticipate the renewal, which is the friction.
+    """
+    early = _exit_share_at_tick(cap_ratio=0.6, ticks_into_term=1)
+    late = _exit_share_at_tick(cap_ratio=0.6, ticks_into_term=11)
+    assert early > late, f"no taper: early={early:.3f} late={late:.3f}"
+
+
 def test_the_exit_cost_map_is_monotone_in_the_draw():
     """§7.2b Piece A. `k` must increase with the draw, so raising the cap's bite ADDS
     landlords to the exiting set rather than reshuffling it — the same monotonicity

@@ -50,6 +50,9 @@ class RentCap(Intervention):
     # 12/2023: it binds grandes tenedores, and the rest are held to their own
     # previous contract plus IRAV (agents/landlord.cap_level)
     index_binds_all: bool = False
+    # statutory term length (model-spec §7.2b, PolicyConfig.cap_term_ticks): ZMRT are
+    # declared for three years (12 ticks) and renewable.
+    term_ticks: int = 12
     # The two structural parameters that now carry the supply-response dispute (model-spec
     # §7.2). None = leave the baseline MarketConfig / CapResponseConfig value untouched.
     selling_cost_share: float | None = None
@@ -64,6 +67,8 @@ class RentCap(Intervention):
             cap_compliance=self.compliance,
             cap_coverage=self.coverage,
             seasonal_segment_capped=self.seasonal_segment_capped,
+            cap_start_tick=self.start_tick,
+            cap_term_ticks=self.term_ticks,
         )
         if self.selling_cost_share is not None:
             market = replace(cfg.market, selling_cost_share=self.selling_cost_share)
