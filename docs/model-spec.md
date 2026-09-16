@@ -1505,11 +1505,52 @@ buy-to-let margin model.
    point — ≈ +25 bp Madrid / +45 bp Barcelona prime against the March 2026 bond — and not
    tracked through a cycle. Claiming a cyclical π would be claiming a series nobody has.
 
-**Still blocking §7.1:** the operating-cost share `c` in
-`r_req = V·(i_bond + π − E[g]) / (12·(1−c))` has no sourced value. DO 2432 quantifies the
-*tax* wedge (0.5–1.25 pp by bracket) but the sentence carrying the *cost* wedge does not come
-out of the PDF text layer, and AEAT's rental P&L rows give net income without the gross-to-net
-ratio. §7.1 and §7.2 are not coded until it is retrieved.
+**§7.1's operating-cost share `c` — retrieved 2026-09-15, second-sourced 2026-09-16.**
+`r_req = V·(i_bond + π − E[g]) / (12·(1−c))` ships `c = 0.22`, range 0.20–0.24, from AEAT's
+declared-rent P&L, with the statutory 3%/yr building depreciation (art. 23.1.b LIRPF, 15–18pp)
+and mortgage interest (1.4–4.2pp) taken out — the first double-counts E[g], the second the
+financing leg of `i_bond + π` — and with vacancy left out because `market/clearing.py` already
+generates it. §7.1 **is** coded, in `agents/landlord.required_rent` and `agents/investor`; the
+paragraph that stood here said it was not, and was stale from 2026-09-14.
+
+**The second source is INE's national accounts**, and it is independent of AEAT on the side that
+matters. CNE table 69069 publishes branch `68a — alquileres imputados de las viviendas ocupadas
+por sus propietarios` separately: its *output* is the stratification estimate (Censo 2021 + EPF +
+IPC/IPVA) and its *intermediate consumption* is built from the EPF's COICOP 04.3.3 plus insurer
+payouts on multirriesgo policies — not from IRPF [INE, *Inventario de fuentes y métodos de la
+RNB*, rev. 2024, §§3.18.2, 3.18.5]. IBI enters ESA as other taxes on production (D.29), not as
+intermediate consumption, so it is added back. That gives
+
+| | (CI + D.29) / output |
+|---|---|
+| 2023 | **10.9%** |
+| 2013–2022 | **15.3–18.0%** |
+| 1997–1999 | ≈31% |
+
+INE applies the same ratio to *let* dwellings by assumption (§3.18.5, final paragraph), which is
+what makes it usable here; the output side of the actual-rental branch does come from IRPF
+(§3.18.3), so only the ratio transfers, not the level.
+
+**This is a lower bound on `c`, not a rival estimate of it.** National-accounts IC counts only
+the renovation-and-repair part of a comunidad quota and no management or letting cost at all,
+and both sit inside AEAT's deductible rows. The gap between ≈16% and 22% is the size of those
+two items and is the right sign. What the series does dispute is that `c` is a **constant**: the
+ratio falls monotonically from ≈31% (1997–99) to ≈16% (2016–22) because the denominator tracks
+rents while maintenance spending does not, and 2023's 10.9% is a level break introduced by the
+2024 statistical revision, not a behavioural change. The model ships a constant calibrated to the
+recent end of a falling trend, and that is now a declared property of the parameter rather than
+an unexamined one.
+
+Still unreconciled, and recorded rather than resolved: DO 2432's 2pp off a ≈5.5% RBA implies
+≈36% of gross rent, against AEAT's own 41–45% gross-to-net on the same object while citing it.
+Neither figure **is** `c` — both carry depreciation and interest.
+
+**§7.2 is a different blocker, and it is not this one.** It is referenced here, twice in
+`docs/validation.md` and once in `config.CapResponseConfig` as the arbitrage condition that will
+replace the rent cap's fitted `hazard_scale` — and it has **never been written**. It is not
+waiting on a parameter; it is waiting on being specified. Until it exists the cap's withdrawal
+margin stays the reduced form in `agents/landlord`, and the Ley 12/2023 regime stays
+out-of-regime (§5b.1).
 
 ### 13.8 Migration: interior and exterior, reported separately (decided 2026-09-12, phase B)
 

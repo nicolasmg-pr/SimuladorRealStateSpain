@@ -571,11 +571,28 @@ class MarketConfig:
     # 10.95% comunidad charge) and Balears at the bottom (18.8%). The legitimate zone
     # difference is in vacancy, not in cost.
     #
-    # QUALIFICATION, carried in docs/validation.md: every quantified figure for this traces
-    # back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so it rests on
-    # ONE institutional source against this project's ≥2 rule. DO 2432 also states 2pp off a
-    # ~5.5% RBA ⇒ ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same
-    # object while citing it; recorded unresolved, and neither figure IS `c`.
+    # SECOND SOURCE, 2026-09-16 (model-spec §13.7). Until today every quantified figure for
+    # this traced back to AEAT — BdE DO 2432 cites AEAT, the Informe Anual cites DO 2432 — so
+    # it rested on ONE institutional source against this project's ≥2 rule. INE's national
+    # accounts now supply the second: CNE table 69069 publishes branch `68a alquileres
+    # imputados` on its own, and its cost side is EPF-built (COICOP 04.3.3 plus insurer
+    # payouts), not IRPF-built [INE, Inventario de fuentes y métodos de la RNB rev. 2024,
+    # §§3.18.2 and 3.18.5]. Adding IBI back — ESA books it as D.29, not as intermediate
+    # consumption — gives (CI + D.29)/output = 10.9% (2023) and 15.3–18.0% across 2013–22.
+    #
+    # That is a LOWER BOUND on `c`, not a rival estimate: national-accounts IC carries only the
+    # repair-and-renovation slice of a comunidad quota and no management or letting cost, both
+    # of which are inside AEAT's deductible rows. ≈16% vs 22% is the size of those two items,
+    # and the sign is right. The shipped 0.22 is NOT moved by this.
+    #
+    # What the series does dispute is that `c` is a CONSTANT: it falls monotonically from ≈31%
+    # (1997–99) to ≈16% (2016–22) — the denominator tracks rents, maintenance spending does
+    # not — and 2023's 10.9% is a level break from the 2024 statistical revision. A constant
+    # here is calibrated to the recent end of a falling trend. Declared, not hidden.
+    #
+    # STILL UNRESOLVED, recorded rather than closed: DO 2432 states 2pp off a ~5.5% RBA ⇒
+    # ≈36% of gross rent, which disagrees with AEAT's own 41–45% on the same object while
+    # citing it. Neither figure IS `c` — both carry depreciation and interest.
     landlord_cost_share: float = 0.22
     landlord_cost_share_range: tuple[float, float] = (0.20, 0.24)
     # Floor on the required rent YIELD once appreciation is netted off. Without it a boom in

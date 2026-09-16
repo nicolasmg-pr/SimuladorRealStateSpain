@@ -2068,6 +2068,31 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **`landlord_cost_share` now has two institutions behind it, and they do not say the same
+  thing — on purpose.** The shipped `c = 0.22` (range 0.20–0.24) comes from AEAT's declared-rent
+  P&L with depreciation and mortgage interest stripped out. Since 2026-09-16 the second source is
+  INE's national accounts: CNE table 69069 publishes branch `68a alquileres imputados` separately,
+  its cost side is built from the EPF (COICOP 04.3.3) and insurer payouts rather than from IRPF,
+  and adding IBI back as D.29 gives **(CI + D.29)/output = 10.9% (2023), 15.3–18.0% (2013–2022)**.
+  That is a **lower bound**, not a competing estimate: national-accounts IC carries only the
+  repair slice of a comunidad quota and no management or letting cost, and both are inside AEAT's
+  rows. ≈16% against 22% is the size of those two items and the sign is right, so **the parameter
+  was not moved.** Two things the second source does establish that the first could not. First,
+  the ≥2 rule is satisfied for `c` — previously every figure traced back to AEAT through DO 2432
+  and the Informe Anual. Second, **`c` is not a constant**: the ratio falls monotonically from
+  ≈31% (1997–99) to ≈16% (2016–22), because the denominator tracks rents and maintenance spending
+  does not, and 2023's 10.9% is a level break from the 2024 statistical revision rather than a
+  behavioural one. The model ships a constant calibrated to the recent end of a falling trend.
+  Unchanged and still unreconciled: DO 2432's ≈36% of gross rent against AEAT's own 41–45% on the
+  same object while citing it — neither of which **is** `c`, since both carry depreciation and
+  interest.
+- **§7.2 does not exist.** It is cited in `model-spec §13.7`, twice in this file and once in
+  `config.CapResponseConfig` as the arbitrage condition that will replace the rent cap's fitted
+  `hazard_scale`, and it has never been written. The spec said until 2026-09-16 that §7.1 and
+  §7.2 were "not coded until [`c`] is retrieved"; `c` was retrieved on 2026-09-15 and §7.1 was
+  coded with it, so that sentence was stale in both halves. §7.2 is blocked on **being specified**,
+  not on a parameter — and until it is, the Ley 12/2023 rent-cap result stays out-of-regime
+  (`model-spec §5b.1`).
 - **Index bases matter.** The price index is a quality-adjusted *transaction* index
   (IPV-like); its boom growth (+5–6%/yr) sits below the +12.7% (2025) IPV peak. The rent
   index agents see is an *asking* basis (idealista-like); the transacted median
