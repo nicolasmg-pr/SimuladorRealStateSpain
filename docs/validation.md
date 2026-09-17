@@ -2068,6 +2068,38 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **G1's ceiling was the central IV estimate, not the top of the reported range — corrected on
+  source grounds, and the gate still fails (2026-09-17).** G1 asserted the Δln co-movement inside
+  "Monràs's 0.07–2.0 OLS-to-IV span". Read at the source (CEPR DP20018, Feb 2025, §4.2.1), 2.0 is
+  the point estimate of the paper's **baseline** IV specification: *"In the baseline specification
+  with the full sample, a decrease of 1% in rental prices implies a decrease of around 2% in the
+  supply of rental housing"*, and then *"In Columns 4 to 6... removing the lockdown period... Point
+  estimates are, if anything, slightly larger than in the full sample, **reaching an estimate of
+  approximately three**."* `docs/sources.md` had already recorded the IV range as **1.6–3.2 across
+  specifications**; the test used the centre as its ceiling. **Corrected to 3.2.**
+
+  **The correction does not rescue the gate**, which is what licenses making it: the model reads
+  **3.655**, still above 3.2. Had it rescued G1 it would have been fitting a band to a model.
+
+  **Disclosed, because it decides the verdict**: the superseded working-paper edition (FRBSF WP
+  2023-28) reports a supply elasticity of ≈2–4, under which the model's 3.655 would **pass**. The
+  Feb 2025 edition is current and is the one `docs/sources.md` marks verified, so its 3.2 binds.
+  The earlier figure is named rather than quietly unused.
+
+  **What this changes about the size of the failure.** The limits register written earlier the same
+  day described the quantity leg as overshooting by a large multiple, against a −10% figure. Both
+  halves were wrong. The paper's own quantity outcome is *"the number of new contracts decreased by
+  around **10% to 20%**"* (§4.2), not a point −10%, and its elasticity range tops at ≈3, not 2.
+  The model's flow is **−48.2%** at a rent of −16.5% — so the honest statement is that the supply
+  response sits **≈14% above the top of the published IV range**, not 83% above its centre.
+
+  **And one hypothesis the same day's measurements refuted, recorded so it is not retried.** The
+  divergence between the model's flow (−48.2%) and its stock (−13.1% of tensioned dwellings rented,
+  against the paper's −10% overall supply) is **not** explained by excessive churn: measured on the
+  baseline, the model's tensioned rental market turns over at **14.5%/yr, an implied mean tenancy of
+  6.9 years** — *slower* than the ≈5-year LAU minimum for an individual landlord implies. Monràs
+  states that *"new contracts signed is a good approximation of changes in the overall supply"*; in
+  this model that approximation fails by a factor of about 3.7, and the cause is **not identified**.
 - **`selling_cost_share` ships at its sourced 0.040, and the joint it was co-calibrated with
   breaks — in both directions (2026-09-17).** The band (0.01–0.07, two real sale routes) and the
   intermediation-weighted point (0.040) were sourced on 2026-09-16 and deliberately held back for

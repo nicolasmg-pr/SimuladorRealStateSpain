@@ -1074,11 +1074,32 @@ def test_g1_the_co_movement_emerges_at_the_shipped_parameters():
     """§7.2b G1, deliberately stricter than the F1 it replaces. §7.2's F1 asked only for a
     witness somewhere in the declared ranges, and passed at ONE corner while three inverted
     the sign. G1 requires the rent sign right at the shipped values, with Δln contracts /
-    Δln rent inside Monràs's 0.07–2.0 OLS-to-IV span.
+    Δln rent inside the span Monràs & García-Montalvo actually report.
 
     The sign check is PER SEED, not on the pooled mean: model-spec §7.2b says "the rent sign
     correct in all ten seeds", and a mean check would pass a model with six seeds right and
     four inverted. Only the ratio, which is not a per-seed claim, stays on the pooled figures.
+
+    CEILING CORRECTED 2026-09-17, on source grounds, from 2.0 to 3.2. The band was written as
+    "the 0.07–2.0 OLS-to-IV span", but 2.0 is the point estimate of the paper's BASELINE IV
+    specification, not the top of its estimates. Read at the source (CEPR DP20018, Feb 2025,
+    §4.2.1): "In the baseline specification with the full sample, a decrease of 1% in rental
+    prices implies a decrease of around 2% in the supply of rental housing", and then "In
+    Columns 4 to 6, we present estimates of this key elasticity when removing the lockdown
+    period... Point estimates are, if anything, slightly larger than in the full sample,
+    reaching an estimate of approximately three." `docs/sources.md` already recorded the IV
+    range as **1.6–3.2 across specifications**, which the prose corroborates; the test simply
+    used the central estimate as its ceiling.
+
+    THIS CORRECTION DOES NOT MAKE THE TEST PASS, and that is what licenses making it: the
+    model reads 3.655, still above 3.2. Had the correction rescued the gate it would have been
+    fitting a band to a model, which this project forbids.
+
+    DISCLOSED because it decides the verdict: the SUPERSEDED working-paper edition (FRBSF
+    WP 2023-28) reports a supply elasticity of ≈2–4, and under that ceiling the model's 3.655
+    would PASS. The Feb 2025 edition is the current one and the one `docs/sources.md` marks as
+    verified, so its 3.2 is what binds here. The earlier figure is not used, and is named so
+    that nobody discovers it later and mistakes the choice for an oversight.
     """
     per_seed = _rent_cap_response_per_seed(tuple(range(1, 11)), index_binds_all=True)
     assert all(rent < 0 for rent in per_seed["rent"]), (
@@ -1087,7 +1108,7 @@ def test_g1_the_co_movement_emerges_at_the_shipped_parameters():
     )
     r = {k: float(np.mean(v)) for k, v in per_seed.items()}
     ratio = math.log1p(r["leases"]) / math.log1p(r["rent"])
-    assert 0.07 <= ratio <= 2.0, f"co-movement outside Monràs's span: {ratio:.3f}"
+    assert 0.07 <= ratio <= 3.2, f"co-movement outside Monràs's span: {ratio:.3f}"
 
 
 def test_g2_the_intermediation_share_moves_withdrawal():
