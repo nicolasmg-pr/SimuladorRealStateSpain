@@ -265,10 +265,17 @@ settles it.
 > Long-term rental listings in Catalonia fell from 68,629 (2024Q1) to 18,878 (2026Q2), −72%.
 > — industry data, 2026
 
-**What the model says**, under Ley 11/2020 as F-5 explains: new leases fall **−22.1% (ε=1) to
-−32.3% (ε=2)**, 10/10 seeds. The three registered Catalan studies put the contract response
-between **0 and −13%**. Under the current state law the same lever gives −16.1%, which is
-closer to the studies and, for the reason F-5 gives, still not reportable.
+**What the model said**, under Ley 11/2020 as F-5 explains — ~~new leases fall **−22.1% (ε=1)
+to −32.3% (ε=2)**, 10/10 seeds~~, **measured under the `supply_response_elasticity` dial,
+RETIRED (2026-09-16, model-spec §7.2).** The three registered Catalan studies put the contract
+response between **0 and −13%**. Under the current state law the same retired lever gave
+−16.1%, which was closer to the studies and, for the reason F-5 gives, still not reportable.
+**The dial no longer exists**: the arbitrage condition of §7.2 made the supply response an
+OUTPUT rather than a dial, and §7.2b repaired §7.2's own falsification failure with a
+per-landlord exit cost and a statutory cap term. Current measurements (no dial, ten seeds) live
+in `docs/validation.md` and `model-spec.md` §7.2b, where the replacement falsification G1
+**fails** against Monràs's 0.07–2.0 span — cite those, not the figures above. Kept as a dated
+note rather than deleted outright: this project keeps the archaeology of its parameters.
 
 **Verdict: the direction is supported; the −72% is a basis error.** Portal listings are a
 stock of advertisements, and contracts are a flow; a cap that shortens the time a flat spends
@@ -379,8 +386,8 @@ Ranked by how much each lever moves the national price, over ten seeds:
 | lever | price | transactions | seeds |
 |---|---|---|---|
 | **credit crunch** | **−6.8%** | **−18.6%** | 10/10 |
-| rent cap, Ley 11/2020 (ε=2) | −6.6% | −9.3% | 10/10 |
-| rent cap, Ley 11/2020 (ε=1) | −6.3% | −8.1% | 10/10 |
+| ~~rent cap, Ley 11/2020 (ε=2)~~ | ~~−6.6%~~ | ~~−9.3%~~ | ~~10/10~~ |
+| ~~rent cap, Ley 11/2020 (ε=1)~~ | ~~−6.3%~~ | ~~−8.1%~~ | ~~10/10~~ |
 | rent cap, Ley 12/2023 | −6.9% | −7.3% | 10/10 · 9/10 (rents **rise**; see F-5) |
 | non-resident surcharge | −2.4% | −1.7% | 9/10 |
 | transaction tax +2pp | −1.6% | −4.3% | 10/10 · 9/10 |
@@ -389,6 +396,16 @@ Ranked by how much each lever moves the national price, over ten seeds:
 | land release | 0.0% | no effect | 5/10 |
 | demand subsidy | +0.5% | +0.7% | 8/10 · 7/10 |
 | public housing | +1.4% | no effect | 10/10 |
+
+**RETIRED (2026-09-16, model-spec §7.2).** The two struck `(ε=1)`/`(ε=2)` rows above were
+measured under the `supply_response_elasticity` dial — the model's 0–2 OLS-to-IV span of
+Monràs & García-Montalvo. The arbitrage condition of §7.2 made the supply response an OUTPUT
+rather than a dial, so those rows can no longer be produced by re-running anything; §7.2 then
+failed its own falsification and was repaired by §7.2b (per-landlord exit cost, statutory cap
+term). Current measurements (no dial, ten seeds) live in `docs/validation.md` and
+`model-spec.md` §7.2b, where the replacement falsification G1 **fails** against Monràs's
+0.07–2.0 span. Kept as a dated note rather than deleted outright: this project keeps the
+archaeology of its parameters.
 
 **The re-run sharpened this row rather than softening it.** The credit crunch is now the
 largest price mover outright — it was third — and its volume effect roughly doubled, to

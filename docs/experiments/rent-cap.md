@@ -8,12 +8,25 @@
 > is set by **how far the reference index sits below market**, and moves 0.8pp across the
 > whole elasticity range. This file records that rather than the previous "gate met".
 
+> **Further status, 2026-09-16: the exposed parameter itself is RETIRED (`model-spec.md`
+> §7.2).** `supply_response_elasticity` — the dial every sweep in this file varies, including
+> the Design below (line 16), its measured side effects, the regenerate notes, and the entire
+> Provenance section's historical sweeps — no longer exists: the arbitrage condition
+> `cap < r_req` made the supply response an OUTPUT of the model rather than an input anyone
+> dials, adjudicated by §7.2b's falsification G1 against Monràs's own 0.07–2.0 span (G1
+> **fails** at the shipped parameters — see `docs/validation.md`). None of the sweeps below can
+> be re-run as written. A supply-response sweep today would vary `intermediation_share`
+> (`CapResponseConfig.intermediation_share_regional_range`, **0.40–0.85**, the regional spread)
+> instead. Kept as a dated note rather than deleted outright: this project keeps the
+> archaeology of its parameters.
+
 ## Design
 
 - Baseline vs `RentCap(start_tick=20, cap_reference_discount=0.05, compliance=0.85)` on the
   tensioned-metro zone, 40 ticks, **ten seeds**, outcomes averaged over the 16 post-cap ticks
   (≈4 years). Ten seeds since `model-spec §13.4`; the original ran three.
-- The exposed disagreement parameter `supply_response_elasticity ∈ {0, 0.5, 1, 1.5, 2}`.
+- ~~The exposed disagreement parameter `supply_response_elasticity ∈ {0, 0.5, 1, 1.5, 2}`.~~
+  **RETIRED, 2026-09-16, §7.2** — see the status note above; the parameter no longer exists.
 - **Both statutory regimes**, because they are different instruments (`model-spec §5b.1`):
   - **Ley 11/2020** (Catalonia 2020–22, `index_binds_all=True`) — the reference index binds
     every landlord. *This is the world the three studies measure.*
@@ -75,9 +88,11 @@ model should not be quoted — only its sign and its ordering.
 
 ## Side effects, emergent and not imposed anywhere
 
-- **Evasion into the seasonal segment scales with the dial** in both regimes: +74 units in the
-  tensioned zone at ε=2 under Ley 11/2020, +50 under the current law. Nobody wrote a rule
-  saying landlords flee to temporary lets; it falls out of the exit split.
+- **Evasion into the seasonal segment scaled with the (now-retired) dial** in both regimes: +74
+  units in the tensioned zone at ε=2 under Ley 11/2020, +50 under the current law — measured
+  under `supply_response_elasticity`, **RETIRED 2026-09-16, §7.2** (see the status note above).
+  Nobody wrote a rule saying landlords flee to temporary lets; it falls out of the exit split,
+  which under §7.2b now runs on the per-landlord exit cost instead.
 - **Sale prices fall ≈3–3.6% under both regimes and at every elasticity** — the one leg that
   is insensitive to both the statute and the dial. Capped rents lower the landlord's
   reservation value, and the sale side inherits it through §7.1.
@@ -91,7 +106,9 @@ model should not be quoted — only its sign and its ordering.
 
 ```
 uv run python -m resim.levers --jobs 10            # the ledger's rent-cap rows, both regimes
-# the dial in this file: scratch sweep over supply_response_elasticity × index_binds_all,
+# RETIRED 2026-09-16 (§7.2): the dial this scratch sweep varied, supply_response_elasticity,
+# no longer exists (see status note above). Historical only — not re-runnable as written.
+# was: scratch sweep over supply_response_elasticity × index_binds_all,
 # 10 seeds × 40 ticks, cached to runs/rentcap_dial_10seeds.json
 ```
 
@@ -100,6 +117,11 @@ uv run python -m resim.levers --jobs 10            # the ledger's rent-cap rows,
 ## Provenance — superseded measurements below this line
 
 ### (2026-08-07 → 2026-09-08 passes, kept for provenance only)
+
+**Additional note, 2026-09-16:** every sweep below varies `supply_response_elasticity`, which is
+itself now RETIRED (`model-spec.md` §7.2 — see the status note at the top of this file). This
+section was already superseded by the regime split; it is now doubly so because the parameter
+it sweeps does not exist. Left as-is: this project keeps the archaeology of its parameters.
 
 ## Design
 

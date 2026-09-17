@@ -213,17 +213,29 @@ ranges per the bias-control rule, not point values):
   previous-rent cap binds everyone. Model both tiers or collapse to scope switch.
 - `within_contract_update_rate: float` — annual in-contract update (IRAV/CPI cap), units:
   %/year. Range **0.02–0.03**, vs CPI for uncapped.
-- `landlord_supply_response_elasticity: float` — Δln(units offered for standard rental) /
+- ~~`landlord_supply_response_elasticity: float` — Δln(units offered for standard rental) /
   Δln(regulated rent). **Range 0.0–2.0** — THE exposed disagreement parameter: 0 =
   Jofre-Monseny/Paris world, 2 = Monràs–Montalvo world, upper half ≈ Pérez García world.
-  Exit routes in-model: sale to owner-occupiers, vacancy, seasonal segment.
+  Exit routes in-model: sale to owner-occupiers, vacancy, seasonal segment.~~
+  **RETIRED (2026-09-16, model-spec §7.2).** The arbitrage condition `cap < r_req` made the
+  supply response an OUTPUT rather than a dial — no parameter to expose. It is adjudicated by
+  `model-spec.md` §7.2b's falsification G1 against Monràs's own 0.07–2.0 OLS-to-IV span, which
+  **fails** at the shipped parameters (see `docs/validation.md`). The exposed parameter in its
+  place is `intermediation_share` (`CapResponseConfig.intermediation_share_regional_range`,
+  **0.40–0.85**, the regional spread; §7.2b "Parameter ledger"). Exit routes in-model, current:
+  sale via a per-landlord exit cost (`agents/landlord.exit_cost_for`) bounded by the statutory
+  cap term (`PolicyConfig.cap_term_ticks`), or the seasonal segment; vacancy is not a
+  destination (§7.2, "Vacancy is not a branch"). Kept as a dated note rather than deleted
+  outright: this project keeps the archaeology of its parameters.
 - `seasonal_evasion_share: float` — share of would-be regulated new contracts diverted to an
   uncapped seasonal segment per tick while that segment is uncapped. **Range 0.05–0.25**
   (Catalonia: 11% Catalonia-wide, 24–28% Barcelona after ~6 quarters), ramping in over ~4–6
   quarters.
 - `seasonal_segment_capped: bool` — the Jan 2026 closure; when flipped, diverted units do
-  *not* automatically return (Cambra evidence: sale/vacancy instead) — route via
-  `landlord_supply_response_elasticity`.
+  *not* automatically return (Cambra evidence: sale/vacancy instead) — route via the
+  per-landlord exit-cost / statutory-term decision (`agents/landlord.exit_cost_for`,
+  `PolicyConfig.cap_term_ticks`, model-spec §7.2b). ~~Previously routed via
+  `landlord_supply_response_elasticity`~~ — **RETIRED, 2026-09-16, §7.2** (see the note above).
 - `compliance_rate: float` — share of new regulated contracts actually at/below cap. Range
   **0.25–0.95** (Berlin ads 0.25; Paris 0.52–0.64; Catalan registered deposits high).
 - `anticipation_ticks: int` (default 1) — contract-signing spike before enactment (JMS).
@@ -262,9 +274,15 @@ the fetched primary page; "via secondary" = primary blocked; unverified = press/
 - Monràs & García-Montalvo, CEPR DP20018 (Feb 2025 edition of the FRBSF WP in §2/§3; academic):
   rents −5% treated vs control; units above reference fall, below rise; total supply of units
   −10%; probability a unit is rented −2 pp; **IV elasticity of new contracts w.r.t. rent ≈2.0
-  (1.6–3.2 across specs), OLS 0.07** (PDF, verified). The model's `supply_response_elasticity`
+  (1.6–3.2 across specs), OLS 0.07** (PDF, verified). ~~The model's `supply_response_elasticity`
   range 0–2 spans exactly this paper's OLS (≈0, the Jofre-Monseny/Paris world) to its IV
-  (≈2); the upper IV specs (3.2) sit above the range — not widened, documented.
+  (≈2); the upper IV specs (3.2) sit above the range — not widened, documented.~~ **Model
+  statement corrected, 2026-09-16 (§7.2):** `supply_response_elasticity` is retired, so the
+  model has no dial to span this evidence with any more. The evidence statement stands: this
+  0.07–2.0 OLS→IV span is exactly what `model-spec.md` §7.2b's falsification G1 now adjudicates
+  the model's OUTPUT supply response against, and G1 **fails** at the shipped parameters (ten
+  seeds, ratio 3.563 — see `docs/validation.md`). The upper IV specs (3.2) still sit outside
+  that span.
 - Izquierdo Llanes, García-López, Cabezas & Pinto, *The rent control paradox*, IJHMA 4 Jun 2026
   (academic, UNED/URJC): DiD Catalonia vs Madrid/Valencia/Andalusia on portal-barometer data
   2019–25 — "economically substantial" relative supply contraction, more moderate listed-price
@@ -343,8 +361,12 @@ the fetched primary page; "via secondary" = primary blocked; unverified = press/
   municipalities / 9.3M people mapped onto it); Cataluña-2024 ≈ **1.0** (~90% of Catalan
   population). Constant per scenario today; the Catalan exit/entry churn argues for a
   time path — documented gap.
-- `supply_response_elasticity` 0–2: now explicitly the OLS→IV span of one paper (0.07 → 2.0);
-  M&M's 3.2 upper spec is outside — recorded, range not widened.
+- ~~`supply_response_elasticity` 0–2: now explicitly the OLS→IV span of one paper (0.07 →
+  2.0); M&M's 3.2 upper spec is outside — recorded, range not widened.~~ **RETIRED
+  (2026-09-16, §7.2) — model statement corrected, evidence statement preserved.** The dial is
+  gone; the span itself (0.07 → 2.0, M&M's 3.2 upper spec outside it) is unchanged and is
+  exactly what `model-spec.md` §7.2b's falsification G1 adjudicates the model's now-OUTPUT
+  supply response against. G1 **fails** at the shipped parameters — see `docs/validation.md`.
 - `seasonal_segment_capped`: first empirical anchors for the closure — Incasòl −1,233 seasonal
   contracts in Q4 2025 (verified), O-HB −53% y/y (verified). Whether those units return as
   ordinary contracts stays disputed: O-HB +1,374 active contracts vs Cambra "sale, vacancy or
