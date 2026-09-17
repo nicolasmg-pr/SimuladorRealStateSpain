@@ -3260,6 +3260,203 @@ aiming at neither.
 **Until one of those is sourced, this channel is finished.** It reports directions, it refuses
 magnitudes, and it knows which of its own tests are red and why.
 
+## The §7.3 vacancy gradient, refuted before it was built (2026-09-17)
+
+§7.3 nominated one missing force for the parked buy-to-let branch: the vacancy gradient the
+investor should see when choosing a zone. Sourced and checked **before** implementing, per the
+rule that a mechanism is specified before it is coded. Two independent rows exist and neither
+rescues it.
+
+**Source 1, AEAT + Catastro *días de alquiler*** (`docs/sources.md`, fetched 2026-09-14):
+Extremadura 338/365, Barcelona 352/365, Madrid 351, national 347. Relative haircut **3.98%**.
+Against the model's baseline zone gap of **6.43pp** (rural 12.30%, tensioned 5.87%, three seeds)
+it closes **0.49pp = 7.6%**. It also cannot in principle price the risk that matters: it is
+occupancy *conditional on the dwelling having been let and declared*.
+
+**Source 2, Censo 2021 + BdE DO 2432**: 14.4% of the stock empty, 45% of empties in municipalities
+under 10k, 7.5% vacancy in cities over 250k. A much larger gradient, but on whole-stock vacancy —
+second homes, uninhabitable and non-market stock included — which is not investable letting risk.
+
+**What the check found instead — ten seeds, mean of the last eight ticks, baseline, no policy:**
+
+| zone | total vacancy | market vacancy | gross yield |
+|---|---|---|---|
+| tensioned | 8.81% | **3.79%** | 5.70% |
+| secondary | 13.76% | **7.06%** | 7.55% |
+| rural | 17.95% | **2.66%** | 12.26% |
+
+**The model's rural market is the tightest of the three**, in 9 of 10 seeds, while its rural stock
+is the emptiest. Every bit of the rural vacancy is withheld. A rural landlord here faces *less*
+letting risk than a metro one — so the 12.26% yield is, inside the model, a real and nearly
+riskless return, and yield-chasing entry arbitraging the price ladder is the correct response to
+it. No haircut on the yield repairs a model whose risk ordering is inverted.
+
+**CORRECTED within the hour, because the first version of this entry overstated it.** It said
+market vacancy was "gated nowhere". It is gated: `test_vacancy` asserts tensioned market vacancy
+in **2–10%** and the model **passes** at 3.79%. The band sits below the 6–9% urban Censo figure on
+purpose, and the test's docstring already carried the reason — that figure includes second homes
+and withheld stock, and **no source separates the market component from the withheld one**
+(investor-small §7.3). `test_vacancy_ladder` gates the full-stock ordering R > S > T with levels,
+on the basis the source measures, and passes at 18.1 / 11.8 / 8.7.
+
+**So the rural market leg is ungated by declared necessity, not by oversight**, and that changes
+what "gate it first" can achieve: there is nothing registered to gate it against. Searching
+`docs/sources.md` for anything separating frictional from withheld vacancy returns one theory
+paper (Han, Stacey & Chen 2023, on vacancy-tax incidence) and no measurement. The investor's
+decision reads a quantity no registered source measures, while the one quantity the evidence does
+pin — full-stock vacancy by municipality size — the model already reproduces.
+
+**What this costs and what it saves.** It falsifies §7.3's nominated repair on arithmetic, for the
+price of one baseline sweep, before the mechanism was written. What it opens is a different and
+smaller question — whether the withheld/market split is right in rural — which lives in the
+withholding rule and is answerable on the baseline, with neither the rent cap nor buy-to-let entry
+in the picture.
+
+## A source DOES separate market from withheld vacancy, and it moves the suspect (2026-09-17)
+
+The entry above closed on a wall: the investor's zone choice reads market vacancy, and "no source
+separates the market component from the withheld one" — `test_vacancy`'s own docstring, citing
+investor-small §7.3. **That is false for at least one source, found by going to look.**
+
+The Basque **Encuesta sobre el Uso de la Vivienda** (EUV, Gobierno Vasco, biennial since 1997)
+classifies every non-principal dwelling as `en oferta` (en venta o alquiler) or `fuera de mercado`,
+and publishes it stratified by **municipality size**. Registered in `docs/sources.md` with the 2023
+edition parsed. Of **43,051** *viviendas deshabitadas* in the CAE, **11,681 — 27.1% — are on the
+market**; on the wider non-principal base (78,357, adding *temporada*/second residences) the offered
+share is **14.9%**, and **14.2%** of non-principal dwellings are specifically `en oferta de alquiler`.
+
+**The comparable ratio in the model, and it moves the suspect from rural to the metro.** The model's
+`vacancy_market_{z}` over `vacancy_{z}` is the share of vacant stock that is on the market, and its
+denominator includes withheld units — so the EUV's **14.9%** non-principal base is the like-for-like
+figure, not the 27.1%:
+
+| | share of vacant stock on the market |
+|---|---|
+| model, tensioned | **43.0%** |
+| model, secondary | **51.3%** |
+| model, rural | **14.8%** |
+| EUV 2023, CAE, offered / non-principal | **14.9%** |
+| EUV 2023, CAE, offered / deshabitadas | 27.1% |
+
+**The rural leg lands on the measured figure almost exactly (14.8% against 14.9%). The two urban
+legs are roughly three times it.** The earlier entry read the inversion as rural being too tight;
+on the only basis that has a measurement behind it, rural is right and **tensioned and secondary
+are the legs putting too much of their empty stock on the market**. That is the opposite
+attribution, and it matters because §7.3's whole problem is the rural yield looking riskless — if
+the rural offered-share is right, the missing discount is not there either.
+
+**Three caveats, none of which the finding survives without.**
+
+1. **One source is not two.** The bias rule wants ≥2 independent rows before a behavioural rule
+   cites them. This is one, and a gate built on it now would breach the project's own standard.
+2. **The CAE is not Spain, and is predominantly urban.** Comparing a model *rural* zone against a
+   CAE-wide average is not like-for-like. The EUV's municipality-size table exists (§3.1.3) but
+   reports *gestionable* share, which nets out second residences and so answers a different
+   question; the offered-share by size is not in the results report.
+3. **The mapping is an assumption.** Model `withheld` ↔ EUV *temporada*/second residence is
+   asserted here, not measured. If withheld covers more than second homes, the model's denominator
+   is wider and every model figure in the table above is understated.
+
+**What this changes about the route.** "Gate it first" is no longer blocked on the non-existence of
+a source — it is blocked on having only one, and on that one being regional. The concrete next
+retrieval is a second, independent split of the same kind: Catalonia's equivalent, or a national
+one. The Cátedra APCE-UPF monograph on *viviendas vacías en España y Cataluña* is the obvious
+candidate and was not reachable (HTTP 403) on this pass.
+
+## The second split does not exist, and that is the answer (2026-09-17)
+
+The entry above ended on "the next retrieval is a second independent split". It was attempted and
+**found nothing**. Recorded as a negative result, because the search trail is what licenses the
+conclusion and stops the next reader repeating it.
+
+| searched | what it is | why it does not serve |
+|---|---|---|
+| **Cátedra APCE-UPF**, *Las viviendas vacías en España y Cataluña: volumen real y evaluación del impacto de las distintas políticas* | the obvious Catalan/national twin | **Not retrievable.** HTTP 403 to both an automated fetch and a browser user-agent. Title suggests it addresses "volumen real", which is the right question; it could not be read and **nothing is claimed from it** |
+| **Fotocasa Research**, *Perfil del propietario con vivienda vacía* (5,000+ respondents, fieldwork Feb 2025) | national owner survey | Gives **3% of Spanish owners** holding an empty dwelling (1% of one-dwelling owners, 6% of two, 26% of three or more; Andalucía 2.5%, Madrid 2.1%, Valencia 2.0%, Catalonia 1.7%) and states empty homes sit "en zonas rurales o localidades con poca presión demográfica" rather than big cities. **But no offered/withheld split**, and the geography is qualitative |
+| **Navarra**, Registro de Viviendas Deshabitadas | a statutory register that would have to classify | Non-operative in practice: **216 dwellings** recorded after seven years, against an INE estimate of ~32,900 for the region |
+| **Galicia, Asturias** | candidate regional surveys | No equivalent survey found. Galicia's only figure is the Censo electricity proxy (28.8% of stock, Lugo 37%, Ourense 43%) — total vacancy, no market status |
+| **MITMA**, *CyTeT* 197, *La vivienda vacía en España* | ministerial review | A review of the **legal** definitions of *vivienda deshabitada* across CCAA and the policies attached, not a statistical split |
+| **INE Censo 2021** | the national base | Register/electricity proxy. Classifies dwellings by consumption band, never by market status |
+
+**So the EUV is not merely the best source for this split — as far as this search reaches, it is the
+only Spanish statistical operation that makes it.** That is a stronger statement than the one the
+previous entry could make, and it settles the route rather than deferring it.
+
+**What it means for the gate, stated plainly.** A per-zone market-vacancy gate cannot be built
+without breaching the bias rule, and the breach is not a formality: a band fitted to one
+predominantly urban autonomous community, mapped onto a three-zone national model through an
+assumed equivalence between `withheld` and *second residence*, would be exactly the kind of
+single-source calibration §13.2 exists to prevent. **The route chosen — gate first — is closed on
+the evidence, not on effort.**
+
+**What survives, and it is not nothing.** The EUV measurement stands as a registered comparison
+rather than a gate: offered share 14.9% of non-principal stock against the model's 14.8% rural,
+43.0% tensioned, 51.3% secondary. It is enough to say the rural leg is not the anomaly and the
+metro legs are, which is the opposite of where §7.3 was aiming, and it is enough to stop the
+vacancy-gradient repair being built. It is not enough to calibrate anything.
+
+**The remaining route is the one that needs no new source**: why the withholding rule puts 57% of
+tensioned vacancy off-market and 85% of rural vacancy off-market, answerable on the baseline.
+
+## The off-market split is not a rule — it is a calibration identity (2026-09-17)
+
+The route left standing needed no new source: why does the model put **57% of tensioned vacancy and
+85% of rural vacancy off-market**? Answered on the baseline, and the answer is that **there is no
+withholding rule to investigate.**
+
+`Unit.withheld` is a flag drawn once at creation with probability `ZoneConfig.withheld_share`
+(`engine.py:243`) and never revisited — only a `vacancy_tax` intervention ever clears it
+(`engine.py:397–405`). No agent decides to withhold; nothing responds to rent, price or tightness.
+The off-market share of vacancy is an **initial condition**.
+
+**And its per-zone levels are solved, not sourced.** `config.py` is explicit: the *gradient* rural ≫
+secondary > tensioned is the sourced claim [INE Censo 2021 / Funcas 104 ch.1], the **levels are a
+guess**, fixed by holding mobilisable stock per household equal across zones —
+`(units_per_household − 1) × (1 − withheld_share) = 0.0455`. Evaluated on the shipped config:
+
+| zone | `units_per_household` | `withheld_share` | (upH−1)(1−w) |
+|---|---|---|---|
+| tensioned | 1.0750 | 0.39 | **0.0457** |
+| secondary | 1.1240 | 0.63 | **0.0459** |
+| rural | 1.2420 | 0.81 | **0.0460** |
+
+The identity holds to three decimals in all three zones. It is not emergent; `withheld_share` is
+the variable the equation is solved for.
+
+**So the model asserts, by construction, that a household has the same usable empty stock available
+to it — 0.046 dwellings — whether it lives in Madrid or in a village.** Every bit of the zone
+variation in vacancy is absorbed into the withheld flag. The design note defends this deliberately:
+recognising the empty stock zone by zone "changes what the model *counts*, not what the market can
+*use*", which is Funcas 104's own claim that the Spanish empty stock "can hardly serve as an
+umbrella" for unmet demand.
+
+**The chain from that one identity to §7.3's blocker is short and complete.**
+
+1. mobilisable stock per household equal across zones, by construction, →
+2. market vacancy per household equal, →
+3. market vacancy *rate* lowest where stock per household is highest — **rural**, →
+4. a rural landlord faces the least letting risk in the model, →
+5. the 12.26% rural gross yield is a near-riskless return, →
+6. yield-chasing buy-to-let entry arbitrages the price ladder to T/R 1.65 against a 2.6 floor.
+
+§7.3 has been treated as a problem about what the investor *sees*. It is a consequence of what the
+zone configuration *asserts*, three steps upstream, and no discount applied at step 4 can undo an
+identity imposed at step 1.
+
+**Where the identity binds wrongly, on the one measurement available.** Against the EUV's 14.9%
+offered share the model's rural leg is right (14.8%) and the tensioned leg is ~3× high (43.0%). The
+constraint is not wrong everywhere — it is wrong at the metro end, which is where mobilisable stock
+per household being *equal* is least plausible: the zone with the strongest demand and the least
+empty stock is exactly where the umbrella argument has least to say.
+
+**What this does and does not license.** It identifies the load-bearing assumption and it is
+measured, not argued. It does **not** license changing `withheld_share`: the levels are tied to
+§9 moments through the 0.0455 calibration, so moving one moves the mobilisable stock the whole
+model was fitted against, and the only evidence pointing at a different tensioned level is a single
+regional survey — the same single-source objection that closed the gate route. Retiring the
+identity means re-deriving `units_per_household` and `withheld_share` per zone from the Censo
+ladder directly and re-running the §9 moments, which is a phase of work, not an edit.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

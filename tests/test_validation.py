@@ -454,7 +454,13 @@ def test_rent_burden(baseline_moments):
 def test_vacancy(baseline_moments):
     """Market vacancy in the tensioned zone 2–10%. The 6–9% urban Censo figure includes
     second homes and withheld stock; the market/frictional component the model reports here
-    sits below it (investor-small §7.3: no source separates them). The floor was 3% until the
+    sits below it (investor-small §7.3: no source separates them). SUPERSEDED IN PART 2026-09-17 —
+    the Basque EUV does separate them (`en oferta` vs `fuera de mercado`, registered in
+    docs/sources.md) and puts the offered share at 14.9% of non-principal stock against this
+    model's 43.0% here. The band is left alone: one regional row cannot carry a gate under the
+    bias rule, and re-fitting on it now would be fitting to a single source.
+
+    The floor was 3% until the
     tensioned-tightness recalibration: with formation metro-weighted the tensioned rental
     queue runs at ≈1 applicant per listing and frictional vacancy settles at ≈2.9%, which is
     the point of that revision (docs/validation.md). The floor was a convention, not a
