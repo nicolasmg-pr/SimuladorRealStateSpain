@@ -113,7 +113,12 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.042, 0.061),
         sourced="4,7–5,6%",
         fmt=".2%",
-        registered=Registered.XFAIL,
+        # GATED since 2026-09-17 (§5b.2). Target 9 closed on all three legs when the
+        # location premium was applied to rent acceptance; the suite's own assertions
+        # (tests/test_validation.py, 0.042-0.061 / 0.060-0.080 / 0.065-0.095) pass at ten
+        # seeds. Registered here to match, per this module's rule that the test is right
+        # and this file is the bug when they disagree.
+        registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
     ),
@@ -125,7 +130,12 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.060, 0.080),
         sourced="6,5–7,5%",
         fmt=".2%",
-        registered=Registered.XFAIL,
+        # GATED since 2026-09-17 (§5b.2). Target 9 closed on all three legs when the
+        # location premium was applied to rent acceptance; the suite's own assertions
+        # (tests/test_validation.py, 0.042-0.061 / 0.060-0.080 / 0.065-0.095) pass at ten
+        # seeds. Registered here to match, per this module's rule that the test is right
+        # and this file is the bug when they disagree.
+        registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
     ),
@@ -137,7 +147,9 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.065, 0.095),
         sourced="7–9%",
         fmt=".2%",
-        registered=Registered.XFAIL,
+        # GATED since 2026-09-17 (§5b.2): the rent-side location premium took this leg from
+        # ~13.9% to 8.89%, inside the band. It was the leg target 9 was registered against.
+        registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
         note="**Esta es la pata que rompe el objetivo 9.** `required_rent` ancla el suelo del "
@@ -158,7 +170,9 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.0, float("inf")),
         sourced="orden estricto, en toda base publicada",
         fmt="+,.0f",
-        registered=Registered.XFAIL,
+        # GATED since 2026-09-17 (§5b.2). The ordering holds; the LEVEL is still compressed,
+        # T/R 2.05 against a sourced 2.44, which this criterion does not assert.
+        registered=Registered.GATED,
         source="idealista, SERPAVI, EPF regional — 675 €/mes Madrid contra 277 € "
         "Extremadura [Funcas 104 cap.5]",
         reads="La escalera de **precios** está gatillada (objetivos 2b–2d); la de **alquileres** "

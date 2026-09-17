@@ -3457,6 +3457,242 @@ regional survey — the same single-source objection that closed the gate route.
 identity means re-deriving `units_per_household` and `withheld_share` per zone from the Censo
 ladder directly and re-running the §9 moments, which is a phase of work, not an edit.
 
+## Phase H step 1 — the baseline frozen, and a figure of mine corrected (2026-09-17)
+
+`docs/superpowers/specs/2026-09-17-zone-stock-identity.md` step 1: record the state at the current
+identity before anything moves. Config hash **`dfb25210c4`**, ten seeds, `build_scenario("baseline",
+seed, 60)`, tail 20 — the suite's own basis, not the shorter one used for the diagnosis. Cached to
+`runs/phase-h-baseline-freeze_seeds1-10_dfb25210c4.json`.
+
+| | tensioned | secondary | rural |
+|---|---|---|---|
+| total vacancy | 8.98% | 14.58% | 18.85% |
+| market vacancy | 3.17% | 8.01% | 3.80% |
+| **offered share** | **35.3%** | **54.9%** | **20.2%** |
+| gross yield | 5.22% | 6.98% | 13.93% |
+| rental turnover | 0.1485 | 0.1694 | 0.1314 |
+
+National: ownership 72.5%, price-to-income 8.06, vacancy 13.06%, seeker share 6.25%, overburden
+31.3%, arrears 3.08%, T/R price ratio 3.74.
+
+**CORRECTION, and it is mine.** The entry "A source DOES separate market from withheld vacancy"
+reported the model's offered shares as **14.8% rural / 43.0% tensioned / 51.3% secondary** and said
+the rural leg landed on the EUV's 14.9% "almost exactly". Those were measured at **40 ticks, mean
+of the last 8** — the basis the rent-cap experiment uses — not the suite's 60/tail-20. On the
+suite basis the rural leg reads **20.2%**, not 14.8%. **The "almost exactly" claim does not
+survive**; against 14.9% the rural leg is ~35% high rather than spot on.
+
+**What does survive, and it is the part the phase rests on.** The ordering is unchanged and so is
+the attribution: rural is the *closest* leg to the only measurement available, and the metro legs
+are the far ones — tensioned 35.3% and secondary 54.9% against 14.9%. Secondary, not tensioned, is
+now the worst offender. The conclusion that the identity binds wrongly at the non-rural end stands;
+the claim that rural was already correct does not, and H3 in the phase plan ("the rural leg does
+not break") should be read against 20.2%, not 14.8%.
+
+**And `units_per_household` is confirmed sound at the primary source.** The INE press-release
+ladder — now registered directly rather than via Funcas 104 — gives empty shares of 7.5% (>250k),
+10.2% (50–250k), 13.9% (10–50k), 21.6% (1–10k), 33.3% (<1,000). Under the model's declared mapping
+(tensioned ≈ >300k, secondary ≈ 20k–300k, rural ≈ <20k) that implies upH of ≈1.081, ≈1.130 and
+≈1.239 against the shipped 1.0750, 1.1240 and 1.2420. **The derived half of the identity is right;
+only `withheld_share`, the solved half, is not.** That narrows phase H to one parameter.
+
+## Phase H step 2 — the evidence base, and it is smaller than the parameter (2026-09-17)
+
+Sourcing for the mechanism that would replace the solved `withheld_share`. Two independent rows
+per leg, per the bias rule. **The result narrows the phase and questions its recommended route.**
+
+### Leg 1 — condition. Two sources, agreeing in direction, and both far below the parameter
+
+**INE Censo 2011** carries the only condition × use cross-tab there is: the 2021 Censo is
+register-based and does not survey condition, so this is the primary and it is fifteen years old.
+Share of dwellings whose building is **not** in good state:
+
+| | ruinoso | malo | deficiente | **not good** |
+|---|---|---|---|---|
+| principales | 0.2% | 0.7% | 4.7% | **5.6%** |
+| secundarias | 0.3% | 0.9% | 5.6% | **6.8%** |
+| **vacías** | 1.1% | 3.3% | 10.6% | **15.1%** |
+
+Vacant stock is **≈2.7× more likely** to be in poor condition than occupied stock — the gradient
+the mechanism needs exists and is measured. Ruinoso+malo is 4.4% ≈ 151,500 dwellings; not-good is
+≈520,000. Both reproduce the figures quoted in the press, so the parse is verified.
+
+**Fotocasa Research** (5,000+ respondents, Feb 2025) is the self-reported sibling, independent in
+method and institution: the **most-cited reason** for holding a dwelling empty is that it is **not
+in habitable condition, 21–22%**. Higher than the register's 15.1%, as expected — an owner's
+notion of "not habitable" is wider than *deficiente*.
+
+**So condition supports a withheld share of roughly 15–21%. The model ships 39%, 63% and 81%.**
+The evidence does not reach the parameter, and it is not close: even the self-report ceiling is
+half the *tensioned* value and a quarter of the rural one.
+
+### Leg 2 — the rest is mostly not economic, which is the problem
+
+The EUV's own question on why a dwelling is kept out of the market answers it: **45.1%** of
+responses are *reserving it for children or other descendants*. Fotocasa's next reasons after
+condition are inheritance deadlock and distrust of tenants. **The dominant declared reason for
+withholding is not a return calculation at all.**
+
+### What this does to route (b)
+
+The phase plan recommended making withholding a **decision** — withheld when expected net letting
+return fails to clear a threshold. The evidence says such a rule would reproduce at most the
+15–21% that condition explains, and would predict the rest re-entering the market when returns
+rise. **The measured reasons say they do not**: a dwelling reserved for a descendant is not
+supplied at any rent.
+
+That is not a refutation of (b), but it fixes its shape. A defensible mechanism has **two
+components, not one**:
+
+1. a **non-economic core**, exogenous and persistent, covering reservation, inheritance deadlock
+   and unfitness — the part no rent mobilises; and
+2. an **economic margin** on top, where condition and rehabilitation cost are weighed against
+   local rent, which is the part a vacancy tax or a rent rise can actually move.
+
+The current model is all core and no margin; a pure route (b) would be all margin and no core.
+**Neither is right, and the split between them is now measured rather than assumed** — roughly
+15–21% of the empty stock is unfit, ~45% is reserved, and the remainder is the margin.
+
+### What is still missing before anything is coded
+
+- **Rehabilitation cost.** The official anchor is RD 853/2021 (BOE), whose per-dwelling
+  subsidisable limits run **6,300–18,000 €** by energy-saving band, up to 18,800–21,400 € in some
+  programmes. Its second source is weak: commercial quote aggregators at 600–1,200 €/m² for an
+  integral renovation, which are the same *kind* of source as each other and would not satisfy
+  independence.
+- **A condition gradient by municipality size.** Leg 1 is national. The zone structure needs the
+  ladder, and the Censo 2011 cross-tab is published by CCAA and province, not by size band.
+  Provinces are a usable proxy — Ourense 23%, Lugo and Castellón ≈20% against the three Basque
+  provinces, Madrid and Barcelona all under 11% — but mapping province to the model's three zones
+  is a step that needs writing down before it is used.
+
+## Phase H step 2, closed — what is sourced, what is weak, what is missing (2026-09-17)
+
+Continuation of the entry above. Step 2 of the phase plan is as far as retrieval takes it.
+
+### Sourced, two independent rows each
+
+- **The condition level.** INE Censo 2011 cross-tab (15.1% of vacant stock not in good condition,
+  ≈2.7× the principal rate) and Fotocasa Research's owner self-report (21–22% citing unfitness).
+  Register vs survey, different institutions, agreeing in direction.
+- **The non-economic core.** EUV 2023 (45.1% reserving for descendants) and Fotocasa (inheritance
+  deadlock, distrust of tenants, after condition).
+
+### Weakly sourced, and labelled as such
+
+- **Rehabilitation cost.** Two official anchors exist and **neither measures cost**: RD 853/2021's
+  subsidisable ceilings (6,300–18,000 €/dwelling by energy band, up to 21,400 €) and the Plan
+  Estatal de Vivienda 2026–2030 (structural 8,000 €, accessibility 13,000 €, energy 20,500 €).
+  They are the same *kind* of instrument — policy ceilings — so they corroborate an order of
+  magnitude and do **not** constitute two independent measurements. Commercial quote aggregators
+  (600–1,200 €/m² for an integral renovation) are also same-kind to each other. **Any cost
+  parameter drawn from these ships labelled weakly sourced**, and under §13.2 anything it governs
+  more than 25% of stays direction-only.
+
+  One of them is worth noting for its own sake: the 2026–2030 plan carries an **empty-home
+  recovery programme at up to 35,000 €/dwelling, explicitly aimed at rural areas and tensioned
+  urban cores.** That is the state's own estimate of what mobilising an empty rural dwelling
+  costs, and it is a policy this model could represent directly.
+
+### Missing, and named precisely so the next pass does not repeat this one
+
+1. **A condition gradient at the model's zone boundaries.** ECEPOV 2021 publishes *estado de
+   conservación* by municipality size (INE table 59053) — but its bands are **≤50,000 / 50,001–
+   100,000 / 100,001–500,000 / >500,000**, which does **not** separate the model's rural (<20k)
+   from its secondary (20k–300k); and only the **coefficient-of-variation** table is reachable by
+   direct CSV, with the values table not linked from it. The usable fallback is the Censo 2011
+   **province** breakdown (Ourense 23%, Lugo and Castellón ≈20%, the three Basque provinces plus
+   Madrid and Barcelona all under 11%), which requires a **written province → zone mapping** —
+   and that mapping is itself a modelling decision that belongs in `model-spec.md` before it is
+   used, not a lookup.
+2. **A realised-cost measurement** for rehabilitation, as opposed to a subsidy ceiling.
+
+### The state of the phase
+
+Step 1 (freeze) is done. Step 2 is **closed on what retrieval can reach**: the core/margin split
+is measured, the condition level has two independent sources, and the cost leg is weak and
+labelled. Step 3 (write the mechanism into `model-spec.md`) can proceed for the **core**, which is
+sourced; it cannot yet fix the **margin**'s cost parameter without either accepting a weakly
+sourced value or finding a realised-cost series. That choice belongs to whoever writes §7.4, and
+it is stated here rather than made quietly.
+
+## Phase H step 4 stopped before it started — Piece B is inert (2026-09-17)
+
+Step 4 is implementation. It was not done, because the arithmetic that should have been checked
+first says the mechanism would do nothing.
+
+§7.4's margin withholds a unit when net letting income over LAU art. 9's five years falls short of
+the rehabilitation cost. On the frozen baseline, after `landlord_cost_share` 0.22: net five-year
+income is **78,016 € tensioned, 55,195 € secondary, 51,392 € rural**, against cost bands of **8,000
+/ 13,000 / 20,500 €**. **The cheapest zone clears the dearest band by 2.5×.**
+
+So Piece B withholds nothing but the *ruinoso* tail — a flat 1.1% — and total withholding would be
+≈41% in every zone. **H1 fails by construction**: no gradient emerges, because nothing is there to
+emerge. Implementing it would have produced a red suite and a week of attribution work for a result
+available from four numbers.
+
+**The cause sits outside §7.4.** The model's rural rent is **1,098 €/month against 1,667
+tensioned — a ratio of 1.52**, where the registered source gives **675 € Madrid against 277 €
+Extremadura, 2.44** [Funcas 104 ch.5]. The rural rent leg is far too high, and that is **target
+11**, already a registered strict xfail.
+
+**The circle, named so it is not walked again.** §7.4's margin needs a working rent ladder → the
+ladder is target 11 → target 11 was to be fixed by §7.3's buy-to-let entry → §7.3 is blocked on
+§7.4. Every route out of this stack currently passes through another part of it.
+
+**What that means for the phase.** Steps 1–3 stand and are worth keeping: the identity is
+diagnosed, the core is sourced and bounded (0.33–0.48, which brackets the tensioned value and
+rejects the other two), the horizon is a statute, and the cost is a declared range. **Step 4 is
+blocked, not abandoned** — it unblocks the moment the rent ladder is repaired by a route that does
+not pass through buy-to-let entry. Identifying that route is the next phase, and it is not this
+one.
+
+**Two escapes considered and rejected**, recorded so they are not retried: scaling rehabilitation
+cost by dwelling value (unsourced, and it binds harder in expensive zones — the wrong direction),
+and discounting expected income by the probability of letting (circular, since vacancy is the
+quantity being explained).
+
+## §5b.2 — the rent ladder repaired, and the block cleared (2026-09-17)
+
+The whole §7.3/§7.4 stack was blocked on one thing: rural rent far too high relative to metro. The
+cause was already written in target 11's own xfail marker — *"the location premium discounts
+purchase willingness in rural but nothing discounts rent acceptance"* — with the wrong repair
+attached to it (buy-to-let entry, §7.3, still parked). Applying the premium to `max_rent` is the
+whole change. No parameter was fitted; `location_premium` keeps the values it shipped with.
+
+**Measured, three seeds, tail 20 of 60:**
+
+| | before | after | sourced |
+|---|---|---|---|
+| rent rural | 1,098 | **824** | — |
+| rent ratio T/R | 1.52 | **2.05** | 2.44 |
+| gross yield rural | 13.93% | **8.89%** | **7–9%** |
+| ordering T > S > R | false | **true** | strict |
+
+**Suite: 6 failed / 175 passed → 4 failed / 177 passed / 8 xfailed.**
+
+**Closed.** Target 11 (rent ordering) and **target 9 on all three legs** — the rural leg was what
+the target was registered against, and the other two came with it. Both markers named §7.3 as
+their fix and §7.3 had nothing to do with it. Three failures the limits register had left open
+also went green untouched: the **forbearance inversion**, the **rate shock's 0.9pp volume miss**,
+and the **non-resident surcharge XPASS**. All were downstream of a ladder that priced amenity on
+one tenure only.
+
+**Paid for.** `test_national_entry_yield_matches_the_bank_of_spain` fails by **0.17pp** (6.326%
+against a 6.5% floor), and **boom-time rent growth regresses from +3.6%/yr to +1.16%/yr** against
+a 2.5% floor — the project's oldest structural gap, made worse by damping rent acceptance in the
+weak zones. Registered, not banded away. Secondary-zone vacancy also moves further above its Censo
+band top.
+
+**Not fixed: the level.** T/R reads 2.05 against a sourced 2.44, so rural rent is still ≈19% too
+high relative to metro. Target 11 asserts the ordering and passes; nothing asserts the level. That
+is the honest open item now, and it is a smaller one than the sign.
+
+**What it unblocks.** §7.4's margin arithmetic moves with it: rural net five-year income falls from
+51,392 € to **38,561 €** against cost bands topping at 20,500 €. The margin still clears by 1.9×,
+so **Piece B is still inert and phase H step 4 is still blocked** — but by a factor of 1.9 rather
+than 2.5, and the circularity is gone: the rent ladder no longer depends on §7.3.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

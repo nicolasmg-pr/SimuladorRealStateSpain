@@ -55,10 +55,15 @@ def test_the_registered_xfails_show_red_in_the_panel(table):
     finding-11 correction"), so the negative net is the gated pass, and what is still red
     is the GROSS inbound leg: nobody ever moves into the metro.
     """
-    assert table.loc["gross_yield_rural", "Encaja"] == "🔼"
-    assert table.loc["gross_yield_rural", "value"] > 0.095
-    assert table.loc["rent_ordering", "Encaja"] == "🔽"
-    assert table.loc["rent_ordering", "value"] < 0  # rural rent above the metro index
+    # Updated 2026-09-17 (§5b.2): the rural gross-yield leg and the rent ordering BOTH turned
+    # green when the location premium was applied to rent acceptance, so neither is a registered
+    # xfail any more and neither can be asserted red here. That is this test doing its job —
+    # "if one turns green, a mechanism landed" — and the mechanism is recorded in model-spec
+    # §5b.2. What they are now asserted to be is green, so a later regression is still caught.
+    assert table.loc["gross_yield_rural", "Encaja"] == "✅"
+    assert 0.065 <= table.loc["gross_yield_rural", "value"] <= 0.095
+    assert table.loc["rent_ordering", "Encaja"] == "✅"
+    assert table.loc["rent_ordering", "value"] > 0  # rural rent below the metro index
     assert table.loc["migration_in_tensioned", "Encaja"] == "🔽"
     assert table.loc["migration_in_tensioned", "value"] < 1  # no inbound interior flow at all
 
@@ -87,7 +92,15 @@ def test_the_panel_reports_each_leg_of_target_9_separately(table):
     }
     assert set(verdicts) == {"tensioned", "secondary", "rural"}
     assert all(v in ("✅", "🔽", "🔼") for v in verdicts.values()), verdicts
-    assert verdicts["rural"] == "🔼", "rural is the leg target 9 is registered against"
+    # Updated 2026-09-17 (§5b.2): rural was the leg target 9 was registered against and it now
+    # passes — the rent-side location premium took it from ~13.9% to 8.89%, inside the 7-9%
+    # band. The tensioned and secondary legs are what remain outside, so the panel's job here
+    # is unchanged and the row that carries the target has simply moved.
+    # 2026-09-17 (§5b.2): all three legs now pass. Rural was the leg the target was registered
+    # against and it went from ~13.9% to 8.89%; the other two came with it. The panel's job —
+    # three separately-verdicted rows, so it says WHICH leg breaks — is what is asserted, and it
+    # is asserted against the closed state so a regression in any single leg is caught.
+    assert all(v == "✅" for v in verdicts.values()), verdicts
 
 
 def test_tenant_ordering_holds(table):
@@ -155,8 +168,10 @@ def test_every_column_the_tab_plots_exists(frame):
 def test_summary_counts_the_registered_xfails(frame):
     counts = diagnostics.summary(frame)
     assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
-    # targets 9, 11, 12 (its GROSS inbound leg — the net leg is gated), and 15's deliveries
-    # leg (phase C). 13c's negotiation margin was the fifth until §5c.8 closed it 2026-09-15
-    assert counts["xfail"] == 4
+    # targets 12 (its GROSS inbound leg — the net leg is gated) and 15's deliveries leg
+    # (phase C). 13c's negotiation margin was the third-from-last until §5c.8 closed it
+    # 2026-09-15; TARGETS 9 AND 11 both closed on 2026-09-17 when §5b.2 applied the location
+    # premium to rent acceptance — 9 on all three of its legs.
+    assert counts["xfail"] == 2
     assert counts["targets"] == 10  # 1c, 9, 10, 11, 12, 13, 13c, 14, 15, 16 (phase G)
     assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)

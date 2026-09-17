@@ -221,15 +221,16 @@ def test_zone_gross_yield_ladder(baseline_moments):
     assert 0.065 <= baseline_moments["gy_rural"] <= 0.095
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-11: rural asking rent overtakes the tensioned index around tick 35-40 "
-    "and ends ≈13.5% above it on 3 seeds. The location premium discounts purchase "
-    "willingness in rural but nothing discounts rent acceptance (model-spec §5b), while "
-    "downward-only migration funnels seekers there and the sharing margin lifts accepted "
-    "burden to 0.55. Fixed by bidirectional migration and buy-to-let entry "
-    "(spec §7.3, §7.5 — phase B).",
-)
+# XFAIL REMOVED 2026-09-17. The marker read: "rural asking rent overtakes the tensioned index
+# around tick 35-40 and ends ~13.5% above it on 3 seeds. The location premium discounts purchase
+# willingness in rural but nothing discounts rent acceptance (model-spec §5b) ... Fixed by
+# bidirectional migration and buy-to-let entry (spec §7.3, §7.5 - phase B)."
+#
+# Its own diagnosis was right and its predicted repair was wrong. What fixed it was applying the
+# location premium to rent acceptance (§5b.2) - the clause the marker itself named - not
+# buy-to-let entry, which is still parked. The ordering now holds and the T/R rent ratio reads
+# 2.05 against a sourced 2.44, so the level is still compressed; the ORDERING is what this gate
+# asserts and it passes.
 def test_rent_level_ordering(baseline_moments):
     """Target 11: asking rent levels must rank tensioned > secondary > rural.
 

@@ -215,18 +215,30 @@ class Households:
                 )
                 continue
 
+            # The location premium applies to RENT acceptance, not only to the buy budget
+            # (model-spec §5b.2, 2026-09-17). Until then it discounted willingness to BUY in a
+            # low-amenity zone and nothing discounted willingness to RENT there, so accepted
+            # rent tracked local income alone. Incomes vary far less across zones than amenity
+            # does, which is why the rent ladder came out compressed — 1,098 €/month rural
+            # against 1,667 tensioned, a ratio of 1.52 where the sourced ladder is 277 €
+            # Extremadura against 675 € Madrid, a ratio of 2.44 [Funcas 104 ch.5] — and why
+            # target 11's ordering failed with rural overtaking the metro around tick 35-40.
+            # A household that will not pay metro prices to OWN in a low-amenity zone will not
+            # pay metro rents to LIVE there either; the same amenity is being priced.
+            # The subsidy is added AFTER the premium: a housing subsidy is money, not amenity.
+            premium = zone_cfg.location_premium
             if hh.status is HouseholdStatus.SEEKER:
-                max_rent = search_burden(hh) * hh.income / 12.0
+                max_rent = search_burden(hh) * hh.income / 12.0 * premium
                 max_rent += self._rent_subsidy(state, hh)
                 intents.append(RentApplication(agent_id=hh.id, zone=hh.zone, max_rent=max_rent))
             elif hh.status is HouseholdStatus.TENANT and move_draw[i] < pop.tenant_move_prob:
                 # rotation: only move if the outsider penalty is bearable
                 unit = state.stock.units[hh.unit_id]
                 market_rent = zs.rent_index * unit.quality
-                penalty_ok = market_rent <= hh.max_rent_burden * hh.income / 12.0
+                ceiling = hh.max_rent_burden * hh.income / 12.0 * premium
+                penalty_ok = market_rent <= ceiling
                 if penalty_ok:
-                    max_rent = hh.max_rent_burden * hh.income / 12.0
-                    max_rent += self._rent_subsidy(state, hh)
+                    max_rent = ceiling + self._rent_subsidy(state, hh)
                     intents.append(RentApplication(agent_id=hh.id, zone=hh.zone, max_rent=max_rent))
         return intents
 

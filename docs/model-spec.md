@@ -1139,6 +1139,59 @@ declared as one. Measured: 1 gives a 3.9% margin, 2 gives 4.7%, 3 gives 5.1%, 6 
 70% of listings selling inside the quarter against a 43–63% band. Three is both the calendar and
 the only value that satisfies every gate.
 
+### 5b.2 The location premium applies to rent, not only to purchase (2026-09-17)
+
+**One clause, and it was named by the defect it caused.** `ZoneConfig.location_premium`
+(tensioned 1.0, secondary 0.85, rural 0.45) discounted the household's **buy budget** in a
+low-amenity zone and nothing discounted its **rent acceptance**, which was pure income share:
+`max_rent = search_burden(hh) × income / 12`. Incomes vary far less across zones than amenity
+does, so accepted rent tracked local income and the rent ladder came out compressed.
+
+`max_rent` now carries the same premium. **The rent subsidy is added after it**: a housing
+subsidy is money, not amenity.
+
+**The claim.** A household that will not pay metro prices to OWN in a low-amenity zone will not
+pay metro rents to LIVE there either. It is the same amenity being priced, and pricing it on one
+tenure only is the asymmetry, not the correction.
+
+**Measured, three seeds, tail 20 of 60:**
+
+| | before | after | sourced |
+|---|---|---|---|
+| rent, tensioned | 1,667 | 1,692 | — |
+| rent, secondary | 1,179 | 1,266 | — |
+| rent, rural | 1,098 | **824** | — |
+| **rent ratio T/R** | 1.52 | **2.05** | **2.44** (675 € Madrid / 277 € Extremadura) |
+| **gross yield, rural** | 13.93% | **8.89%** | **7–9%** |
+| ordering T > S > R | **false** | **true** | strict |
+
+**Two registered xfails die of it**, and neither by the repair their markers predicted. Target 11
+(rent ordering) and target 9's rural leg — the leg the target was registered against — both
+passed to `GATED`. Both markers named buy-to-let entry (§7.3) as the fix; §7.3 is still parked and
+had nothing to do with it. Target 11's marker had the right diagnosis in its own text — *"nothing
+discounts rent acceptance (model-spec §5b)"* — and the wrong repair attached to it.
+
+**The level is not fixed, only the ordering.** T/R reads 2.05 against a sourced 2.44, so rural
+rent is still ~19% too high relative to metro. Target 11 asserts the ordering and passes; nothing
+asserts the level, and that is now the honest open item, not the ladder's sign.
+
+**What it costs, and it is not free.**
+
+- `test_national_entry_yield_matches_the_bank_of_spain` fails by **0.17pp** — 6.326% against a
+  6.5% floor. A small miss on a national aggregate that moved with the rural leg.
+- `test_holdout_boom_rent_growth` regresses from +3.6%/yr to **+1.16%/yr** against a 2.5% floor.
+  Boom-time rent growth was already the project's oldest structural gap; damping rent acceptance
+  in the weak zones damps it further. Registered, not banded away.
+- Secondary-zone vacancy moves further above its Censo band top (13.1%), a leg that was already a
+  strict xfail at 13.4%.
+
+**And three failures the limits register had left open are gone**: the forbearance inversion, the
+rate shock's 0.9pp volume miss, and the non-resident surcharge XPASS. None of them was touched
+directly. They were downstream of a rent ladder that priced amenity on one tenure only.
+
+**No parameter was fitted.** `location_premium` keeps the values it already shipped with; the
+change is where it is applied, not what it is.
+
 ### 7.3 Buy-to-let entry — the section this file cited three times and never had (2026-09-17)
 
 **This section records a debt, not a decision.** §7.3 was referenced from three §9 targets (9,
@@ -1238,6 +1291,150 @@ an identity imposed on the initial conditions.** Full chain and the measured tab
 right in rural, and that is a question about the withholding rule, answerable on the baseline and
 without the rent cap or buy-to-let entry anywhere near it. Until it is settled there is no §7.3
 decision to write down, and the branch should not merge.
+
+### 7.4 Withholding, as a core and a margin (2026-09-17)
+
+**Specification only.** Nothing here is implemented. It replaces the solved `withheld_share` of
+§ZoneConfig, whose retirement is argued in `docs/validation.md` ("there is no withholding rule")
+and planned in `docs/superpowers/specs/2026-09-17-zone-stock-identity.md`.
+
+**What it retires.** `(units_per_household − 1)(1 − withheld_share) = 0.0455`, held identically
+across zones, with `withheld_share` as the solved variable. `units_per_household` **survives**: the
+INE ladder confirms it at the primary source (implied 1.081 / 1.130 / 1.239 against a shipped
+1.0750 / 1.1240 / 1.2420). Only the solved half goes.
+
+**Why two pieces and not one.** The phase plan proposed making withholding a return decision. The
+evidence refuses a pure version of that: the dominant declared reason for holding a dwelling off
+the market is **reserving it for descendants** (EUV 2023, 45.1% of *gestionable* stock), and such a
+dwelling is not supplied at any rent. A return rule alone would mobilise it as soon as rents rose.
+So the model needs a part that no rent moves and a part that rent does.
+
+#### Piece A — the non-economic core
+
+A vacant unit is in the core if a persistent per-unit draw falls below `withheld_core_share`. The
+draw is taken once at creation from the engine's seeded Generator and never redrawn, the same
+discipline as `declaration_draw` and `sale_route_draw` (§7.2b): a unit cannot cross the threshold
+and come back, and two scenarios stay comparable. **No rent, tightness or price mobilises a core
+unit.** Only an explicit rehabilitation or empty-home-recovery intervention does.
+
+**The core is uniform across zones, and that is the point.** No source gives the core by
+municipality size — ECEPOV 2021's conservation table bands are ≤50k / 50–100k / 100–500k / >500k,
+which do not separate this model's rural from its secondary. Imposing a gradient here would
+reinstate the defect this section exists to remove. **The zone gradient must come out of Piece B
+or not at all**, and whether it does is the falsification.
+
+#### Piece B — the economic margin
+
+A vacant, non-core unit carries a second persistent draw, `rehab_draw` ~ U(0,1), mapped onto the
+work its building needs. **The map's shape is the Censo 2011 condition distribution of vacant
+stock, which is sourced**: *bueno* 84.9%, *deficiente* 10.6%, *malo* 3.3%, *ruinoso* 1.1%. So
+
+```
+u < 0.849                → cost 0                      (bueno: lettable as it stands)
+0.849 ≤ u < 0.955        → cost ~ accessibility band    (deficiente)
+0.955 ≤ u < 0.988        → cost ~ structural band       (malo)
+u ≥ 0.988                → cost prohibitive             (ruinoso: never lettable)
+```
+
+The unit is withheld this tick when the expected net letting income over `mobilisation_horizon`
+falls short of that cost. Because rents differ by zone and the cost does not, **the same
+distribution produces more withholding where rents are lowest** — which is how the rural gradient
+is supposed to emerge rather than be asserted.
+
+#### Parameter ledger
+
+| parameter | value | basis |
+|---|---|---|
+| `withheld_core_share` | **0.40**, range **0.33–0.48** | Bounded, not fitted. Reservation is 45.1% of *gestionable* = **32.9%** of *deshabitadas* [EUV 2023]; unfitness is **15.1%** [Censo 2011 register] to 22% [Fotocasa self-report]. The two may overlap, so the lower bound is the max (32.9%) and the upper the sum (48.0%, or 54.9% on the self-report). Central 0.40 |
+| `rehab_cost_scale` | **declared RANGE 6,300–21,400 €/dwelling**, no point value | **Deliberately not resolved to a point**, per this project's bias rule: *disputed estimates become parameter ranges, never resolved point values*. The estimate is disputed in the strong sense — both anchors are **policy ceilings, not cost measurements** (RD 853/2021, 6,300–18,000 €, up to 21,400 €; Plan Estatal 2026–2030, structural 8,000 / accessibility 13,000 / energy 20,500 €), they are the same *kind* of instrument, and the attempt to obtain a realised cost failed (below). The range is the union of the two ceiling sets. It enters `sensitivity.py`'s Morris/Sobol sweep **when the field lands**; a sweep entry cannot precede the parameter. The variance rule (§13.2) then decides what it downgrades — which is the right way round, and is why no point is chosen here |
+| `mobilisation_horizon` | **20 ticks** (persona física), 28 (persona jurídica) | **Statutory, not free.** LAU art. 9 obliges the landlord to extend to a five-year minimum, seven if a legal person, so that is the income a landlord deciding whether to rehabilitate can count on. Registered in `docs/sources.md`. This repeats §7.2b's own move — it retired `holding_years`, a guess with range 3–10, in favour of the cap's statutory term — and for the same reason. **Rejected alternatives**: the Registradores 15y256d holding period (registered, but it measures tenure until SALE, and reusing it here is the cross-quantity borrowing §7.1 refused once); and the model's own emergent mean tenancy of 6.9 years, which is an output and therefore circular |
+| `rehab_draw` band edges | 0.849 / 0.955 / 0.988 | Censo 2011 condition distribution of vacant stock, cumulative. Sourced outright |
+
+**Retired:** `withheld_share` (0.35 default; 0.39 / 0.63 / 0.81 per zone) and the 0.0455 identity.
+**Added:** `withheld_core_share`, three cost bands, one horizon, one per-unit draw. Four parameters
+out, five or six in — a regression on headcount, recorded as one, and the same trade §7.2b made:
+what dies is one solved quantity governing a whole channel; what is born is bounded by evidence
+except the cost, which ships labelled.
+
+#### What the evidence already says about the values being replaced
+
+The core's bound is **0.33–0.48**. The model ships **0.39 tensioned** — inside it — and **0.63
+secondary** and **0.81 rural**, both **above even the disjoint upper bound of 0.55**. So the
+evidence brackets the tensioned value and rejects the other two. That is the numerical form of
+this section's claim, and it is the reason the gradient has to become emergent: the current
+gradient is not merely unsourced, its two larger values are outside what the sources admit.
+
+#### Falsification
+
+- **H1 — the ordering emerges.** Market vacancy must rank rural > secondary > tensioned from
+  Piece B alone. If it does not, the gradient was real and exogenous and this section is wrong.
+- **H2 — the offered share moves toward the measured one without being fitted to it.** Scored once
+  against the EUV's 14.9%, after parameterisation is frozen. The EUV is a hold-out (§13.11
+  discipline): any pass that required consulting it first is not a pass.
+- **H3 — the rural leg does not break.** It reads **20.2%** at the freeze, the closest of the
+  three to 14.9%. A mechanism that fixes the metro end by breaking rural has moved the error.
+- **H4 — the ladder survives buy-to-let entry.** With §7.3's mechanism on, T/R must stay above its
+  2.6 floor. This is the gate the phase exists to reach.
+- **H5 — the §9 moments that pass today still pass, or every break is attributed.** Target 5d, the
+  national vacancy band and the seeker share are the exposed ones.
+
+> **PIECE B IS INERT AT THE MODEL'S OWN RENT LEVELS — MEASURED 2026-09-17, BEFORE CODING.**
+> The margin withholds a unit when net letting income over the horizon falls short of the
+> rehabilitation cost. Measured on the frozen baseline (seed 1, tail 20 of 60), net income over
+> LAU art. 9's five years, after `landlord_cost_share` 0.22:
+>
+> | zone | rent €/month | price € | **net 5-year income €** |
+> |---|---|---|---|
+> | tensioned | 1,667 | 379,087 | **78,016** |
+> | secondary | 1,179 | 222,207 | **55,195** |
+> | rural | 1,098 | 102,853 | **51,392** |
+>
+> Against cost bands of **8,000 / 13,000 / 20,500 €**. The *cheapest* zone clears the *dearest*
+> band by a factor of **2.5**. Piece B therefore withholds nothing anywhere except the *ruinoso*
+> tail, which is a flat 1.1% by construction — so total withholding would land at ≈41% in all
+> three zones and **H1 fails before the code is written**: the gradient does not emerge, because
+> there is nothing for it to emerge from.
+>
+> **The cause is not in this section.** The model's rural rent is 1,098 €/month against a
+> tensioned 1,667 — a ratio of **1.52**, where the registered source has **675 €/month in Madrid
+> against 277 € in Extremadura, a ratio of 2.44** [idealista, SERPAVI, EPF regional via Funcas 104
+> ch.5]. Rural rent is far too high relative to metro, and that is **target 11**, a registered
+> strict xfail: "el alquiler rural adelanta al tensionado alrededor del trimestre 35–40".
+>
+> **Which closes a circle that has to be named.** §7.4's margin needs a working rent ladder.
+> The rent ladder is target 11. Target 11 was to be fixed by §7.3's buy-to-let entry. §7.3 is
+> blocked on §7.4. **Nothing in this stack can move until the rent ladder is repaired by a route
+> that does not pass through buy-to-let entry**, and finding that route is a different phase from
+> this one.
+>
+> **Two escapes considered and rejected, so they are not retried.** Making the rehabilitation cost
+> proportional to dwelling value would make the margin bind, but the sources give flat €/dwelling
+> ceilings and scaling by value is unsourced — and it binds *harder in expensive zones*, which is
+> the wrong direction. Discounting expected income by the probability of letting at all would also
+> make it bind, but vacancy is the quantity being explained, so that is circular.
+
+#### The realised cost was looked for and is not obtainable from the published series
+
+MIVAU publishes both halves of a euros-per-dwelling figure and they do not belong to the same
+universe. *Presupuestos de ejecución* of **visados de dirección de obra** give ampliación y reforma
+at **667.1 M€ in 2025Q1** (14.5% of all building, +27.3% year on year); *licencias municipales de
+obra* give **2,568 dwellings** rehabilitated in 2022Q4 (quarterly range 1,859–3,052). Dividing them
+yields ≈267,000 €/dwelling, absurd on its face: the visado budget covers non-residential work and
+works on buildings that never enter the dwelling count. **Closing that gap would need an unsourced
+allocation assumption, which is the thing the range exists to avoid.** Recorded so the next pass
+does not repeat it.
+
+#### What is now decided, and what still is not
+
+**Decided**: the horizon, which turns out not to be a parameter at all but LAU art. 9; and the
+cost, which is decided *to be a range* rather than to be a number. Both are the project's own rules
+applied rather than a judgement call — a statute for the first, the bias rule for the second.
+
+**Not decided, and it is smaller than it was**: nothing now blocks coding this section. What
+remains open is whether `rehab_cost_scale`'s range turns out to govern more than 25% of the
+variance of a quantity that is currently a reportable magnitude. If it does, it downgrades one —
+and that is a cost of the phase, to be paid visibly at step 6 rather than avoided by picking a
+point value.
 
 ## 5d. What stops a falling market (2026-09-15)
 
