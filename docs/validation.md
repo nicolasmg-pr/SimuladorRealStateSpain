@@ -3712,6 +3712,57 @@ H.** Target 11 asserts the ordering and passes; nothing asserts the level.
 so **Piece B is still inert and phase H step 4 is still blocked** — but by a factor of 1.9 rather
 than 2.5, and the circularity is gone: the rent ladder no longer depends on §7.3.
 
+## Phase I step 1 — the surface retrieved, and it refutes the phase's premise (2026-09-17)
+
+Step 1 was to replace the derived surfaces with a direct source. Done, and the direct source says
+the derivation was wrong by a factor of about 2.7 — **and with it, the explanation this project has
+carried for its rent level since the Funcas contrast rows.**
+
+**What the derivation said.** EPF rent paid ÷ idealista asking €/m² implied **32.5 m²** in Madrid
+and 39.0 in Extremadura, against the model's 90. The plan flagged the basis mix as its main risk.
+The risk was real: paid stock rents divided by *asking* €/m² on newly advertised units understates
+surface badly, and the two series are not divisible.
+
+**What the sources say.**
+
+| | surface |
+|---|---|
+| INE ECEPOV 2021, all principal dwellings | **93.4 m²** (≤50k hab 100.6, >50k 86.9) |
+| MIVAU, **rented** dwellings, 2022 | **88 m²** (95.8 in 2019) |
+| **the model** | **≈90 m²** |
+
+**The model's dwelling size is right.** Renting does skew small — under-75 m² dwellings that are
+let are well over 30% of the principal stock at those surfaces — but the *mean* is 88 m², two
+metres from what the model already assumes. **A size margin cannot explain a 2.6× rent level, and
+phase I as planned is aimed at the wrong defect.**
+
+**And the level gap is real, measured on the right column this time.** `rent_{z}` is
+`zs.rent_index`, an asking series; the stock average is `rent_sitting`. Measured, three seeds, tail
+20: **`rent_sitting` 1,509 €/month**, `rent_entrant` 1,683, wedge **11.6%**. Against EPF's **516**
+paid and AEAT's **691** declared. Incomes are sourced (`income_median` 36,100 €/yr gross
+[EFF2024]), so the money scale is not the explanation either: 1,509 × 12 / 36,100 is **50% of
+median gross income** for the average sitting tenant, which no Spanish figure supports.
+
+**The candidate that replaces the size margin.** Spain's paid stock rent implies ≈5.9 €/m²
+(516/88) against an asking ≈13 €/m² [idealista national] — a **factor of ≈2.2 between what the
+stock pays and what the market asks.** The model's equivalent gap is **1.12**. Its rented stock is
+entirely market-priced and recently contracted; Spain's is not — long sitting tenancies on
+below-market indexed rents, social and protected lettings, family arrangements and room rentals all
+sit inside EPF's 516 and none of them sits inside the model. **The defect is the composition and
+vintage of the rented stock, not the size of the dwelling.**
+
+**What this does to phase I.** Its premise is refuted and its plan needs rewriting before step 2.
+What survives is the *second* defect the plan's own arithmetic found — the whole-dwelling ladder —
+except that its target moves too: with the size ratio now ≈1.0 rather than 0.83, the implied
+whole-dwelling T/R is the EPF ratio itself, **2.44**, against the model's 2.05, and the trap the
+plan warned about (shipping the margin alone would push the reported ratio to 1.71) **disappears
+with the margin**.
+
+**Recorded rather than quietly fixed**, because the refuted premise is not mine alone: `model-spec`
+has carried "there is no small-dwelling, room or shared-flat segment, so the rent level row reads
+≈2.6× high" as the explanation, and the room/shared part of that may still hold while the
+*dwelling-size* part does not.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
