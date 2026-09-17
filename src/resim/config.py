@@ -514,20 +514,34 @@ class MarketConfig:
     # per-unit gain basis, so pricing it here would double-count appreciation or invent a basis.
     # Same discipline by which `landlord_cost_share` excludes vacancy.
     #
-    # THE SOURCED VALUE IS 0.040 AND THIS SHIPS 0.02 — deliberately, and not for long. Measured
-    # on 2026-09-16, moving it to 0.040 fixes one registered strict xfail and breaks two targets
-    # in channels that have nothing to do with the rent cap:
-    #   XPASS   test_non_resident_surcharge_removes_foreign_purchases  (restored)
-    #   FAIL    test_rate_shock_cuts_transactions_before_prices        (regression)
-    #   FAIL    test_forbearance_raises_the_arrears_stock_and_lowers_the_flow (regression)
-    # The mechanism is `market/clearing.py`'s reserve floor, max(debt*(1+k), ask*(1-discount)):
-    # raising k lifts the floor for every INDEBTED seller and suppresses sales. This parameter was
-    # a [guess] co-calibrated with other guesses, and sourcing it alone breaks that joint.
-    # Shipping the change belongs on its own branch with its own write-up of those three channels,
-    # so that §7.2's own falsifications (F1–F3) stay attributable to the MECHANISM rather than to
-    # a parameter that moved underneath them. The BAND below is sourced and is swept; only the
-    # point value waits.
-    selling_cost_share: float = 0.02
+    # SHIPPED 2026-09-17, after §7.2b. The value waited one branch on purpose: while §7.2 and
+    # §7.2b were rebuilding the rent cap's withdrawal channel, moving a parameter underneath them
+    # would have made their falsifications unattributable. With that work merged, it ships.
+    #
+    # WHAT IT COSTS AND WHAT IT BUYS, re-measured on the post-§7.2b model rather than carried over
+    # from the 2026-09-16 reading, which was taken before §7.2b existed and no longer describes
+    # this code. Suite 3 failed / 177 passed / 9 xfailed -> 6 failed / 175 passed / 8 xfailed, and
+    # the raw count hides the composition:
+    #   FIXES     test_shadow_rent_stays_anchored_under_a_cap — one of the two reds §7.2b left
+    #   RESTORES  test_non_resident_surcharge_removes_foreign_purchases (strict xfail -> XPASS)
+    #   BREAKS    test_forbearance_raises_the_arrears_stock_and_lowers_the_flow
+    #             (foreclosures 112 with forbearance against 103 without — the assertion inverts)
+    #   BREAKS    test_rate_shock_cuts_transactions_before_prices (vol_drop 0.9587 against < 0.95,
+    #             a 0.9pp miss)
+    #   bookkeeping: test_the_registered_xfails_show_red_in_the_panel, because the xfail register
+    #             itself changed when the non-resident test stopped failing
+    #
+    # ONE MECHANISM EXPLAINS ALL OF IT: `market/clearing.py`'s reserve floor,
+    # max(debt*(1+k), ask*(1-discount)). Raising k lifts the floor for every INDEBTED seller and
+    # suppresses sales. Fewer sales means more supply stays let, which is why the shadow rent stops
+    # detaching from the transacted one under a cap; it also means a distressed owner cannot sell
+    # its way out, which is why forbearance now leaves MORE foreclosures than it prevents; and it
+    # compresses the rate shock's incremental volume cut against an already-thinner baseline.
+    #
+    # The two regressions are recorded, not repaired. This parameter was a [guess] co-calibrated
+    # with other guesses, and sourcing it alone breaks that joint — which is the finding, not a
+    # side effect of it. See docs/validation.md for the channel-by-channel account.
+    selling_cost_share: float = 0.040
     # The sourced band, spanning the two real sale routes — NOT an error margin.
     selling_cost_share_range: tuple[float, float] = (0.01, 0.07)
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]

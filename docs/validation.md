@@ -2068,6 +2068,44 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
 
 ## Honest qualifications
 
+- **`selling_cost_share` ships at its sourced 0.040, and the joint it was co-calibrated with
+  breaks — in both directions (2026-09-17).** The band (0.01–0.07, two real sale routes) and the
+  intermediation-weighted point (0.040) were sourced on 2026-09-16 and deliberately held back for
+  one branch, so that §7.2's and §7.2b's falsifications stayed attributable to their mechanism
+  rather than to a parameter moving underneath them. Shipping it now, **re-measured on the
+  post-§7.2b model** rather than carried over from the earlier reading, which was taken before
+  §7.2b existed:
+
+  | | |
+  |---|---|
+  | **fixes** | `test_shadow_rent_stays_anchored_under_a_cap` — **one of the two reds §7.2b left behind** |
+  | **restores** | `test_non_resident_surcharge_removes_foreign_purchases` (strict xfail → XPASS) |
+  | **breaks** | `test_forbearance_raises_the_arrears_stock_and_lowers_the_flow` — foreclosures **112** with forbearance against **103** without; the assertion inverts |
+  | **breaks** | `test_rate_shock_cuts_transactions_before_prices` — `vol_drop` 0.9587 against a `< 0.95` bound, a 0.9pp miss |
+  | bookkeeping | `test_the_registered_xfails_show_red_in_the_panel`, because the xfail register changed when the non-resident test stopped failing |
+
+  Suite 3 failed / 177 passed / 9 xfailed → **6 failed / 175 passed / 8 xfailed**. The raw count
+  hides the composition: two improvements, two regressions and one bookkeeping consequence.
+
+  **One mechanism explains every row.** `market/clearing.py`'s reserve floor is
+  `max(debt·(1+k), ask·(1−discount))`. Raising `k` lifts the floor for every **indebted** seller
+  and suppresses sales. Fewer sales means more dwellings stay let, which is why the shadow rent
+  stops detaching from the transacted one under a cap — §7.2b had narrowed that gap from 1693 to
+  1568 without crossing, and the sourced cost crosses it. The same suppression means a distressed
+  owner cannot sell its way out of trouble, which is why forbearance now leaves **more**
+  foreclosures than it prevents. And it thins the baseline the rate shock's incremental volume cut
+  is measured against.
+
+  **What this establishes, beyond the parameter.** §7.2b's mechanism and the sourced cost point the
+  same way and **neither reached the shadow-rent anchor alone**. That is the first evidence on this
+  model that the rent-cap channel and the sale-side reserve floor are one problem rather than two.
+
+  **The two regressions are recorded, not repaired.** `selling_cost_share` was a `[guess]`
+  co-calibrated with other guesses, and sourcing it alone breaks that joint — which is the finding
+  rather than a side effect of it. Repairing them by moving another guess would re-form the joint
+  somewhere else and hide it again. The forbearance inversion in particular is worth its own
+  investigation: it is economically coherent — a seller who cannot sell is a seller who
+  forecloses — and it may mean the test's claim, not the model, is what needs restating.
 - **§7.2b step 1: re-anchoring does NOT rescue §7.2, and the sweep that tested it refutes the
   hypothesis that proposed it (2026-09-16).** §7.2's F3 record said the cap's sign depends on the
   growth anchor, that the baseline runs at 2%/yr against Catalan evidence generated at HPI +12.7%,
