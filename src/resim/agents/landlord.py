@@ -288,17 +288,27 @@ class SmallLandlords:
         remaining_ticks = pol.cap_term_ticks - (elapsed % pol.cap_term_ticks)
         horizon = remaining_ticks / TICKS_PER_YEAR
         shortfall = (r_req - cap) * 12.0 * horizon * (1.0 + horizon * growth_wedge / 2.0)
-        if shortfall > value * exit_cost_for(unit, cfg):
+        if shortfall > value * exit_cost_for(unit, cfg, value):
             return "sale"
         return None
 
 
-def exit_cost_for(unit: Unit, cfg: SimConfig) -> float:
-    """The landlord's cost of leaving, as a share of the dwelling's value (model-spec §7.2b).
+def exit_cost_for(unit: Unit, cfg: SimConfig, value: float = 0.0) -> float:
+    """The landlord's cost of leaving, as a share of the dwelling's value (model-spec §7.2b,
+    §7.2c).
 
     Monotone in `unit.sale_route_draw`: the cheap-to-extract private sellers sit at the bottom
     and leave first, agency sellers at the top and hold out longest. Monotonicity is the point —
     it makes a harder cap ADD landlords to the exiting set instead of reshuffling it.
+
+    TWO COMPONENTS SINCE 2026-09-17 (§7.2c). The transaction cost above, and **IRPF on the
+    realised gain**, which the model excluded until then on two reasons that were both wrong:
+    that `r_req` already nets E[g] (it nets expected FUTURE growth; IRPF taxes the realised PAST
+    gain, a different quantity at a different point in time) and that there is no per-unit basis
+    (`Unit.last_sale_price` is one, set on every transaction). Selling a dwelling that has
+    appreciated is dearer than selling one that has not, and until this the model charged both
+    the same. `value` defaults to 0.0 so the transaction-cost-only form is still reachable for
+    callers that do not have a valuation; the gain term is simply zero there.
     """
     c = cfg.cap_response
     s = c.intermediation_share
@@ -309,4 +319,8 @@ def exit_cost_for(unit: Unit, cfg: SimConfig) -> float:
     else:
         lo, hi = c.exit_cost_agency
         frac = (u - (1.0 - s)) / s if s > 0.0 else 0.0
-    return lo + (hi - lo) * frac
+    transaction = lo + (hi - lo) * frac
+    if value <= 0.0 or unit.last_sale_price <= 0.0:
+        return transaction
+    gain = max(0.0, value - unit.last_sale_price)
+    return transaction + c.capital_gains_rate * gain / value

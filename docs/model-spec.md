@@ -1272,6 +1272,65 @@ directly. They were downstream of a rent ladder that priced amenity on one tenur
 **No parameter was fitted.** `location_premium` keeps the values it already shipped with; the
 change is where it is applied, not what it is.
 
+### 7.2c The cost of leaving includes the tax on the gain (2026-09-17)
+
+**One friction, absent, and its absence was the whole of the quantity leg's excess.**
+`exit_cost_for` charged a landlord only the **transaction** cost of selling — 0.5–1.5% private,
+4–7% agency. Spain charges IRPF on the realised gain as well: **19% to €6,000, 21% to €50,000,
+23% to €200,000, 27% to €300,000, 28% above** (base del ahorro, Ley 35/2006 art. 66). On an
+appreciated dwelling that is 5–15% of value, several times the transaction cost, and the model
+charged a landlord selling a doubled asset exactly what it charged one selling at cost.
+
+**It had been excluded on purpose, and both stated reasons were wrong.** The note read: *"§7.2's
+`r_req` already nets E[g] and the model carries no per-unit gain basis, so pricing it here would
+double-count appreciation or invent a basis."*
+
+1. `r_req` nets E[g] — the **expected future** growth the landlord counts toward its required
+   total return. IRPF taxes the **realised past** gain at the moment of sale. Different
+   quantities, opposite directions in time; pricing the second does not double-count the first.
+2. The basis exists. `Unit.last_sale_price` is set on every transaction in `market/clearing.py`.
+
+**The test applied before reversing a deliberate exclusion**, because reversing one to move a
+failing gate is fitting: *would this change be made if the gate were passing?* It would — the
+landlord's cost of leaving is understated without it whatever any gate reads. That is the only
+thing that licensed it.
+
+```
+exit_cost_share = transaction_cost + capital_gains_rate · max(0, value − last_sale_price) / value
+```
+
+**Measured, ten seeds, Ley 11/2020, shipped parameters:**
+
+| | before | after | sourced |
+|---|---|---|---|
+| new leases | −47.5% | **−17.0%** | **−10% to −20%** |
+| co-movement ratio | 4.272 | **0.809** | **0.07–3.2** |
+| contract rent | −14.0% | −20.6% | −5% |
+
+**G1 passes** — §7.2b's declared falsification, red since it was written. The quantity leg lands
+inside the band the paper reports, and the co-movement with it. Rents fall further because
+supply no longer flees: the cap now bites on price instead of on quantity, which is what it is
+supposed to do.
+
+#### The price leg is what remains, and its cause is measured
+
+`test_rent_cap_reproduces_the_monras_co_movement` still fails on rent, −20.6% against its −3% to
+−7% band. **It is not a behavioural overshoot — it is the cap's own mechanical bite, and the bite
+is mis-set.** `PolicyConfig.cap_reference_discount` declares the index sits **5% below prevailing
+market rent, range 0–10%**. Measured at activation over five seeds, the realised discount is
+**−20.7%**: four times the declared value and twice the top of its range. The reference index is
+an EWMA at weight 0.1, whose mean lag is `(1−w)/w` = **9 quarters**, so in a market growing ~3%/yr
+it drifts far below the index it is supposed to shadow. **The rent falls by the realised discount**
+— −20.6% against −20.7% — so the price leg is that drift and nothing else.
+
+**A correction was attempted and reverted.** The published Catalan index is a twelve-month
+trailing mean, whose centroid lags about 1.5 quarters, so `(1−w)/w = 1.5` gives **w = 0.4** —
+derived from the index's construction, not chosen. It moved rent to −10.9% and leases to −8.4%,
+and **broke G3 and the supply-response gate**, taking the suite from 1 failed to 3. Reverted. The
+declared-versus-realised mismatch is a spec–code disagreement and stands as the next repair, but
+it needs the withdrawal timing re-derived with it rather than an EWMA weight changed underneath
+them.
+
 ### 7.3 Buy-to-let entry — the section this file cited three times and never had (2026-09-17)
 
 **This section records a debt, not a decision.** §7.3 was referenced from three §9 targets (9,

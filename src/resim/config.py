@@ -509,10 +509,22 @@ class MarketConfig:
     # the same sellers. At a 0.66 weight:
     #   0.66 * 0.055 + 0.34 * 0.010 = 0.040.
     #
-    # EXCLUDED DELIBERATELY: IRPF on the realised gain (19–28% OF THE GAIN, not of the price). It
-    # is a real cost of exiting, but §7.2's `r_req` already nets E[g] and the model carries no
-    # per-unit gain basis, so pricing it here would double-count appreciation or invent a basis.
-    # Same discipline by which `landlord_cost_share` excludes vacancy.
+    # WAS EXCLUDED DELIBERATELY, AND THE EXCLUSION WAS WRONG ON BOTH ITS REASONS (2026-09-17).
+    # It read: "IRPF on the realised gain (19–28% OF THE GAIN, not of the price). It is a real
+    # cost of exiting, but §7.2's `r_req` already nets E[g] and the model carries no per-unit
+    # gain basis, so pricing it here would double-count appreciation or invent a basis."
+    #
+    # (1) `r_req` nets E[g], the EXPECTED FUTURE growth the landlord counts as part of its
+    #     required total return. IRPF taxes the REALISED PAST gain at the moment of sale. They
+    #     are different quantities pointing in different directions in time, and pricing the
+    #     second does not double-count the first.
+    # (2) The model does carry a per-unit basis: `Unit.last_sale_price`, set on every
+    #     transaction in `market/clearing.py`. Nothing had to be invented.
+    #
+    # The test applied before reversing this was whether the change would be made if the gate
+    # it affects were passing. It would: a landlord's cost of leaving is understated without it
+    # regardless of what any gate reads. The rate lives on `CapResponseConfig` beside the two
+    # exit-cost bands it joins, since it is a component of the same decision.
     #
     # SHIPPED 2026-09-17, after §7.2b. The value waited one branch on purpose: while §7.2 and
     # §7.2b were rebuilding the rent cap's withdrawal channel, moving a parameter underneath them
@@ -935,6 +947,16 @@ class CapResponseConfig:
     # convention — the sources give ranges, not distributions.
     exit_cost_private: tuple[float, float] = (0.005, 0.015)
     exit_cost_agency: tuple[float, float] = (0.04, 0.07)
+    # IRPF on the realised gain, applied to (value − `Unit.last_sale_price`) at the moment the
+    # landlord sells to escape a cap. Base del ahorro, Ley 35/2006 art. 66 as amended: 19% to
+    # €6,000, 21% to €50,000, 23% to €200,000, 27% to €300,000, 28% above. A single effective
+    # rate stands in for the scale because the model carries no per-landlord tax position; 0.21
+    # is the bracket a typical gain falls in, and the range spans the scale's own ends
+    # [BOE Ley 35/2006 art. 66 — high]. Applied to the GAIN, not to the price, which is why it
+    # is not folded into `exit_cost_private`/`exit_cost_agency`: those are shares of value and
+    # this is not.
+    capital_gains_rate: float = 0.21
+    capital_gains_rate_range: tuple[float, float] = (0.19, 0.28)
 
 
 @dataclass(frozen=True)
