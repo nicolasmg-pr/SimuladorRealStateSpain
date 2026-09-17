@@ -1940,11 +1940,24 @@ Every quantity carries exactly one:
 > No quantity is reported as a **magnitude** if an `assumed` parameter explains more than 25%
 > of its variance in the Sobol decomposition.
 
-Applied to the current model this downgrades to direction-only: `price_to_income`
-(`overbid_sigma`, 56%), `rent_overburden_share` and the rent level
-(`landlord_required_spread`, 65% and 40%), and tensioned market vacancy (74%). The rule sets
-the evidence-work priority order without argument: source the parameter, or stop quoting the
-number.
+Applied to the current model this downgrades to direction-only: the **rent level**
+(`small_landlord_premium`, 65%), **tensioned market vacancy** (75%) and **rent overburden**
+(62%); the **ownership rate** and the **zone price ratio T/R** (`buy_attempt_prob`, 36% and
+34%); the **cash-purchase share** (`search_listings`, 41%); and the **negotiation margin**
+(`seller_bargaining_power`, 32%, and circular — it is identified on this). `price_to_income`
+is **not** on the list: its largest assumed share is `momentum_gain` at 11%, and it is the
+project's first reportable magnitude. The rule sets the evidence-work priority order without
+argument: source the parameter, or stop quoting the number.
+
+> **EXAMPLE CORRECTED 2026-09-17.** It read *"`price_to_income` (`overbid_sigma`, 56%),
+> `rent_overburden_share` and the rent level (`landlord_required_spread`, 65% and 40%), and
+> tensioned market vacancy (74%)"* — the figures from the 230 + 1,152 run. Both parameters it
+> named have since stopped being the answer: `overbid_sigma` **left the screening entirely** and
+> is now counted as sourced, and `landlord_required_spread` **was retired** in §7.1 (2026-09-14),
+> split into a measured prime component and `small_landlord_premium`. The rule that decides what
+> this project may quote was illustrated with a parameter the model no longer has, and it pointed
+> the evidence work at it. Figures above are the phase-G re-run (390 + 1,792 evaluations,
+> `docs/validation.md`).
 
 ### 13.3 Derived-or-reduced-form rule
 
