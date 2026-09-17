@@ -3180,10 +3180,20 @@ replacing a `[guess]` with evidence.
 repaired in all ten seeds, the regime boundary in the growth anchor is gone, and the supply
 response now varies with a measured quantity (the intermediation share) rather than with a dial.
 
-**Cannot**: any magnitude. G1 fails at a Δln co-movement of 3.563 against Monràs's 0.07–2.0 span.
-The quantity leg reads −46.6% against measured tenancy responses of −10% [Monràs] and −13%
-[Pérez García]; the price leg reads −16.2% against Monràs's −5%, ≈**3.2×**. Neither the number nor
-its confidence interval may be quoted.
+**Cannot**: any magnitude. G1 fails at a Δln co-movement of **3.655** against the **0.07–3.2** span
+Monràs & García-Montalvo report. The quantity leg reads **−48.2%** against the paper's own *"the
+number of new contracts decreased by around 10% to 20%"*, and against Pérez García's −13%
+tenancies, the second independent estimate and inside that band; the price leg reads **−16.5%**
+against Monràs's −5%. Neither the number nor its confidence interval may be quoted.
+
+> **FIGURES CORRECTED 2026-09-17.** This paragraph was first written on the pre-correction
+> numbers — a 0.07–2.0 ceiling, a −46.6% quantity leg, point targets of −10% [Monràs] and −13%
+> [Pérez García], and a "≈3.2×" price multiple. All four were superseded the same day by the G1
+> ceiling correction recorded above, which read the ceiling and the quantity target at the source
+> and found both misstated. The corrections were registered there but not propagated here for
+> some hours. **The verdict is unchanged in every case** — G1 fails on the corrected ceiling too,
+> which is what licensed making the correction — but the register was quoting its own superseded
+> figures, and a limits register that cannot keep its own numbers current is not doing its job.
 
 **And the excess is not where re-calibration could reach it.** At an intermediation share of 0.85 —
 the top of the sourced regional band — leases still fall 26.8%. The model over-responds at the
@@ -3199,17 +3209,55 @@ measured response.
    would re-form the guess-joint somewhere else and hide it again.
 2. **The rate shock's volume leg**, missing its bound by 0.9pp for the same reason: a thinner
    baseline of sales to measure an incremental cut against.
-3. **The magnitude of the rent-cap response**, above.
+3. **The magnitude of the rent-cap response**, above. Left outside, but **no longer unexplained**:
+   the decomposition recorded earlier the same day locates it in turnover, not in the exit margin.
+   What stays outside is the repair, not the diagnosis.
 
 ### What would reopen this
 
-Not a better parameter inside the sourced ranges — that is closed, measured. It would take a
-mechanism the model does not have: something that makes *some* landlords hold on where the current
-two pieces make them all leave together, beyond the exit-cost dispersion and the statutory horizon
-already in place. A source for the landlord's required return would be the obvious candidate,
-since `small_landlord_premium`'s residual is still the largest unsourced share on the rent side.
+> **REWRITTEN 2026-09-17, because the condition first written here was aimed at the wrong term.**
+> It read: *"something that makes some landlords hold on where the current two pieces make them
+> all leave together"*, with a source for `small_landlord_premium` as the obvious candidate. The
+> turnover decomposition recorded earlier the same day refutes the premise. The exit margin is the
+> **small** term — the rented stock falls 6.5% while the flow falls 48.2% — and the residual is a
+> 44.9% collapse in turnover. A condition written against the exit margin would have licensed
+> reopening on evidence that could not move the quantity that is actually wrong. The superseded
+> text is quoted here rather than deleted, because a register whose reopening condition can
+> silently change is not a commitment.
 
-**Until such a thing is sourced, this channel is finished.** It reports directions, it refuses
+Not a better parameter inside the sourced ranges — that is closed, measured, and unchanged by the
+rewrite. What it would take is one of two things, and they are separable.
+
+**1. The size of the escape segment, sourced.** Under `index_binds_all=True` every unit is capped
+and no rent can rise to clear, so the model has no relief valve: market vacancy in the tensioned
+zone **halves** (−49.7%) and rental tightness goes up **11-fold** (1.157 → 13.045). A market in
+that state has no counterpart in the episode being matched — Catalonia 2020–22 is where the −5%
+rent and −10% to −20% contract figures were measured. The episode had valves the model either
+lacks or under-sizes: *contratos de temporada*, room lets, informal letting, and plain
+non-compliance. The model has one, `MarketConfig.seasonal_evasion_share` at 0.15 of exits, and
+that value has never been tested against what Catalonia actually observed. **What would reopen
+this is a sourced estimate of how many would-be ordinary contracts left the ordinary segment**
+under the cap — ≥2 independent sources, per the bias rule, and Incasòl's own quarterly series
+splits contract types.
+
+**2. Whether the tightness response is itself over-strong.** Tightness at 13 may be a correct
+reading of a drained market, or it may be that the matching rule over-converts scarcity into
+non-transaction. That is a question about the rental matching mechanism, **not about the rent cap
+at all**, and it would be answered on the baseline rather than under a policy. If it is the
+mechanism, the rent cap is only where the defect happened to become visible.
+
+`small_landlord_premium` stays on the list, demoted. It is still the largest unsourced share on
+the rent side, so sourcing it is worth doing on its own terms — but it acts on the exit margin,
+and the exit margin is now measured as the small term. It is no longer the obvious candidate, and
+sourcing it should not be expected to move the magnitude.
+
+**And a ceiling that no reopening removes.** The 2008–13 hold-out is spent (§13.11). Even a green
+G1 would be an in-sample result until a replacement hold-out exists, so the best outcome reachable
+by either route above is "magnitude reportable, in sample, unvalidated out of it" — not
+"magnitude reportable". Any reopening that does not say which of the two it is aiming at is
+aiming at neither.
+
+**Until one of those is sourced, this channel is finished.** It reports directions, it refuses
 magnitudes, and it knows which of its own tests are red and why.
 
 ## Known gaps
