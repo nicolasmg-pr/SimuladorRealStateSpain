@@ -1218,7 +1218,12 @@ right and the two urban legs are the outliers, the opposite of the attribution t
 implies. Full measurement, and the three caveats it does not survive without — one source, a
 predominantly urban region, and an assumed mapping of `withheld` to second residences — in
 `docs/validation.md`. A gate still cannot be built on one regional row without breaching the bias
-rule; the second, independent split is the next retrieval.
+rule, **and the second, independent split was searched for and does not appear to exist** — the
+APCE-UPF monograph is unreachable (403), Fotocasa's owner survey makes no such split, Navarra's
+register holds 216 dwellings, and neither the Censo nor MITMA's review classifies by market
+status. The search trail is in `docs/validation.md`. So "gate it first" is closed on the evidence.
+What remains needs no new source: the withholding rule itself, which puts 57% of tensioned vacancy
+and 85% of rural vacancy off-market, is answerable on the baseline.
 
 **So the open decision is not "how big a haircut".** It is whether the withheld/market split is
 right in rural, and that is a question about the withholding rule, answerable on the baseline and

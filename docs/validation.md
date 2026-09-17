@@ -3363,6 +3363,41 @@ retrieval is a second, independent split of the same kind: Catalonia's equivalen
 one. The Cátedra APCE-UPF monograph on *viviendas vacías en España y Cataluña* is the obvious
 candidate and was not reachable (HTTP 403) on this pass.
 
+## The second split does not exist, and that is the answer (2026-09-17)
+
+The entry above ended on "the next retrieval is a second independent split". It was attempted and
+**found nothing**. Recorded as a negative result, because the search trail is what licenses the
+conclusion and stops the next reader repeating it.
+
+| searched | what it is | why it does not serve |
+|---|---|---|
+| **Cátedra APCE-UPF**, *Las viviendas vacías en España y Cataluña: volumen real y evaluación del impacto de las distintas políticas* | the obvious Catalan/national twin | **Not retrievable.** HTTP 403 to both an automated fetch and a browser user-agent. Title suggests it addresses "volumen real", which is the right question; it could not be read and **nothing is claimed from it** |
+| **Fotocasa Research**, *Perfil del propietario con vivienda vacía* (5,000+ respondents, fieldwork Feb 2025) | national owner survey | Gives **3% of Spanish owners** holding an empty dwelling (1% of one-dwelling owners, 6% of two, 26% of three or more; Andalucía 2.5%, Madrid 2.1%, Valencia 2.0%, Catalonia 1.7%) and states empty homes sit "en zonas rurales o localidades con poca presión demográfica" rather than big cities. **But no offered/withheld split**, and the geography is qualitative |
+| **Navarra**, Registro de Viviendas Deshabitadas | a statutory register that would have to classify | Non-operative in practice: **216 dwellings** recorded after seven years, against an INE estimate of ~32,900 for the region |
+| **Galicia, Asturias** | candidate regional surveys | No equivalent survey found. Galicia's only figure is the Censo electricity proxy (28.8% of stock, Lugo 37%, Ourense 43%) — total vacancy, no market status |
+| **MITMA**, *CyTeT* 197, *La vivienda vacía en España* | ministerial review | A review of the **legal** definitions of *vivienda deshabitada* across CCAA and the policies attached, not a statistical split |
+| **INE Censo 2021** | the national base | Register/electricity proxy. Classifies dwellings by consumption band, never by market status |
+
+**So the EUV is not merely the best source for this split — as far as this search reaches, it is the
+only Spanish statistical operation that makes it.** That is a stronger statement than the one the
+previous entry could make, and it settles the route rather than deferring it.
+
+**What it means for the gate, stated plainly.** A per-zone market-vacancy gate cannot be built
+without breaching the bias rule, and the breach is not a formality: a band fitted to one
+predominantly urban autonomous community, mapped onto a three-zone national model through an
+assumed equivalence between `withheld` and *second residence*, would be exactly the kind of
+single-source calibration §13.2 exists to prevent. **The route chosen — gate first — is closed on
+the evidence, not on effort.**
+
+**What survives, and it is not nothing.** The EUV measurement stands as a registered comparison
+rather than a gate: offered share 14.9% of non-principal stock against the model's 14.8% rural,
+43.0% tensioned, 51.3% secondary. It is enough to say the rural leg is not the anomaly and the
+metro legs are, which is the opposite of where §7.3 was aiming, and it is enough to stop the
+vacancy-gradient repair being built. It is not enough to calibrate anything.
+
+**The remaining route is the one that needs no new source**: why the withholding rule puts 57% of
+tensioned vacancy off-market and 85% of rural vacancy off-market, answerable on the baseline.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
