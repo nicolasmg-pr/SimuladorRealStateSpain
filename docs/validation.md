@@ -3652,6 +3652,47 @@ cost by dwelling value (unsourced, and it binds harder in expensive zones — th
 and discounting expected income by the probability of letting (circular, since vacancy is the
 quantity being explained).
 
+## §5b.2 — the rent ladder repaired, and the block cleared (2026-09-17)
+
+The whole §7.3/§7.4 stack was blocked on one thing: rural rent far too high relative to metro. The
+cause was already written in target 11's own xfail marker — *"the location premium discounts
+purchase willingness in rural but nothing discounts rent acceptance"* — with the wrong repair
+attached to it (buy-to-let entry, §7.3, still parked). Applying the premium to `max_rent` is the
+whole change. No parameter was fitted; `location_premium` keeps the values it shipped with.
+
+**Measured, three seeds, tail 20 of 60:**
+
+| | before | after | sourced |
+|---|---|---|---|
+| rent rural | 1,098 | **824** | — |
+| rent ratio T/R | 1.52 | **2.05** | 2.44 |
+| gross yield rural | 13.93% | **8.89%** | **7–9%** |
+| ordering T > S > R | false | **true** | strict |
+
+**Suite: 6 failed / 175 passed → 4 failed / 177 passed / 8 xfailed.**
+
+**Closed.** Target 11 (rent ordering) and **target 9 on all three legs** — the rural leg was what
+the target was registered against, and the other two came with it. Both markers named §7.3 as
+their fix and §7.3 had nothing to do with it. Three failures the limits register had left open
+also went green untouched: the **forbearance inversion**, the **rate shock's 0.9pp volume miss**,
+and the **non-resident surcharge XPASS**. All were downstream of a ladder that priced amenity on
+one tenure only.
+
+**Paid for.** `test_national_entry_yield_matches_the_bank_of_spain` fails by **0.17pp** (6.326%
+against a 6.5% floor), and **boom-time rent growth regresses from +3.6%/yr to +1.16%/yr** against
+a 2.5% floor — the project's oldest structural gap, made worse by damping rent acceptance in the
+weak zones. Registered, not banded away. Secondary-zone vacancy also moves further above its Censo
+band top.
+
+**Not fixed: the level.** T/R reads 2.05 against a sourced 2.44, so rural rent is still ≈19% too
+high relative to metro. Target 11 asserts the ordering and passes; nothing asserts the level. That
+is the honest open item now, and it is a smaller one than the sign.
+
+**What it unblocks.** §7.4's margin arithmetic moves with it: rural net five-year income falls from
+51,392 € to **38,561 €** against cost bands topping at 20,500 €. The margin still clears by 1.9×,
+so **Piece B is still inert and phase H step 4 is still blocked** — but by a factor of 1.9 rather
+than 2.5, and the circularity is gone: the rent ladder no longer depends on §7.3.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

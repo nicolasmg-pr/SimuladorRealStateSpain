@@ -1139,6 +1139,59 @@ declared as one. Measured: 1 gives a 3.9% margin, 2 gives 4.7%, 3 gives 5.1%, 6 
 70% of listings selling inside the quarter against a 43–63% band. Three is both the calendar and
 the only value that satisfies every gate.
 
+### 5b.2 The location premium applies to rent, not only to purchase (2026-09-17)
+
+**One clause, and it was named by the defect it caused.** `ZoneConfig.location_premium`
+(tensioned 1.0, secondary 0.85, rural 0.45) discounted the household's **buy budget** in a
+low-amenity zone and nothing discounted its **rent acceptance**, which was pure income share:
+`max_rent = search_burden(hh) × income / 12`. Incomes vary far less across zones than amenity
+does, so accepted rent tracked local income and the rent ladder came out compressed.
+
+`max_rent` now carries the same premium. **The rent subsidy is added after it**: a housing
+subsidy is money, not amenity.
+
+**The claim.** A household that will not pay metro prices to OWN in a low-amenity zone will not
+pay metro rents to LIVE there either. It is the same amenity being priced, and pricing it on one
+tenure only is the asymmetry, not the correction.
+
+**Measured, three seeds, tail 20 of 60:**
+
+| | before | after | sourced |
+|---|---|---|---|
+| rent, tensioned | 1,667 | 1,692 | — |
+| rent, secondary | 1,179 | 1,266 | — |
+| rent, rural | 1,098 | **824** | — |
+| **rent ratio T/R** | 1.52 | **2.05** | **2.44** (675 € Madrid / 277 € Extremadura) |
+| **gross yield, rural** | 13.93% | **8.89%** | **7–9%** |
+| ordering T > S > R | **false** | **true** | strict |
+
+**Two registered xfails die of it**, and neither by the repair their markers predicted. Target 11
+(rent ordering) and target 9's rural leg — the leg the target was registered against — both
+passed to `GATED`. Both markers named buy-to-let entry (§7.3) as the fix; §7.3 is still parked and
+had nothing to do with it. Target 11's marker had the right diagnosis in its own text — *"nothing
+discounts rent acceptance (model-spec §5b)"* — and the wrong repair attached to it.
+
+**The level is not fixed, only the ordering.** T/R reads 2.05 against a sourced 2.44, so rural
+rent is still ~19% too high relative to metro. Target 11 asserts the ordering and passes; nothing
+asserts the level, and that is now the honest open item, not the ladder's sign.
+
+**What it costs, and it is not free.**
+
+- `test_national_entry_yield_matches_the_bank_of_spain` fails by **0.17pp** — 6.326% against a
+  6.5% floor. A small miss on a national aggregate that moved with the rural leg.
+- `test_holdout_boom_rent_growth` regresses from +3.6%/yr to **+1.16%/yr** against a 2.5% floor.
+  Boom-time rent growth was already the project's oldest structural gap; damping rent acceptance
+  in the weak zones damps it further. Registered, not banded away.
+- Secondary-zone vacancy moves further above its Censo band top (13.1%), a leg that was already a
+  strict xfail at 13.4%.
+
+**And three failures the limits register had left open are gone**: the forbearance inversion, the
+rate shock's 0.9pp volume miss, and the non-resident surcharge XPASS. None of them was touched
+directly. They were downstream of a rent ladder that priced amenity on one tenure only.
+
+**No parameter was fitted.** `location_premium` keeps the values it already shipped with; the
+change is where it is applied, not what it is.
+
 ### 7.3 Buy-to-let entry — the section this file cited three times and never had (2026-09-17)
 
 **This section records a debt, not a decision.** §7.3 was referenced from three §9 targets (9,
