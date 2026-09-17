@@ -113,11 +113,7 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.042, 0.061),
         sourced="4,7–5,6%",
         fmt=".2%",
-        # GATED since 2026-09-17 (§5b.2). Target 9 closed on all three legs when the
-        # location premium was applied to rent acceptance; the suite's own assertions
-        # (tests/test_validation.py, 0.042-0.061 / 0.060-0.080 / 0.065-0.095) pass at ten
-        # seeds. Registered here to match, per this module's rule that the test is right
-        # and this file is the bug when they disagree.
+        # GATED since 2026-09-17 (§5b.2 + §7.1c), verified at ten seeds against the gate.
         registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
@@ -130,11 +126,7 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.060, 0.080),
         sourced="6,5–7,5%",
         fmt=".2%",
-        # GATED since 2026-09-17 (§5b.2). Target 9 closed on all three legs when the
-        # location premium was applied to rent acceptance; the suite's own assertions
-        # (tests/test_validation.py, 0.042-0.061 / 0.060-0.080 / 0.065-0.095) pass at ten
-        # seeds. Registered here to match, per this module's rule that the test is right
-        # and this file is the bug when they disagree.
+        # GATED since 2026-09-17 (§5b.2 + §7.1c), verified at ten seeds against the gate.
         registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,
@@ -147,8 +139,11 @@ CRITERIA: tuple[Criterion, ...] = (
         band=(0.065, 0.095),
         sourced="7–9%",
         fmt=".2%",
-        # GATED since 2026-09-17 (§5b.2): the rent-side location premium took this leg from
-        # ~13.9% to 8.89%, inside the band. It was the leg target 9 was registered against.
+        # GATED since 2026-09-17, VERIFIED AT TEN SEEDS (8.35%) after §7.1c netted the zone
+        # risk premium against the expected-growth gap. An earlier same-day attempt to gate
+        # this on a three-seed reading of 8.89% was wrong — at ten seeds it read 10.07% — and
+        # was reverted before this. The gate is `test_zone_gross_yield_ladder`, which now
+        # passes with its xfail marker removed.
         registered=Registered.GATED,
         source=_YIELD_SOURCE,
         reads=_YIELD_READS,

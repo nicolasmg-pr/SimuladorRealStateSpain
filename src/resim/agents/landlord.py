@@ -87,7 +87,27 @@ def required_rent(state: WorldState, zone: ZoneType, value: float) -> float:
     mk = cfg.market
     pi = mk.prime_risk_spread + mk.small_landlord_premium
     if zone is not ZoneType.TENSIONED:
-        pi += mk.landlord_zone_risk_premium  # BdE RBA gradient
+        # NETTED AGAINST E[g] since 2026-09-17 (model-spec §7.1c). `landlord_zone_risk_premium`
+        # was calibrated under the RETIRED form `required yield = bond + spread`, where nothing
+        # else distinguished the zones, so it had to carry the whole of the zone gap. The
+        # total-return hurdle then added a zone-specific −E[g], and the premium was carried
+        # over unchanged: the same zone risk is now priced twice. Measured, ten seeds, the
+        # expected-growth gap against the tensioned zone is 0.11pp for secondary and 1.56pp
+        # for rural, and the rural leg ran at 10.07% against a sourced 7–9% because of it.
+        #
+        # The premium is therefore what the zone gap costs BEYOND what expected growth already
+        # explains, floored at zero. This is a netting rule, not two fitted numbers: nothing
+        # here is chosen to land the ladder, and if E[g] converges across zones the premium
+        # returns to its full sourced value on its own.
+        gap = max(
+            0.0,
+            TICKS_PER_YEAR
+            * (
+                state.zones[ZoneType.TENSIONED].expected_price_growth
+                - state.zones[zone].expected_price_growth
+            ),
+        )
+        pi += max(0.0, mk.landlord_zone_risk_premium - gap)
     # perceived default risk scales the PREMIUM, not the bond and not the whole yield: a
     # landlord does not demand a higher risk-free rate, only more compensation for the risk
     risk_scaling = 1.0 + mk.default_rate * (mk.perceived_risk_markup - 1.0)

@@ -96,11 +96,13 @@ def test_the_panel_reports_each_leg_of_target_9_separately(table):
     # passes — the rent-side location premium took it from ~13.9% to 8.89%, inside the 7-9%
     # band. The tensioned and secondary legs are what remain outside, so the panel's job here
     # is unchanged and the row that carries the target has simply moved.
-    # 2026-09-17 (§5b.2): all three legs now pass. Rural was the leg the target was registered
-    # against and it went from ~13.9% to 8.89%; the other two came with it. The panel's job —
-    # three separately-verdicted rows, so it says WHICH leg breaks — is what is asserted, and it
-    # is asserted against the closed state so a regression in any single leg is caught.
-    assert all(v == "✅" for v in verdicts.values()), verdicts
+    # 2026-09-17: §5b.2 moved the rural leg a long way (from ~13.9%) but did NOT close target 9.
+    # At the suite's ten seeds the rural leg reads 10.07% against a widened 9.5% ceiling and
+    # `test_zone_gross_yield_ladder` still xfails. This panel runs ONE seed, so a green row here
+    # is not the gate — which is exactly why the module docstring says the test is right and the
+    # panel is the bug when they disagree. Asserted on the panel's JOB, not on a verdict that
+    # depends on which seed the sidebar is set to.
+    assert len(verdicts) == 3
 
 
 def test_tenant_ordering_holds(table):
@@ -169,9 +171,10 @@ def test_summary_counts_the_registered_xfails(frame):
     counts = diagnostics.summary(frame)
     assert counts["xfail"] == len({c.target for c in CRITERIA if c.registered is Registered.XFAIL})
     # targets 12 (its GROSS inbound leg — the net leg is gated) and 15's deliveries leg
-    # (phase C). 13c's negotiation margin was the third-from-last until §5c.8 closed it
-    # 2026-09-15; TARGETS 9 AND 11 both closed on 2026-09-17 when §5b.2 applied the location
-    # premium to rent acceptance — 9 on all three of its legs.
+    # (phase C). 13c's negotiation margin was the fourth until §5c.8 closed it 2026-09-15;
+    # TARGET 11 closed on 2026-09-17 with §5b.2, and TARGET 9 the same day with §7.1c — the
+    # latter verified at ten seeds against the gate, after a first attempt on three seeds got
+    # it wrong and was reverted.
     assert counts["xfail"] == 2
     assert counts["targets"] == 10  # 1c, 9, 10, 11, 12, 13, 13c, 14, 15, 16 (phase G)
     assert counts["inside"] + counts["outside"] == sum(1 for c in CRITERIA if c.band is not None)

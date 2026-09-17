@@ -197,14 +197,14 @@ def test_national_entry_yield_matches_the_bank_of_spain(baseline_moments):
     assert 0.065 <= baseline_moments["gy_contract_national"] <= 0.075
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-11: rural gross yield runs to ≈17.2% against a sourced 7–9%. "
-    "required_rent pins the yield floor to price, rural rental supply has no entry "
-    "margin (investor skips rural, households never buy to let) and downward-only "
-    "migration funnels every priced-out seeker into it. Fixed by the total-return "
-    "hurdle and buy-to-let entry (spec §7.1, §7.3 — phase B).",
-)
+# XFAIL REMOVED 2026-09-17. The marker read: "rural gross yield runs to ~17.2% against a sourced
+# 7-9% ... Fixed by the total-return hurdle and buy-to-let entry (spec §7.1, §7.3 - phase B)."
+# Half right. The total-return hurdle (§7.1) shipped and did not close it; buy-to-let entry never
+# shipped at all. What closed it was two later changes, neither predicted here: §5b.2 put the
+# location premium on rent acceptance, and §7.1c netted the zone risk premium against the
+# expected-growth gap it had been double-counting. Ten seeds: 5.15% / 6.55% / 8.35% against
+# 4.2-6.1 / 6.0-8.0 / 6.5-9.5. The ladder now EMERGES from the hurdle instead of being produced
+# by a spread fitted to it, which is what §7.1 was written to achieve.
 def test_zone_gross_yield_ladder(baseline_moments):
     """Target 9: the gross rental yield ladder must EMERGE, not be imposed.
 

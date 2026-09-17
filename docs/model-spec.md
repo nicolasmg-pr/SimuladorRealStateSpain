@@ -614,6 +614,67 @@ out-of-regime extrapolation; it is now superseded by a refutation that covers bo
 they are red, so spending the Ley 12/2023 evidence on a mechanism already known to be broken would
 have bought nothing. The repair is §7.2b.
 
+### 7.1c The zone risk premium, netted against expected growth (2026-09-17)
+
+**A leftover of the form §7.1 retired.** `MarketConfig.landlord_zone_risk_premium` (0.015, range
+0.01–0.02) is added to the risk premium for every non-tensioned zone. Its own comment says what it
+is: *"reproduces the observed 5.2 / 7.0 / 8.0 zone yield ladder"* — a spread **fitted to the
+ladder**, under the retired form `required yield = bond + spread`, where nothing else in the
+formula distinguished one zone from another so the spread had to carry the whole gap.
+
+§7.1 replaced that form with the total-return hurdle, which introduced a **zone-specific −E[g]**.
+The premium was carried over unchanged. **The same zone risk is therefore priced twice**, and
+§7.1's own objection to the old form — that a spread fitted to the ladder makes the yield an input
+pretending to be a prediction — applies to the survivor.
+
+**Measured, ten seeds.** Annualised expected price growth: tensioned **+3.11%**, secondary
+**+3.00%**, rural **+1.55%**. So E[g] alone already charges rural 1.56pp more than the metro, and
+the flat 1.5pp premium charges it again. The rural leg ran at **10.07%** against a sourced 7–9%.
+
+**The rule.** The premium becomes what the zone gap costs *beyond* what expected growth already
+explains, floored at zero:
+
+```
+gap  = max(0, E[g]_tensioned − E[g]_zone)
+pi  += max(0, landlord_zone_risk_premium − gap)
+```
+
+**This is a netting rule, not two fitted numbers.** No value here is chosen to land the ladder; if
+expectations converge across zones the premium returns to its full sourced value on its own. That
+distinction is the whole point — the thing being removed is a fit, and replacing it with a
+different fit would have changed nothing.
+
+**Result, ten seeds, against the widened bands:**
+
+| zone | before | after | band |
+|---|---|---|---|
+| tensioned | 5.19% | **5.15%** | 4.2–6.1 |
+| secondary | 7.18% | **6.55%** | 6.0–8.0 |
+| rural | 10.07% | **8.35%** | 6.5–9.5 |
+
+**Target 9 closes**, and its xfail marker is removed. It had been red since 2026-09-11. The marker
+predicted the total-return hurdle and buy-to-let entry would fix it: the hurdle shipped and did
+not, buy-to-let entry never shipped, and what closed it was §5b.2 plus this. **The ladder now
+emerges from the hurdle instead of being produced by a spread fitted to it**, which is what §7.1
+was written to achieve and had not yet delivered.
+
+The rent ladder improves with it: T/R **2.05 → 2.23** against a sourced 2.44.
+
+**What it costs, all registered rather than banded away.**
+
+- **The national entry yield moves further out**, 6.326% → **5.957%** against a 6.5–7.5% floor. It
+  falls because the rural leg fell. This exposes a **tension between two registered sources**: BdE
+  puts the national entry yield at 6.5–7.5% while idealista's zone bands put the metro at 4.7–5.6%,
+  and those two can only hold together if metros are a small share of the rental stock — which they
+  are not. Left as a measured inconsistency, not resolved by moving the model to satisfy one of
+  them.
+- **Loss aversion's price–volume cushion** misses by 0.015 (−0.7086 against −0.6934).
+- **The shadow-rent anchor under a cap** misses by 1.5% (1,599 against 1,624).
+- **G1 worsens**, 3.655 → **4.272** against a 3.2 ceiling. The rent-cap channel reads a rental
+  supply floor that has moved. Its refinement is under a registered stop and this does not reopen
+  it; the number is recorded because a stopped channel still has to report its state honestly.
+- **Boom-time rent growth recovers** and its test passes again, after regressing under §5b.2.
+
 ### 7.2 The withdrawal margin, from the reservation rent (2026-09-16)
 
 §7.2 has been cited since phase A — here, twice in `docs/validation.md` and once in
