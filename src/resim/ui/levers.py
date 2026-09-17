@@ -74,32 +74,53 @@ def lever_params(lever: str) -> dict:
             "que la diferencia es casi todo el mercado.",
         )
         params["index_binds_all"] = regime.startswith("Ley 11/2020")
-        # The warning is UNCONDITIONAL since 2026-09-16. It used to fire only for Ley 12/2023,
-        # on the ground that the withdrawal hazard had been identified in the other regime.
-        # §7.2 retired that hazard, and the arbitrage condition that replaced it flips the rent
-        # sign in BOTH regimes — including the calibrated one. Showing the caveat on one tab
-        # would now tell the user the other tab is sound.
-        st.error(
-            "**Este resultado no es reportable en ninguno de los dos regímenes — ni su tamaño "
-            "ni su signo.** El canal de retirada de oferta se reescribió sobre una condición de "
-            "arbitraje (model-spec §7.2) y esa condición no tiene fricciones: el casero vende en "
-            "cuanto el tope rompe su rentabilidad, casi siempre y casi a la vez. El tope acaba "
-            "**subiendo** las rentas un 53,6% y costando un 78,7% de los contratos incluso bajo "
-            "la Ley 11/2020, que es el régimen contra el que está calibrado. Tres pruebas de "
-            "calibración fallan por esto, a propósito y registradas.",
-            icon="⛔",
-        )
-        st.info(
-            "**Lo que sí se ha medido**, y por qué el fallo es informativo: la inversión viene de "
-            "la rama de **venta**, no de la evasión a temporada — cerrar el segmento estacional "
-            "apenas mueve el resultado (+52,2% frente a +53,6%). Y el signo **se corrige** si el "
-            "ancla de crecimiento de precios sube al 8% anual (rentas −37,2%, contratos −13,2%, "
-            "esto último encima del −13% de Pérez García). La línea base corre al 2% anual "
-            "mientras el episodio catalán que juzga estas puertas tuvo el IPV al +12,7%. "
-            "Tres semillas, curva no monótona: es una hipótesis con mecanismo, no un resultado. "
-            "Detalle y límites en docs/validation.md.",
-            icon="🔎",
-        )
+        # The warning is UNCONDITIONAL since 2026-09-16 and stays so: it used to fire only for
+        # Ley 12/2023, on the ground that the withdrawal hazard had been identified in the other
+        # regime, and §7.2 retired that hazard for a condition that broke BOTH.
+        #
+        # REWRITTEN 2026-09-17. The text below had gone stale at §7.2: it still reported the
+        # arbitrage condition's +53.6% rent RISE and its three failing tests, both of which §7.2b
+        # repaired. The two regimes no longer carry the same defect, so they no longer carry the
+        # same text — but what does not change is that NEITHER tab is ever shown without a caveat.
+        # A silent tab reads as a sound one, which is the error the 2026-09-16 note guarded.
+        # Numbers here are quoted from the limits register in `docs/validation.md`, including its
+        # own same-day correction of G1's ceiling; the UI computes none of them (CLAUDE.md).
+        if params["index_binds_all"]:
+            st.warning(
+                "**Bajo la Ley 11/2020 la dirección es reportable; la magnitud no.** §7.2b "
+                "repartió el coste de salida entre caseros y le dio al tope su vida estatutaria: "
+                "con eso el signo de la renta sale correcto en las **diez** semillas y desaparece "
+                "la frontera de régimen que antes invertía el resultado según el ancla de "
+                "crecimiento de precios. Lo que no se reparó es el tamaño. El modelo responde con "
+                "un co-movimiento Δln contratos / Δln renta de **3,655**, por encima del **3,2** "
+                "que es el techo del rango IV publicado (Monràs, CEPR DP20018, feb. 2025). "
+                "Ninguna cifra de este panel puede citarse como cantidad.",
+                icon="⚠️",
+            )
+            st.info(
+                "**Lo que sí se ha medido**, y por qué el error queda acotado: el exceso es de "
+                "≈14% sobre el techo del rango publicado, no un múltiplo — flujo de nuevos "
+                "contratos **−48,2%** con la renta en **−16,5%**, contra el −10% a −20% que "
+                "reporta el propio paper. Y no se cierra recalibrando: en el extremo alto de la "
+                "banda regional fuenteada (85% de ventas por agencia) los contratos aún caen "
+                "26,8%. Queda abierta una divergencia sin identificar entre el flujo y el stock, "
+                "factor ≈3,7; el exceso de rotación quedó descartado como causa (rotación medida "
+                "14,5%/año, tenencia media 6,9 años). El refinamiento de este canal se **paró** el "
+                "2026-09-17: a partir de ahí son experimentos, no ajuste. Detalle y límites en "
+                "docs/validation.md.",
+                icon="🔎",
+            )
+        else:
+            st.error(
+                "**Este régimen no está medido — aquí no se reporta ni la dirección.** La prueba "
+                "fuera de muestra de la Ley 12/2023 (§7.2, F4) está aplazada por diseño: no corre "
+                "hasta que las pruebas del régimen calibrado estén verdes, y G1 sigue en rojo. Lo "
+                "que ves sale de un canal de retirada de oferta cuyo tamaño ya falla en el "
+                "régimen contra el que **sí** está calibrado, aplicado además a una ley que topa a "
+                "otra población: al particular lo ata su propio contrato anterior más el IRAV, no "
+                "el índice. Nada de este panel es un resultado.",
+                icon="⛔",
+            )
         # RETIRED (2026-09-16, §7.2b). Was two sliders: `selling_cost_share` ("Coste de vender
         # (fracción del precio)", 0.01-0.07) and `holding_years` ("Horizonte de la decisión
         # (años)", 3.0-10.0) — the two structural parameters that carried the supply-response
@@ -155,10 +176,10 @@ def lever_params(lever: str) -> dict:
             "0,42 y elasticidad 2 el segmento declarado quedaba plano y perdía un 37% de "
             "contratos, mientras el no declarado firmaba un 7% más a precios un 8% más "
             "altos — el desbordamiento que muestra Cataluña (zonas tensionadas +1,6% frente "
-            "a +9,4% fuera). Bajo §7.2 la condición de arbitraje retira la elasticidad como "
-            "dial (ahora es un resultado) y el signo del alquiler cambia (ver "
-            "docs/validation.md, «Honest qualifications»); esta cifra concreta queda sin "
-            "remedir. docs/validation.md T7.",
+            "a +9,4% fuera). Desde §7.2b la elasticidad ya no es un dial — es un resultado "
+            "del coste de salida de cada casero — y el signo del alquiler sale correcto en "
+            "las diez semillas, aunque su magnitud siga sin ser reportable; esta cifra "
+            "concreta queda sin remedir. docs/validation.md T7.",
         )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(

@@ -2100,6 +2100,62 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   6.9 years** — *slower* than the ≈5-year LAU minimum for an individual landlord implies. Monràs
   states that *"new contracts signed is a good approximation of changes in the overall supply"*; in
   this model that approximation fails by a factor of about 3.7, and the cause is **not identified**.
+- **The cause IS identified, and it is turnover — measured 2026-09-17, ten seeds.** The bullet
+  above left the flow/stock divergence open. `metrics.py` now emits the denominator
+  (`rented_stock_{z}`) and the rate (`rental_turnover_{z}`, annualised, reciprocal = mean tenancy
+  in years), because `flow = stock x turnover` is an identity and nothing in the model was
+  emitting the third term for the residual to be read off. On the G1 design (cap at tick 20 of 40,
+  Ley 11/2020, mean of ticks 24-40, seeds 1-10):
+
+  | | baseline | capped | change |
+  |---|---|---|---|
+  | new leases, tensioned | 45.74 | 23.57 | **-48.2%** |
+  | rented stock, tensioned | 1219.4 | 1140.1 | **-6.5%** |
+  | rental turnover, tensioned | 0.150/yr | 0.082/yr | **-44.9%** |
+
+  The identity closes: Δln flow -0.6571 = Δln stock -0.0670 + Δln turnover -0.5954, residual
+  +5.3x10⁻³ (aggregation, not a leak). **Mean tenancy goes from 6.7 to 12.2 years under the cap.**
+
+  **A basis error in the register, corrected here.** The -13.1% stock figure above is the **final
+  tick**; the flow and rent figures it is compared against are **means of the post-cap window**.
+  Measured on the window basis the stock falls **-6.5%**, so the divergence is a factor of
+  **≈7.4, not ≈3.7** — the register understated it by comparing two different bases. (-13.1% at
+  the final tick is reproduced exactly, so the number was right and its label was not.)
+
+- **And it is neither tenant lock-in nor a seeker queue: the rental market drains (2026-09-17).**
+  The turnover collapse has two readings with opposite policy meanings, and seekers discriminate
+  between them. Same design, ten seeds:
+
+  | | baseline | capped | change |
+  |---|---|---|---|
+  | seeker share | 0.0454 | 0.0454 | **+0.1%** |
+  | tenant share | 0.2111 | 0.2028 | -3.9% |
+  | ownership rate | 0.7435 | 0.7518 | +1.1% |
+  | market vacancy, tensioned | 0.0387 | 0.0193 | **-49.7%** |
+  | rental tightness, tensioned | 1.157 | 13.045 | **+1041%** |
+
+  Seekers do not pile up, so it is not a matching failure with a queue; tenants leave the tenure
+  for ownership instead. But the offered pool **halves** and tightness goes up **11-fold**.
+  Turnover does not fall because sitting tenants choose to stay — it falls because there is
+  nothing to move into.
+
+  **This relocates the error away from where every repair has aimed.** §7.2, §7.2b Piece A and
+  Piece B all target the **exit margin** — which landlords sell, and when. The measurement says
+  the exit margin is the small term (-6.5% of stock) and the large one is what happens to the
+  units that **stay** rented. A tensioned rental market at tightness 13 has no counterpart in the
+  episode being matched: Catalonia 2020-22 is where Monràs measures -5% rents and -10% to -20%
+  new contracts, not a market where the offered pool halves. Under `index_binds_all=True` every
+  unit is capped and no rent can rise to clear, so the model has no relief valve; the real episode
+  had several (temporada contracts, rooms, informal letting, non-compliance) and
+  `MarketConfig.seasonal_evasion_share` is 0.15 of exits. Whether those valves are under-sized is
+  a **sourceable** question, and it is not the question the register named as the reopening
+  condition ("a mechanism that makes SOME landlords hold on").
+
+  **It does not rescue G1, which is what licenses recording it.** G1 reads the flow, and the flow
+  is unchanged at **3.655**. Read on the stock the same ratio is **0.373**, inside Monràs's span —
+  so the gate's verdict rests entirely on which of the two the model is asked for, and the honest
+  statement is that the model's flow is being driven by a tightness regime the episode did not
+  have. No parameter was moved and no threshold was touched to produce any of this.
 - **`selling_cost_share` ships at its sourced 0.040, and the joint it was co-calibrated with
   breaks — in both directions (2026-09-17).** The band (0.01–0.07, two real sale routes) and the
   intermediation-weighted point (0.040) were sourced on 2026-09-16 and deliberately held back for
@@ -3124,10 +3180,20 @@ replacing a `[guess]` with evidence.
 repaired in all ten seeds, the regime boundary in the growth anchor is gone, and the supply
 response now varies with a measured quantity (the intermediation share) rather than with a dial.
 
-**Cannot**: any magnitude. G1 fails at a Δln co-movement of 3.563 against Monràs's 0.07–2.0 span.
-The quantity leg reads −46.6% against measured tenancy responses of −10% [Monràs] and −13%
-[Pérez García]; the price leg reads −16.2% against Monràs's −5%, ≈**3.2×**. Neither the number nor
-its confidence interval may be quoted.
+**Cannot**: any magnitude. G1 fails at a Δln co-movement of **3.655** against the **0.07–3.2** span
+Monràs & García-Montalvo report. The quantity leg reads **−48.2%** against the paper's own *"the
+number of new contracts decreased by around 10% to 20%"*, and against Pérez García's −13%
+tenancies, the second independent estimate and inside that band; the price leg reads **−16.5%**
+against Monràs's −5%. Neither the number nor its confidence interval may be quoted.
+
+> **FIGURES CORRECTED 2026-09-17.** This paragraph was first written on the pre-correction
+> numbers — a 0.07–2.0 ceiling, a −46.6% quantity leg, point targets of −10% [Monràs] and −13%
+> [Pérez García], and a "≈3.2×" price multiple. All four were superseded the same day by the G1
+> ceiling correction recorded above, which read the ceiling and the quantity target at the source
+> and found both misstated. The corrections were registered there but not propagated here for
+> some hours. **The verdict is unchanged in every case** — G1 fails on the corrected ceiling too,
+> which is what licensed making the correction — but the register was quoting its own superseded
+> figures, and a limits register that cannot keep its own numbers current is not doing its job.
 
 **And the excess is not where re-calibration could reach it.** At an intermediation share of 0.85 —
 the top of the sourced regional band — leases still fall 26.8%. The model over-responds at the
@@ -3143,17 +3209,55 @@ measured response.
    would re-form the guess-joint somewhere else and hide it again.
 2. **The rate shock's volume leg**, missing its bound by 0.9pp for the same reason: a thinner
    baseline of sales to measure an incremental cut against.
-3. **The magnitude of the rent-cap response**, above.
+3. **The magnitude of the rent-cap response**, above. Left outside, but **no longer unexplained**:
+   the decomposition recorded earlier the same day locates it in turnover, not in the exit margin.
+   What stays outside is the repair, not the diagnosis.
 
 ### What would reopen this
 
-Not a better parameter inside the sourced ranges — that is closed, measured. It would take a
-mechanism the model does not have: something that makes *some* landlords hold on where the current
-two pieces make them all leave together, beyond the exit-cost dispersion and the statutory horizon
-already in place. A source for the landlord's required return would be the obvious candidate,
-since `small_landlord_premium`'s residual is still the largest unsourced share on the rent side.
+> **REWRITTEN 2026-09-17, because the condition first written here was aimed at the wrong term.**
+> It read: *"something that makes some landlords hold on where the current two pieces make them
+> all leave together"*, with a source for `small_landlord_premium` as the obvious candidate. The
+> turnover decomposition recorded earlier the same day refutes the premise. The exit margin is the
+> **small** term — the rented stock falls 6.5% while the flow falls 48.2% — and the residual is a
+> 44.9% collapse in turnover. A condition written against the exit margin would have licensed
+> reopening on evidence that could not move the quantity that is actually wrong. The superseded
+> text is quoted here rather than deleted, because a register whose reopening condition can
+> silently change is not a commitment.
 
-**Until such a thing is sourced, this channel is finished.** It reports directions, it refuses
+Not a better parameter inside the sourced ranges — that is closed, measured, and unchanged by the
+rewrite. What it would take is one of two things, and they are separable.
+
+**1. The size of the escape segment, sourced.** Under `index_binds_all=True` every unit is capped
+and no rent can rise to clear, so the model has no relief valve: market vacancy in the tensioned
+zone **halves** (−49.7%) and rental tightness goes up **11-fold** (1.157 → 13.045). A market in
+that state has no counterpart in the episode being matched — Catalonia 2020–22 is where the −5%
+rent and −10% to −20% contract figures were measured. The episode had valves the model either
+lacks or under-sizes: *contratos de temporada*, room lets, informal letting, and plain
+non-compliance. The model has one, `MarketConfig.seasonal_evasion_share` at 0.15 of exits, and
+that value has never been tested against what Catalonia actually observed. **What would reopen
+this is a sourced estimate of how many would-be ordinary contracts left the ordinary segment**
+under the cap — ≥2 independent sources, per the bias rule, and Incasòl's own quarterly series
+splits contract types.
+
+**2. Whether the tightness response is itself over-strong.** Tightness at 13 may be a correct
+reading of a drained market, or it may be that the matching rule over-converts scarcity into
+non-transaction. That is a question about the rental matching mechanism, **not about the rent cap
+at all**, and it would be answered on the baseline rather than under a policy. If it is the
+mechanism, the rent cap is only where the defect happened to become visible.
+
+`small_landlord_premium` stays on the list, demoted. It is still the largest unsourced share on
+the rent side, so sourcing it is worth doing on its own terms — but it acts on the exit margin,
+and the exit margin is now measured as the small term. It is no longer the obvious candidate, and
+sourcing it should not be expected to move the magnitude.
+
+**And a ceiling that no reopening removes.** The 2008–13 hold-out is spent (§13.11). Even a green
+G1 would be an in-sample result until a replacement hold-out exists, so the best outcome reachable
+by either route above is "magnitude reportable, in sample, unvalidated out of it" — not
+"magnitude reportable". Any reopening that does not say which of the two it is aiming at is
+aiming at neither.
+
+**Until one of those is sourced, this channel is finished.** It reports directions, it refuses
 magnitudes, and it knows which of its own tests are red and why.
 
 ## Known gaps
