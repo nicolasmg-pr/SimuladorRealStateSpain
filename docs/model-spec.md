@@ -1293,8 +1293,8 @@ is supposed to emerge rather than be asserted.
 | parameter | value | basis |
 |---|---|---|
 | `withheld_core_share` | **0.40**, range **0.33–0.48** | Bounded, not fitted. Reservation is 45.1% of *gestionable* = **32.9%** of *deshabitadas* [EUV 2023]; unfitness is **15.1%** [Censo 2011 register] to 22% [Fotocasa self-report]. The two may overlap, so the lower bound is the max (32.9%) and the upper the sum (48.0%, or 54.9% on the self-report). Central 0.40 |
-| `rehab_cost_*` (three bands) | 8,000 / 13,000 / 20,500 € | **WEAKLY SOURCED, and shipped labelled.** Both anchors are policy ceilings, not cost measurements: RD 853/2021 (6,300–18,000 €/dwelling) and the Plan Estatal 2026–2030 (structural 8,000, accessibility 13,000, energy 20,500). Same kind of instrument, so they corroborate an order of magnitude and are not two independent measurements |
-| `mobilisation_horizon` | — | **Not decided here.** §7.2b's precedent is a statutory term; a landlord's own horizon is the alternative. Whichever is chosen needs its own justification in this file before it is coded |
+| `rehab_cost_scale` | **declared RANGE 6,300–21,400 €/dwelling**, no point value | **Deliberately not resolved to a point**, per this project's bias rule: *disputed estimates become parameter ranges, never resolved point values*. The estimate is disputed in the strong sense — both anchors are **policy ceilings, not cost measurements** (RD 853/2021, 6,300–18,000 €, up to 21,400 €; Plan Estatal 2026–2030, structural 8,000 / accessibility 13,000 / energy 20,500 €), they are the same *kind* of instrument, and the attempt to obtain a realised cost failed (below). The range is the union of the two ceiling sets. It enters `sensitivity.py`'s Morris/Sobol sweep **when the field lands**; a sweep entry cannot precede the parameter. The variance rule (§13.2) then decides what it downgrades — which is the right way round, and is why no point is chosen here |
+| `mobilisation_horizon` | **20 ticks** (persona física), 28 (persona jurídica) | **Statutory, not free.** LAU art. 9 obliges the landlord to extend to a five-year minimum, seven if a legal person, so that is the income a landlord deciding whether to rehabilitate can count on. Registered in `docs/sources.md`. This repeats §7.2b's own move — it retired `holding_years`, a guess with range 3–10, in favour of the cap's statutory term — and for the same reason. **Rejected alternatives**: the Registradores 15y256d holding period (registered, but it measures tenure until SALE, and reusing it here is the cross-quantity borrowing §7.1 refused once); and the model's own emergent mean tenancy of 6.9 years, which is an output and therefore circular |
 | `rehab_draw` band edges | 0.849 / 0.955 / 0.988 | Censo 2011 condition distribution of vacant stock, cumulative. Sourced outright |
 
 **Retired:** `withheld_share` (0.35 default; 0.39 / 0.63 / 0.81 per zone) and the 0.0455 identity.
@@ -1325,12 +1325,28 @@ gradient is not merely unsourced, its two larger values are outside what the sou
 - **H5 — the §9 moments that pass today still pass, or every break is attributed.** Target 5d, the
   national vacancy band and the seeker share are the exposed ones.
 
-#### What is deliberately not decided here
+#### The realised cost was looked for and is not obtainable from the published series
 
-The cost level and the horizon. Both are named above with the evidence that exists and the
-evidence that does not, so that whoever fixes them does it in this file and not in a config
-comment. **Until they are fixed, this section cannot be coded** — which is the rule this project
-applies to itself, applied here.
+MIVAU publishes both halves of a euros-per-dwelling figure and they do not belong to the same
+universe. *Presupuestos de ejecución* of **visados de dirección de obra** give ampliación y reforma
+at **667.1 M€ in 2025Q1** (14.5% of all building, +27.3% year on year); *licencias municipales de
+obra* give **2,568 dwellings** rehabilitated in 2022Q4 (quarterly range 1,859–3,052). Dividing them
+yields ≈267,000 €/dwelling, absurd on its face: the visado budget covers non-residential work and
+works on buildings that never enter the dwelling count. **Closing that gap would need an unsourced
+allocation assumption, which is the thing the range exists to avoid.** Recorded so the next pass
+does not repeat it.
+
+#### What is now decided, and what still is not
+
+**Decided**: the horizon, which turns out not to be a parameter at all but LAU art. 9; and the
+cost, which is decided *to be a range* rather than to be a number. Both are the project's own rules
+applied rather than a judgement call — a statute for the first, the bias rule for the second.
+
+**Not decided, and it is smaller than it was**: nothing now blocks coding this section. What
+remains open is whether `rehab_cost_scale`'s range turns out to govern more than 25% of the
+variance of a quantity that is currently a reportable magnitude. If it does, it downgrades one —
+and that is a cost of the phase, to be paid visibly at step 6 rather than avoided by picking a
+point value.
 
 ## 5d. What stops a falling market (2026-09-15)
 
