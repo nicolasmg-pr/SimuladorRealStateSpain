@@ -1325,6 +1325,41 @@ gradient is not merely unsourced, its two larger values are outside what the sou
 - **H5 — the §9 moments that pass today still pass, or every break is attributed.** Target 5d, the
   national vacancy band and the seeker share are the exposed ones.
 
+> **PIECE B IS INERT AT THE MODEL'S OWN RENT LEVELS — MEASURED 2026-09-17, BEFORE CODING.**
+> The margin withholds a unit when net letting income over the horizon falls short of the
+> rehabilitation cost. Measured on the frozen baseline (seed 1, tail 20 of 60), net income over
+> LAU art. 9's five years, after `landlord_cost_share` 0.22:
+>
+> | zone | rent €/month | price € | **net 5-year income €** |
+> |---|---|---|---|
+> | tensioned | 1,667 | 379,087 | **78,016** |
+> | secondary | 1,179 | 222,207 | **55,195** |
+> | rural | 1,098 | 102,853 | **51,392** |
+>
+> Against cost bands of **8,000 / 13,000 / 20,500 €**. The *cheapest* zone clears the *dearest*
+> band by a factor of **2.5**. Piece B therefore withholds nothing anywhere except the *ruinoso*
+> tail, which is a flat 1.1% by construction — so total withholding would land at ≈41% in all
+> three zones and **H1 fails before the code is written**: the gradient does not emerge, because
+> there is nothing for it to emerge from.
+>
+> **The cause is not in this section.** The model's rural rent is 1,098 €/month against a
+> tensioned 1,667 — a ratio of **1.52**, where the registered source has **675 €/month in Madrid
+> against 277 € in Extremadura, a ratio of 2.44** [idealista, SERPAVI, EPF regional via Funcas 104
+> ch.5]. Rural rent is far too high relative to metro, and that is **target 11**, a registered
+> strict xfail: "el alquiler rural adelanta al tensionado alrededor del trimestre 35–40".
+>
+> **Which closes a circle that has to be named.** §7.4's margin needs a working rent ladder.
+> The rent ladder is target 11. Target 11 was to be fixed by §7.3's buy-to-let entry. §7.3 is
+> blocked on §7.4. **Nothing in this stack can move until the rent ladder is repaired by a route
+> that does not pass through buy-to-let entry**, and finding that route is a different phase from
+> this one.
+>
+> **Two escapes considered and rejected, so they are not retried.** Making the rehabilitation cost
+> proportional to dwelling value would make the margin bind, but the sources give flat €/dwelling
+> ceilings and scaling by value is unsourced — and it binds *harder in expensive zones*, which is
+> the wrong direction. Discounting expected income by the probability of letting at all would also
+> make it bind, but vacancy is the quantity being explained, so that is circular.
+
 #### The realised cost was looked for and is not obtainable from the published series
 
 MIVAU publishes both halves of a euros-per-dwelling figure and they do not belong to the same

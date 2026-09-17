@@ -3616,6 +3616,42 @@ sourced; it cannot yet fix the **margin**'s cost parameter without either accept
 sourced value or finding a realised-cost series. That choice belongs to whoever writes §7.4, and
 it is stated here rather than made quietly.
 
+## Phase H step 4 stopped before it started — Piece B is inert (2026-09-17)
+
+Step 4 is implementation. It was not done, because the arithmetic that should have been checked
+first says the mechanism would do nothing.
+
+§7.4's margin withholds a unit when net letting income over LAU art. 9's five years falls short of
+the rehabilitation cost. On the frozen baseline, after `landlord_cost_share` 0.22: net five-year
+income is **78,016 € tensioned, 55,195 € secondary, 51,392 € rural**, against cost bands of **8,000
+/ 13,000 / 20,500 €**. **The cheapest zone clears the dearest band by 2.5×.**
+
+So Piece B withholds nothing but the *ruinoso* tail — a flat 1.1% — and total withholding would be
+≈41% in every zone. **H1 fails by construction**: no gradient emerges, because nothing is there to
+emerge. Implementing it would have produced a red suite and a week of attribution work for a result
+available from four numbers.
+
+**The cause sits outside §7.4.** The model's rural rent is **1,098 €/month against 1,667
+tensioned — a ratio of 1.52**, where the registered source gives **675 € Madrid against 277 €
+Extremadura, 2.44** [Funcas 104 ch.5]. The rural rent leg is far too high, and that is **target
+11**, already a registered strict xfail.
+
+**The circle, named so it is not walked again.** §7.4's margin needs a working rent ladder → the
+ladder is target 11 → target 11 was to be fixed by §7.3's buy-to-let entry → §7.3 is blocked on
+§7.4. Every route out of this stack currently passes through another part of it.
+
+**What that means for the phase.** Steps 1–3 stand and are worth keeping: the identity is
+diagnosed, the core is sourced and bounded (0.33–0.48, which brackets the tensioned value and
+rejects the other two), the horizon is a statute, and the cost is a declared range. **Step 4 is
+blocked, not abandoned** — it unblocks the moment the rent ladder is repaired by a route that does
+not pass through buy-to-let entry. Identifying that route is the next phase, and it is not this
+one.
+
+**Two escapes considered and rejected**, recorded so they are not retried: scaling rehabilitation
+cost by dwelling value (unsourced, and it binds harder in expensive zones — the wrong direction),
+and discounting expected income by the probability of letting (circular, since vacancy is the
+quantity being explained).
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
