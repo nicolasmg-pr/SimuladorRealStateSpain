@@ -178,6 +178,24 @@ def test_zone_price_ladder_holds(baseline_moments):
     assert baseline_moments["price_ratio_ts"] > 1.3
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="2026-09-17: NOT a model defect — the two sourced band sets are jointly "
+    "unsatisfiable at this model's rental-stock weights, and the arithmetic is here so the "
+    "claim can be checked rather than believed. Measured, ten seeds: the ZONE contract yields "
+    "are 5.35% / 6.61% / 8.46%, every one of them INSIDE its idealista band (4.7-5.6 / 6.5-7.5 "
+    "/ 7-9). The rented stock sits 59.5% / 30.4% / 10.0%. Any weighting of in-band zone yields "
+    "by those shares tops out at 0.595*5.6 + 0.304*7.5 + 0.10*9.0 = 6.51%, i.e. BdE's 6.5% "
+    "floor is reachable ONLY with all three zones pinned at the very top of their bands. The "
+    "model reads 5.96% with all three near their middles, and both aggregation bases agree "
+    "(ratio of household-weighted aggregates 5.957%, rental-stock-weighted mean of zone yields "
+    "6.045%), so it is not an aggregation artefact either. The two sources are built "
+    "differently — BdE's entry yield is AEAT declared rents over Registradores transaction "
+    "prices, idealista's zone bands are portal asks over portal prices — and reconciling them "
+    "is evidence work, not calibration. Moving the model to satisfy one of them would be "
+    "fitting to the source that happens to be asserted. Registered per the rule that a "
+    "conflict between sources is recorded, not resolved by the model.",
+)
 def test_national_entry_yield_matches_the_bank_of_spain(baseline_moments):
     """Target 9, national leg, on the CONTRACT basis (model-spec §13.7).
 
@@ -197,14 +215,14 @@ def test_national_entry_yield_matches_the_bank_of_spain(baseline_moments):
     assert 0.065 <= baseline_moments["gy_contract_national"] <= 0.075
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-11: rural gross yield runs to ≈17.2% against a sourced 7–9%. "
-    "required_rent pins the yield floor to price, rural rental supply has no entry "
-    "margin (investor skips rural, households never buy to let) and downward-only "
-    "migration funnels every priced-out seeker into it. Fixed by the total-return "
-    "hurdle and buy-to-let entry (spec §7.1, §7.3 — phase B).",
-)
+# XFAIL REMOVED 2026-09-17. The marker read: "rural gross yield runs to ~17.2% against a sourced
+# 7-9% ... Fixed by the total-return hurdle and buy-to-let entry (spec §7.1, §7.3 - phase B)."
+# Half right. The total-return hurdle (§7.1) shipped and did not close it; buy-to-let entry never
+# shipped at all. What closed it was two later changes, neither predicted here: §5b.2 put the
+# location premium on rent acceptance, and §7.1c netted the zone risk premium against the
+# expected-growth gap it had been double-counting. Ten seeds: 5.15% / 6.55% / 8.35% against
+# 4.2-6.1 / 6.0-8.0 / 6.5-9.5. The ladder now EMERGES from the hurdle instead of being produced
+# by a spread fitted to it, which is what §7.1 was written to achieve.
 def test_zone_gross_yield_ladder(baseline_moments):
     """Target 9: the gross rental yield ladder must EMERGE, not be imposed.
 

@@ -412,8 +412,21 @@ def test_shadow_rent_stays_anchored_under_a_cap():
     of its activation value while the asking index drops to the reference."""
     from resim.scenario import RentCap
 
+    # REGIME CORRECTED 2026-09-17. This ran on the DEFAULT cap, which since 2026-09-15 is Ley
+    # 12/2023: the index binds grandes tenedores only, and individuals — 85-92% of the stock —
+    # are capped by their own previous contract plus IRAV. Under that statute the asking index
+    # barely moves at activation, so "the asking index drops onto the cap" is not what happens
+    # and the shadow-versus-ask comparison sits on a knife edge: measured, it holds on 3 of 10
+    # seeds with a mean gap of -1.4%. Under `index_binds_all=True` — the regime this docstring
+    # actually describes, and the one the model implemented for every landlord when this test
+    # was written — it holds on 10 of 10 with a mean gap of +6.7%. The test was left behind by
+    # the statutory split and is moved to the regime it is about, not re-banded to pass.
     cfg = SimConfig.baseline(seed=1, ticks=40)
-    sc = Scenario(name="cap", baseline=cfg, interventions=(RentCap(start_tick=20),))
+    sc = Scenario(
+        name="cap",
+        baseline=cfg,
+        interventions=(RentCap(start_tick=20, index_binds_all=True),),
+    )
     frame = metrics.to_frame(Engine(sc).run())
     at_activation = frame["shadow_rent_tensioned"].loc[19]
     post = frame.loc[21:40]
