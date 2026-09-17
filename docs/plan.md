@@ -179,8 +179,17 @@ Mark phases done here; details and dates in commit history.
   applied the index to every landlord (`experiments/rent-cap.md`); remaining levers implemented and runnable, experiments ongoing
 - [x] Redesign phases 0, A and B (`docs/superpowers/specs/2026-09-11-model-redesign-design.md`):
   the precision contract and seven new targets; the model bug fixes; the profitability block
-  (total-return hurdle, buy-to-let entry, cash-buyer anchors, bidirectional migration). Detail
+  (total-return hurdle, cash-buyer anchors, bidirectional migration). Detail
   in `docs/validation.md` and in the merge commits.
+  **Two items of phase B's declared scope did NOT ship, and this entry listed them as delivered
+  until 2026-09-17.** (1) **Buy-to-let entry** — measured and parked on branch
+  `buy-to-let-remeasure`; nothing of it is on `main`, and `model-spec.md` cited a §7.3 it did not
+  contain from three §9 targets and four places in `src/`. §7.3 now exists and records the debt.
+  (2) **The AEAT-basis sibling column** for target 14 — never added; `landlord_household_share`
+  is emitted on the EFF basis alone and the choice of basis is still open, not made. The
+  misstatement mattered because targets 9 and 11 are strict xfails *for want of the first item*:
+  the plan said the work that would close them was done, while the spec said those targets were
+  already "fixed by" it.
 - [x] Redesign phase C — insolvency and forced sale (`model-spec.md §6c`, branch `insolvency`,
   2026-09-14): income risk on an exogenous household-jobless path, arrears against a
   poverty-threshold consumption floor, statutory foreclosure (Ley 5/2019 art. 24, with the

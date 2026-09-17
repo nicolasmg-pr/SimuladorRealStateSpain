@@ -1139,6 +1139,43 @@ declared as one. Measured: 1 gives a 3.9% margin, 2 gives 4.7%, 3 gives 5.1%, 6 
 70% of listings selling inside the quarter against a 43–63% band. Three is both the calendar and
 the only value that satisfies every gate.
 
+### 7.3 Buy-to-let entry — the section this file cited three times and never had (2026-09-17)
+
+**This section records a debt, not a decision.** §7.3 was referenced from three §9 targets (9,
+11 and 14) and from four places in `src/` as though it existed. It did not. A spec that cites
+its own missing sections lets a reader believe a mechanism has been specified and reviewed when
+nothing has been written down, and this project's rule is that code and spec disagreeing is a bug
+in one of them — a citation with no referent is the same bug with the code half missing.
+
+**What exists.** An implementation, measured and parked on branch `buy-to-let-remeasure` (two WIP
+commits, 2026-09-14, now 90+ commits behind `main`): households buy to let, choosing the zone by
+the best risk-adjusted return rather than their own. Nothing of it is on `main`.
+
+**What it closes, measured on that branch.** The rural gross yield falls from 22% to **8.10%**,
+inside its sourced 7–9% band, which takes target 9 — a strict xfail on all three zones — with it.
+So does target 11's rent ordering, the insider/outsider wedge and the small-landlord share. The
+rate is calibrated against its stock anchor (`landlord_household_share` 0.274, inside the
+EFF-AEAT bracket), not against the price targets.
+
+**Why it is parked, and it is one thing.** Yield-chasing entry **arbitrages the zone price
+ladder away**: T/R falls to 1.65 against a sourced floor of 2.6. The 1.5pp zone risk gradient is
+not enough against a rural yield starting at 22%. The missing force is the one the investor
+should *see* when choosing a zone and currently cannot: the **vacancy gradient** — *días de
+alquiler* 338/365 in Extremadura against 352/365 in Barcelona, against the model's own 18% rural
+vacancy. A rural let is not a substitute for a metro one; the branch as it stands says it is.
+Twelve tests fail there, deliberately unmarked.
+
+**Three defects it found and fixed on the way**, which are worth salvaging whatever happens to
+the mechanism: buy-to-let buyers shopped in their own zone; a latent state bug in
+`clearing.settle` left units owner-occupied by nobody (unreachable before this branch, caught by
+`tests/test_state_invariants.py`); and the buy-to-let hurdle carried no zone risk gradient while
+the small-landlord hurdle already did.
+
+**What has to happen before this becomes a real §7.3.** The vacancy gradient sourced (≥2
+independent rows, per the bias rule) and entered into what the investor compares, then the ladder
+re-measured against its 2.6 floor. Only then is there a decision to write down here, and it gets
+written here **before** the branch merges, not after.
+
 ## 5d. What stops a falling market (2026-09-15)
 
 The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model
@@ -1617,8 +1654,10 @@ pass is allowed to mean.
    noise, the same convention as the other zone targets. Gated. `ZoneConfig.gross_yield` is an
    initial condition only: the ladder the model then produces is a prediction, and the single
    observable that says whether the landlord's reservation rule is right. **Strict xfail** —
-   the rural leg runs at roughly twice the band. Fixed by the total-return hurdle and
-   buy-to-let entry (spec §7.1, §7.3 — **phase B**).
+   the rural leg runs at roughly twice the band. **STATUS CORRECTED 2026-09-17**: this line
+   read *"Fixed by the total-return hurdle and buy-to-let entry (spec §7.1, §7.3 — phase B)"*
+   while the leg was, and still is, a strict xfail. The total-return hurdle (§7.1) shipped in
+   phase B and did **not** close it. Buy-to-let entry did not ship at all — see §7.3.
 10. **Boom compresses the gross yield**: direction only. Spain 2014–25 ran prices ahead of
     rents and gross yields fell. Gated on the sign, and only on the sign: the registered
     idealista row is a **cross-section**, not the 2014–25 **time series** a band on the
@@ -1631,8 +1670,10 @@ pass is allowed to mean.
     Gated. The zone ladder was gated on *prices* only (target 2b), which is how a rural asking
     rent above the metro index survived 60 ticks and 3 seeds unnoticed. Asserted on all three
     seeds, not on a seed average. **Strict xfail** — rural overtakes the metro around tick
-    35–40. Fixed by bidirectional migration and buy-to-let entry (spec §7.3, §7.5 —
-    **phase B**).
+    35–40. **STATUS CORRECTED 2026-09-17**: this line read *"Fixed by bidirectional migration
+    and buy-to-let entry (spec §7.3, §7.5 — phase B)"* while the target was, and still is, a
+    strict xfail. Bidirectional migration (§7.5) shipped in phase B and did **not** close it.
+    Buy-to-let entry did not ship at all — see §7.3.
 12. **Net internal migration into TENSIONED > 0**: direction only; the level needs INE
     Migraciones y Variaciones Residenciales, which is not yet registered. Gated on the sign.
     Spain's net internal flow runs rural→metro and the model has it inverted by construction
@@ -1670,8 +1711,11 @@ pass is allowed to mean.
     *declaring-rental-income* basis. Roughly three-to-four-fold apart, because they measure
     different things. What is missing is the EFF **wealth-percentile gradient** (spec §9
     retrieval list), which is what would say where inside the bracket a model with no
-    buy-to-let entry margin should sit. Phase B specifies the AEAT-basis sibling column
-    (rented units only) and decides which basis the gate is set against.
+    buy-to-let entry margin should sit. Phase B was to specify the AEAT-basis sibling column
+    (rented units only) and decide which basis the gate is set against. **It did not, and this
+    line claimed otherwise until 2026-09-17**: `metrics.py` emits `landlord_household_share` on
+    the EFF basis alone, there is no AEAT sibling, and the gate is set against the only column
+    that exists. The choice of basis is therefore still open, not made.
 16. **Idiosyncratic sale-price dispersion**: the sd of log sale price net of zone × tick and
    observable quality, **6–17% per sale, central 10%** [Kotova & Zhang, US zipcodes 2012–16,
    mean 16.8%; Giacoletti *RFS* 2021, 6.8–12.4%; Landvoigt-Piazzesi-Schneider *AER* 2015,
