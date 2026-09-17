@@ -1171,10 +1171,45 @@ the mechanism: buy-to-let buyers shopped in their own zone; a latent state bug i
 `tests/test_state_invariants.py`); and the buy-to-let hurdle carried no zone risk gradient while
 the small-landlord hurdle already did.
 
-**What has to happen before this becomes a real §7.3.** The vacancy gradient sourced (≥2
-independent rows, per the bias rule) and entered into what the investor compares, then the ladder
-re-measured against its 2.6 floor. Only then is there a decision to write down here, and it gets
-written here **before** the branch merges, not after.
+**What has to happen before this becomes a real §7.3 — and the first answer is NO, measured
+2026-09-17 before any of it was built.** The plan was: source the vacancy gradient (≥2
+independent rows, per the bias rule), enter it into what the investor compares, re-measure the
+ladder against its 2.6 floor. The sourcing step succeeded and the arithmetic then refuted the
+mechanism.
+
+**The sourced gradient is an order of magnitude too small.** `docs/sources.md` already carries
+the AEAT + Catastro *días de alquiler* row (fetched 2026-09-14): **338/365 in Extremadura against
+352/365 in Barcelona**, 347 national. That is a **3.98%** relative haircut on the rural yield. The
+model's baseline zone gap is **6.43pp** (rural 12.30% against tensioned 5.87%), so the haircut
+closes **0.49pp — 7.6% of the gap**. It cannot make a rural let stop looking like the better
+investment, and no reading of that source makes it bigger: it is the occupancy of dwellings that
+were *let and declared*, so by construction it cannot price the risk of not letting at all.
+
+**What the measurement found instead, and it is the thing to attack.** The model's rural market
+is the **tightest of the three**, not the loosest. Ten seeds, mean of the last eight ticks:
+
+| zone | total vacancy | **market vacancy** | gross yield |
+|---|---|---|---|
+| tensioned | 8.81% | **3.79%** | 5.70% |
+| secondary | 13.76% | **7.06%** | 7.55% |
+| rural | 17.95% | **2.66%** | 12.26% |
+
+Rural is simultaneously the **emptiest** stock (17.95%, and target 5d gates that ordering, which
+passes) and the **tightest market** (2.66% offered and unlet, lower than tensioned in **9 of 10
+seeds**). All of the rural vacancy sits in withheld units. So a rural landlord in this model faces
+*less* letting risk than a metro one, which is why a 12.26% yield survives and why yield-chasing
+entry arbitrages the ladder away. **No haircut applied to the yield can fix a model that says the
+risk runs the other way.**
+
+**And nothing gates it.** Target 5d gates *total* vacancy by zone and passes. Market vacancy —
+the basis the investor's decision should read, and the one `metrics.py` documents as
+"Censo-comparable 6–9% urban" — is gated nowhere, and the tensioned leg sits at 3.79%, below that
+band, with no registered reference for the rural leg at all.
+
+**So the open decision is not "how big a haircut".** It is whether the withheld/market split is
+right in rural, and that is a question about the withholding rule, answerable on the baseline and
+without the rent cap or buy-to-let entry anywhere near it. Until it is settled there is no §7.3
+decision to write down, and the branch should not merge.
 
 ## 5d. What stops a falling market (2026-09-15)
 

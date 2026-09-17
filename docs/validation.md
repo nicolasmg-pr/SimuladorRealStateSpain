@@ -3260,6 +3260,48 @@ aiming at neither.
 **Until one of those is sourced, this channel is finished.** It reports directions, it refuses
 magnitudes, and it knows which of its own tests are red and why.
 
+## The §7.3 vacancy gradient, refuted before it was built (2026-09-17)
+
+§7.3 nominated one missing force for the parked buy-to-let branch: the vacancy gradient the
+investor should see when choosing a zone. Sourced and checked **before** implementing, per the
+rule that a mechanism is specified before it is coded. Two independent rows exist and neither
+rescues it.
+
+**Source 1, AEAT + Catastro *días de alquiler*** (`docs/sources.md`, fetched 2026-09-14):
+Extremadura 338/365, Barcelona 352/365, Madrid 351, national 347. Relative haircut **3.98%**.
+Against the model's baseline zone gap of **6.43pp** (rural 12.30%, tensioned 5.87%, three seeds)
+it closes **0.49pp = 7.6%**. It also cannot in principle price the risk that matters: it is
+occupancy *conditional on the dwelling having been let and declared*.
+
+**Source 2, Censo 2021 + BdE DO 2432**: 14.4% of the stock empty, 45% of empties in municipalities
+under 10k, 7.5% vacancy in cities over 250k. A much larger gradient, but on whole-stock vacancy —
+second homes, uninhabitable and non-market stock included — which is not investable letting risk.
+
+**What the check found instead — ten seeds, mean of the last eight ticks, baseline, no policy:**
+
+| zone | total vacancy | market vacancy | gross yield |
+|---|---|---|---|
+| tensioned | 8.81% | **3.79%** | 5.70% |
+| secondary | 13.76% | **7.06%** | 7.55% |
+| rural | 17.95% | **2.66%** | 12.26% |
+
+**The model's rural market is the tightest of the three**, in 9 of 10 seeds, while its rural stock
+is the emptiest. Every bit of the rural vacancy is withheld. A rural landlord here faces *less*
+letting risk than a metro one — so the 12.26% yield is, inside the model, a real and nearly
+riskless return, and yield-chasing entry arbitraging the price ladder is the correct response to
+it. No haircut on the yield repairs a model whose risk ordering is inverted.
+
+Target 5d gates the **total** vacancy ordering (R > S > T, levels R 15.6–24.6%, S 8.1–13.1%) and
+passes at 18.1 / 11.8 / 8.7. **Market** vacancy is gated nowhere, and it is the basis the
+investor's decision reads; `metrics.py` documents it as the Censo-comparable 6–9% urban basis, and
+the tensioned leg sits at 3.79%, below that band, with no registered reference for rural.
+
+**What this costs and what it saves.** It falsifies §7.3's nominated repair on arithmetic, for the
+price of one baseline sweep, before the mechanism was written. What it opens is a different and
+smaller question — whether the withheld/market split is right in rural — which lives in the
+withholding rule and is answerable on the baseline, with neither the rent cap nor buy-to-let entry
+in the picture.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
