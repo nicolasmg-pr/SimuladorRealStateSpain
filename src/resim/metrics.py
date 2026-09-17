@@ -382,6 +382,26 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
         row[f"new_leases_{z}"] = sum(
             1 for r in rentals if state.stock.units[r.unit_id].zone is zone
         )
+        # The DENOMINATOR of the flow, and the flow's own rate. Added 2026-09-17 to decompose
+        # a divergence the limits register leaves unidentified: under the Ley 11/2020 cap the
+        # model's new-lease FLOW falls 48.2% while the rented STOCK falls 13.1%, a factor of
+        # ~3.7 against Monràs's "new contracts signed is a good approximation of changes in the
+        # overall supply". Since flow = stock x turnover identically, the residual IS a change
+        # in turnover, and nothing in the model emitted turnover for it to be read off. The
+        # refuted hypothesis was the BASELINE churn LEVEL (14.5%/yr, slower than the LAU
+        # minimum implies); the cap's DELTA on turnover was never asked.
+        #
+        # The stock is measured AFTER settlement, so a unit let this tick is in both the
+        # numerator and the denominator. That is the basis the 14.5%/yr baseline figure was
+        # read on, and the two must stay on one basis for the decomposition to close.
+        row[f"rented_stock_{z}"] = sum(1 for u in zone_units if u.tenure is Tenure.RENTED)
+        # Annualised: four quarterly ticks. Its reciprocal is the mean tenancy in years, which
+        # is the form the LAU comparison is made in.
+        row[f"rental_turnover_{z}"] = (
+            4.0 * row[f"new_leases_{z}"] / row[f"rented_stock_{z}"]
+            if row[f"rented_stock_{z}"] > 0
+            else float("nan")
+        )
         # net internal migration, model-scale households/tick (model-spec §9 target 12).
         # Spain's net internal flow runs rural→metro; the current rule can only produce the
         # opposite sign, which is why this is measured before it is fixed.
