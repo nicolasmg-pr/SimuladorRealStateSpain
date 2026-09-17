@@ -3457,6 +3457,45 @@ regional survey — the same single-source objection that closed the gate route.
 identity means re-deriving `units_per_household` and `withheld_share` per zone from the Censo
 ladder directly and re-running the §9 moments, which is a phase of work, not an edit.
 
+## Phase H step 1 — the baseline frozen, and a figure of mine corrected (2026-09-17)
+
+`docs/superpowers/specs/2026-09-17-zone-stock-identity.md` step 1: record the state at the current
+identity before anything moves. Config hash **`dfb25210c4`**, ten seeds, `build_scenario("baseline",
+seed, 60)`, tail 20 — the suite's own basis, not the shorter one used for the diagnosis. Cached to
+`runs/phase-h-baseline-freeze_seeds1-10_dfb25210c4.json`.
+
+| | tensioned | secondary | rural |
+|---|---|---|---|
+| total vacancy | 8.98% | 14.58% | 18.85% |
+| market vacancy | 3.17% | 8.01% | 3.80% |
+| **offered share** | **35.3%** | **54.9%** | **20.2%** |
+| gross yield | 5.22% | 6.98% | 13.93% |
+| rental turnover | 0.1485 | 0.1694 | 0.1314 |
+
+National: ownership 72.5%, price-to-income 8.06, vacancy 13.06%, seeker share 6.25%, overburden
+31.3%, arrears 3.08%, T/R price ratio 3.74.
+
+**CORRECTION, and it is mine.** The entry "A source DOES separate market from withheld vacancy"
+reported the model's offered shares as **14.8% rural / 43.0% tensioned / 51.3% secondary** and said
+the rural leg landed on the EUV's 14.9% "almost exactly". Those were measured at **40 ticks, mean
+of the last 8** — the basis the rent-cap experiment uses — not the suite's 60/tail-20. On the
+suite basis the rural leg reads **20.2%**, not 14.8%. **The "almost exactly" claim does not
+survive**; against 14.9% the rural leg is ~35% high rather than spot on.
+
+**What does survive, and it is the part the phase rests on.** The ordering is unchanged and so is
+the attribution: rural is the *closest* leg to the only measurement available, and the metro legs
+are the far ones — tensioned 35.3% and secondary 54.9% against 14.9%. Secondary, not tensioned, is
+now the worst offender. The conclusion that the identity binds wrongly at the non-rural end stands;
+the claim that rural was already correct does not, and H3 in the phase plan ("the rural leg does
+not break") should be read against 20.2%, not 14.8%.
+
+**And `units_per_household` is confirmed sound at the primary source.** The INE press-release
+ladder — now registered directly rather than via Funcas 104 — gives empty shares of 7.5% (>250k),
+10.2% (50–250k), 13.9% (10–50k), 21.6% (1–10k), 33.3% (<1,000). Under the model's declared mapping
+(tensioned ≈ >300k, secondary ≈ 20k–300k, rural ≈ <20k) that implies upH of ≈1.081, ≈1.130 and
+≈1.239 against the shipped 1.0750, 1.1240 and 1.2420. **The derived half of the identity is right;
+only `withheld_share`, the solved half, is not.** That narrows phase H to one parameter.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
