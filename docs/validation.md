@@ -3566,6 +3566,56 @@ The current model is all core and no margin; a pure route (b) would be all margi
   provinces, Madrid and Barcelona all under 11% — but mapping province to the model's three zones
   is a step that needs writing down before it is used.
 
+## Phase H step 2, closed — what is sourced, what is weak, what is missing (2026-09-17)
+
+Continuation of the entry above. Step 2 of the phase plan is as far as retrieval takes it.
+
+### Sourced, two independent rows each
+
+- **The condition level.** INE Censo 2011 cross-tab (15.1% of vacant stock not in good condition,
+  ≈2.7× the principal rate) and Fotocasa Research's owner self-report (21–22% citing unfitness).
+  Register vs survey, different institutions, agreeing in direction.
+- **The non-economic core.** EUV 2023 (45.1% reserving for descendants) and Fotocasa (inheritance
+  deadlock, distrust of tenants, after condition).
+
+### Weakly sourced, and labelled as such
+
+- **Rehabilitation cost.** Two official anchors exist and **neither measures cost**: RD 853/2021's
+  subsidisable ceilings (6,300–18,000 €/dwelling by energy band, up to 21,400 €) and the Plan
+  Estatal de Vivienda 2026–2030 (structural 8,000 €, accessibility 13,000 €, energy 20,500 €).
+  They are the same *kind* of instrument — policy ceilings — so they corroborate an order of
+  magnitude and do **not** constitute two independent measurements. Commercial quote aggregators
+  (600–1,200 €/m² for an integral renovation) are also same-kind to each other. **Any cost
+  parameter drawn from these ships labelled weakly sourced**, and under §13.2 anything it governs
+  more than 25% of stays direction-only.
+
+  One of them is worth noting for its own sake: the 2026–2030 plan carries an **empty-home
+  recovery programme at up to 35,000 €/dwelling, explicitly aimed at rural areas and tensioned
+  urban cores.** That is the state's own estimate of what mobilising an empty rural dwelling
+  costs, and it is a policy this model could represent directly.
+
+### Missing, and named precisely so the next pass does not repeat this one
+
+1. **A condition gradient at the model's zone boundaries.** ECEPOV 2021 publishes *estado de
+   conservación* by municipality size (INE table 59053) — but its bands are **≤50,000 / 50,001–
+   100,000 / 100,001–500,000 / >500,000**, which does **not** separate the model's rural (<20k)
+   from its secondary (20k–300k); and only the **coefficient-of-variation** table is reachable by
+   direct CSV, with the values table not linked from it. The usable fallback is the Censo 2011
+   **province** breakdown (Ourense 23%, Lugo and Castellón ≈20%, the three Basque provinces plus
+   Madrid and Barcelona all under 11%), which requires a **written province → zone mapping** —
+   and that mapping is itself a modelling decision that belongs in `model-spec.md` before it is
+   used, not a lookup.
+2. **A realised-cost measurement** for rehabilitation, as opposed to a subsidy ceiling.
+
+### The state of the phase
+
+Step 1 (freeze) is done. Step 2 is **closed on what retrieval can reach**: the core/margin split
+is measured, the condition level has two independent sources, and the cost leg is weak and
+labelled. Step 3 (write the mechanism into `model-spec.md`) can proceed for the **core**, which is
+sourced; it cannot yet fix the **margin**'s cost parameter without either accepting a weakly
+sourced value or finding a realised-cost series. That choice belongs to whoever writes §7.4, and
+it is stated here rather than made quietly.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
