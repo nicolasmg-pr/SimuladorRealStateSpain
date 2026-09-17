@@ -3684,9 +3684,28 @@ a 2.5% floor — the project's oldest structural gap, made worse by damping rent
 weak zones. Registered, not banded away. Secondary-zone vacancy also moves further above its Censo
 band top.
 
-**Not fixed: the level.** T/R reads 2.05 against a sourced 2.44, so rural rent is still ≈19% too
-high relative to metro. Target 11 asserts the ordering and passes; nothing asserts the level. That
-is the honest open item now, and it is a smaller one than the sign.
+**The level is not fixed, and the "~19%" first written here is WITHDRAWN (2026-09-17).** It
+compared the model's **whole-dwelling** T/R of 2.05 against EPF's **rents actually paid** ratio of
+2.44. Those are different objects: EPF embeds the size margin, and Madrid renters rent smaller
+dwellings than Extremadura renters, so the observed ratio is *compressed* relative to like-for-like.
+The whole-dwelling ratio the sources imply is therefore **above** 2.44 — the model is further off
+than was claimed and the percentage meant nothing. The direction survives; the number does not.
+
+**And the level is structural, not calibration.** The Funcas contrast rows in this file already say
+it: every tenant rents one whole 90 m² unit at asking level, there is no small-dwelling, room or
+shared-flat segment, and the rent-level row reads ≈2.6× high. Re-measured after §5b.2: **1,692 /
+1,266 / 824** by zone against EPF's **516** paid and AEAT's **691** declared.
+
+**And it must not be tuned.** Rural rent clears at the **landlord's floor** — 812 against a
+`required_rent` of 800 — not at the household ceiling of 507. Discounting demand further would not
+lower rural rent, it would leave units unlet; and pulling the level down by any other dial would
+break the gross yields §5b.2 has just put inside their 7–9% band.
+
+**The route** is a size/quality margin: a tenancy of less than a whole dwelling, with rent scaling
+on it, sourced from the EPF size distribution. It touches `quality`, whose σ of 0.15 is far too
+narrow to span 30 m² against 90 m², and `quality` multiplies price as well as rent — so the price
+ladder and every §9 moment calibrated on it move together. **A phase, and a larger one than phase
+H.** Target 11 asserts the ordering and passes; nothing asserts the level.
 
 **What it unblocks.** §7.4's margin arithmetic moves with it: rural net five-year income falls from
 51,392 € to **38,561 €** against cost bands topping at 20,500 €. The margin still clears by 1.9×,
