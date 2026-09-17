@@ -3801,15 +3801,32 @@ stale.** Ley 11/2020, ten seeds, shipped parameters:
 **The price leg moved toward the evidence and the quantity leg did not**, so the ratio worsened
 even though the model got closer on rent. The excess still sits entirely in the quantity leg.
 
-**And one observation that the next reopening should start from.** The rented *stock* falls ~6%
-while the *flow* of new leases falls ~48%. That pattern is landlords declining to **re-let** at the
-cap while sitting tenancies run on — `required_rent` is a hard floor, and a unit whose cap sits
-below it is never listed again. Catalan landlords facing the same cap cut new contracts by 10–20%,
-not 48%. **The model has no outside-option comparison in the reservation rent**: a vacant unit
-earns nothing, so letting below the required return beats holding out, and the model does not let
-its landlords make that trade. This is a mechanism the model lacks, not a parameter inside a
-sourced range — which is the bar the stop sets — and it is recorded here for that reason rather
-than acted on, since the stop is a commitment.
+**The reopening route named here yesterday was tested and is REFUTED (2026-09-17).** It read: the
+rented stock falls ~6% while the flow falls ~48%, so landlords must be declining to **re-let** at
+the cap, because `required_rent` is a hard floor and a unit whose cap sits below it is never listed
+again — "the model has no outside-option comparison in the reservation rent". That was the one
+candidate meeting the stop's own bar ("a mechanism the model does not have"), so it was
+implemented and measured rather than argued about.
+
+**It changed nothing, bit for bit** — rent −14.0%, leases −47.5%, ratio 4.272, identical to three
+decimal places. Instrumented, the branch is not dead: of 807 evaluations where `cap < floor`, 344
+find no exit destination and reach it. It is a **no-op**, because the code immediately below it
+already did the same thing: `fundamental_ask ≥ floor > cap`, so `if complies and fundamental_ask >
+cap: ask = min(ask, cap)` was already listing those units **at the cap**. The outside-option
+comparison is not missing. It was there.
+
+**And the real decomposition, measured five seeds:** the offered pool falls **−45.5%** and new
+leases fall **−45.6%**. One for one. **The flow collapse is the withdrawal channel and nothing
+else** — leases track the offered pool exactly, so the quantity leg's excess is entirely in *how
+many landlords withdraw*, which is §7.2b's exit margin and which this register has already measured
+as unreachable inside the sourced ranges: at an intermediation share of 0.85, the top of the
+sourced band, leases still fall 26.8% against a measured −10% to −20%.
+
+**What this costs and what it buys.** It removes the candidate this register named as where the
+next reopening should start, which was mine and which was wrong. What it buys is that the stop is
+now tested rather than asserted: the one mechanism identified as missing turned out to be present,
+and the magnitude error survives it. **The two rent-cap gates stay red on evidence, not on
+policy.**
 
 ## Known gaps
 
