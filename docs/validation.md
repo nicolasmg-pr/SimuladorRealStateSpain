@@ -3763,6 +3763,54 @@ has carried "there is no small-dwelling, room or shared-flat segment, so the ren
 ≈2.6× high" as the explanation, and the room/shared part of that may still hold while the
 *dwelling-size* part does not.
 
+## The suite at 2 failed, and why those two must stay red (2026-09-17)
+
+Session end state: **2 failed / 180 passed / 8 xfailed**, from 6 / 175 / 8. Two targets closed —
+**11** (rent ordering) and **9** (the zone yield ladder, red since 2026-09-11) — and three failures
+the limits register had left open went green as side effects.
+
+**What was fixed, and it was never a parameter.**
+
+| | |
+|---|---|
+| §5b.2 | the location premium applies to rent acceptance, not only to the buy budget |
+| §7.1c | the zone risk premium is netted against the expected-growth gap it double-counted |
+| `test_shadow_rent_stays_anchored_under_a_cap` | was running under Ley 12/2023, where the index binds 8–15% of the stock, while its docstring describes the binding regime. 3/10 seeds there, 10/10 under `index_binds_all=True` |
+| `test_loss_aversion_reproduces_the_price_volume_correlation` | decided a +0.0022 mean cushion on three seeds against a ±0.02 per-seed spread, and held three of the six negative draws. Raised to ten, per §9's own rule |
+| `test_national_entry_yield_matches_the_bank_of_spain` | registered xfail: **a conflict between two sources, not a model defect** — the zone legs are all inside their idealista bands and no weighting of in-band zone yields by the model's rental-stock shares reaches BdE's 6.5% floor except with all three pinned at their tops |
+
+**The two that remain are the rent cap's, and they are supposed to be red.**
+
+`test_rent_cap_reproduces_the_monras_co_movement` and
+`test_g1_the_co_movement_emerges_at_the_shipped_parameters`. G1 is §7.2b's own declared
+falsification — the gate written to carry the magnitude question — and **its failure is the
+finding**. Turning either green would be precisely the move this register opens by criticising:
+*"a model whose broken channel is annotated instead of asserted will always show fewer failures
+than one whose breakage is under test."* Before §7.2 the suite read 0 failed while the cap produced
+a +16.6% rent RISE.
+
+**Re-measured today, because this session moved their inputs and the register's numbers are now
+stale.** Ley 11/2020, ten seeds, shipped parameters:
+
+| | before today | now | sourced |
+|---|---|---|---|
+| rent | −16.5% | **−14.0%** | −5% [Monràs] |
+| new leases | −48.2% | **−47.5%** | −10% to −20% |
+| co-movement ratio | 3.655 | **4.272** | 0.07–3.2 |
+
+**The price leg moved toward the evidence and the quantity leg did not**, so the ratio worsened
+even though the model got closer on rent. The excess still sits entirely in the quantity leg.
+
+**And one observation that the next reopening should start from.** The rented *stock* falls ~6%
+while the *flow* of new leases falls ~48%. That pattern is landlords declining to **re-let** at the
+cap while sitting tenancies run on — `required_rent` is a hard floor, and a unit whose cap sits
+below it is never listed again. Catalan landlords facing the same cap cut new contracts by 10–20%,
+not 48%. **The model has no outside-option comparison in the reservation rent**: a vacant unit
+earns nothing, so letting below the required return beats holding out, and the model does not let
+its landlords make that trade. This is a mechanism the model lacks, not a parameter inside a
+sourced range — which is the bar the stop sets — and it is recorded here for that reason rather
+than acted on, since the stop is a commitment.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
