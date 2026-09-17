@@ -13,8 +13,8 @@ Two decisions worth knowing before reading any output:
   points is the parameters and not the seed. Without it the elementary effects of a stochastic
   ABM are mostly noise.
 
-Baseline only: parameters that act through an intervention (the rent cap's `holding_years`, for
-one) correctly show zero here, and their sensitivity is the elasticity sweep in
+Baseline only: parameters that act through an intervention (the rent cap's `intermediation_share`,
+for one) correctly show zero here, and their sensitivity is the elasticity sweep in
 `docs/experiments/rent-cap.md`.
 
     uv run python -m resim.sensitivity morris --trajectories 10
@@ -37,7 +37,7 @@ import numpy as np
 from . import metrics
 from .agents import household as household_mod
 from .agents import landlord as landlord_mod
-from .config import SimConfig, ZoneType
+from .config import CapResponseConfig, SimConfig, ZoneType
 from .engine import Engine
 from .market import clearing as clearing_mod
 from .scenario import Scenario
@@ -59,10 +59,13 @@ SPACE: dict[str, tuple[float, float]] = {
     "small_landlord_premium": (0.020, 0.030),  # narrowed by §7.1b, 2026-09-15
     "landlord_cost_share": (0.20, 0.24),
     "landlord_zone_risk_premium": (0.010, 0.020),
-    # spec §7.2 (2026-09-16): horizon of the sale decision, in place of the retired
-    # `hazard_scale`. [guess]; range taken from `CapResponseConfig.holding_years_range`,
-    # not invented here.
-    "holding_years": (3.0, 10.0),
+    # spec §7.2b (2026-09-16): G2's dial — the share of landlords with a cheap (private) exit
+    # vs an expensive (agency) one, in place of the retired `holding_years`. The WIDE regional
+    # band, not the two-national-source band: G2 sweeps beyond Fotocasa/idealista's 0.64–0.70
+    # on purpose, because the regional spread (Murcia/Navarra/Baleares high,
+    # Extremadura/País Vasco/Andalucía low) is real. Read from
+    # `CapResponseConfig.intermediation_share_regional_range`, not invented here.
+    "intermediation_share": CapResponseConfig().intermediation_share_regional_range,
     "congestion_gain": (0.02, 0.15),
     "search_burden_escalation": (0.02, 0.06),
     "premium_secondary": (0.75, 0.95),
@@ -199,7 +202,9 @@ def _config_for(x: dict[str, float], seed: int, ticks: int) -> SimConfig:
         reo_discount=x["reo_discount"],
         reo_release_share=x["reo_release_share"],
     )
-    cap_response = dataclasses.replace(cfg.cap_response, holding_years=x["holding_years"])
+    cap_response = dataclasses.replace(
+        cfg.cap_response, intermediation_share=x["intermediation_share"]
+    )
     return dataclasses.replace(
         cfg,
         cap_response=cap_response,
@@ -220,10 +225,10 @@ def evaluate(x: dict[str, float], seed: int = 1, ticks: int = 40) -> dict[str, f
     # `CapResponseConfig`, and this module went on patching a module attribute that no longer
     # existed, so every sweep since had silently held it at its default (fixed in phase E).
     # It is moot now: model-spec §7.2 retired `hazard_scale` outright, so there is no field
-    # left to patch, correctly or not. `holding_years`, its replacement in the swept set, is
-    # a `CapResponseConfig` field like `selling_cost_share`, so it goes through
-    # `dataclasses.replace` in `_config_for` above, never through this module-level
-    # save/restore.
+    # left to patch, correctly or not. `intermediation_share`, §7.2b's dial in the swept set
+    # (retiring `holding_years` in turn), is a `CapResponseConfig` field like
+    # `selling_cost_share`, so it goes through `dataclasses.replace` in `_config_for` above,
+    # never through this module-level save/restore.
     saved = (
         landlord_mod.CONGESTION_GAIN,
         household_mod.SEARCH_BURDEN_ESCALATION,
@@ -373,7 +378,7 @@ def getattr_default(name: str) -> float:
     """The shipped value of a swept parameter, for scoring the defaults on the same design."""
     cfg = SimConfig.baseline(seed=1, ticks=4)
     lookups: dict[str, float] = {
-        "holding_years": cfg.cap_response.holding_years,
+        "intermediation_share": cfg.cap_response.intermediation_share,
         "congestion_gain": landlord_mod.CONGESTION_GAIN,
         "search_burden_escalation": household_mod.SEARCH_BURDEN_ESCALATION,
         "momentum_gain": clearing_mod.MOMENTUM_GAIN,

@@ -87,14 +87,16 @@ class Engine:
         self.scenario = scenario
         base = scenario.baseline
         self.rng = rng_mod.make_rng(base.seed)
-        # 9 streams. The eighth is insolvency (model-spec §6c) and the ninth is forbearance
-        # (§5d.2). Spawning more children does not disturb the earlier ones — SeedSequence
-        # children are keyed by index — and giving forbearance its own stream is not tidiness:
-        # its take-up draw sits inside the arrears path, so sharing the insolvency stream
-        # would shift every later draw in the run and re-randomise the whole model. That was
-        # measured: three unrelated gates flipped on the stream shift alone, one of them a
-        # marginal gate whose own docstring admits the margin is thin.
-        streams = rng_mod.spawn(self.rng, 9)
+        # 10 streams. The eighth is insolvency (model-spec §6c), the ninth is forbearance
+        # (§5d.2), the tenth is the rent-cap exit route (§7.2b Piece A, model-spec). Spawning
+        # more children does not disturb the earlier ones — SeedSequence children are keyed
+        # by index — and each of these three got its own stream for the SAME reason: sharing
+        # any of them with an existing stream would shift every later draw in the run and
+        # re-randomise the whole model. That was measured twice now — first for forbearance
+        # sharing the insolvency stream, then for `sale_route_draw` sharing `rng`/
+        # `market_rng` — and both times three unrelated gates flipped on the stream shift
+        # alone, one of them a marginal gate whose own docstring admits the margin is thin.
+        streams = rng_mod.spawn(self.rng, 10)
         self.households_agent = Households(HOUSEHOLDS_AGENT_ID, streams[0])
         self.landlords_agent = SmallLandlords(LANDLORDS_AGENT_ID, streams[1])
         self.investor_agent = LargeInvestor(LARGE_INVESTOR_ID, streams[2])
@@ -104,6 +106,7 @@ class Engine:
         self.market_rng = streams[6]
         self.insolvency_rng = streams[7]
         self.forbearance_rng = streams[8]
+        self.route_rng = streams[9]  # Unit.sale_route_draw only (§7.2b Piece A)
 
     # ------------------------------------------------------------------ init
 
@@ -184,6 +187,7 @@ class Engine:
                     tenure=Tenure.OWNER_OCCUPIED,
                     last_sale_price=zs.price_index * quality,
                     declaration_draw=float(rng.random()),
+                    sale_route_draw=float(self.route_rng.random()),
                 )
                 if status is HouseholdStatus.TENANT:
                     unit.tenure = Tenure.RENTED
@@ -238,6 +242,7 @@ class Engine:
                         # and stock empty for want of location and condition [ZoneConfig]
                         withheld=bool(rng.random() < zcfg.withheld_share),
                         declaration_draw=float(rng.random()),
+                        sale_route_draw=float(self.route_rng.random()),
                     )
                 )
 
@@ -257,6 +262,7 @@ class Engine:
                         tenure=Tenure.SEASONAL,
                         last_sale_price=zs.price_index * quality,
                         declaration_draw=float(rng.random()),
+                        sale_route_draw=float(self.route_rng.random()),
                     )
                 )
 
@@ -1091,6 +1097,7 @@ class Engine:
                     vacant_since=state.tick,  # completion date = start of inventory ageing
                     is_public=is_public,
                     declaration_draw=float(self.market_rng.random()),
+                    sale_route_draw=float(self.route_rng.random()),
                 )
                 state.stock.add(unit)
                 if is_public:

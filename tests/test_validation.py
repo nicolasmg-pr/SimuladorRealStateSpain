@@ -824,26 +824,58 @@ def test_ine_projection_vintages_all_decline_and_were_cut():
     assert ine_household_projection() == ine_household_projection(vintage=INE_LATEST_VINTAGE)
 
 
-def _rent_cap_response(
-    seeds=(1, 2, 3),
+def _rent_cap_response_per_seed(
+    seeds,
     *,
     index_binds_all: bool = False,
     selling_cost_share: float | None = None,
-    holding_years: float | None = None,
-) -> dict[str, float]:
+    intermediation_share: float | None = None,
+    long_run_growth: float | None = None,
+) -> dict[str, list[float]]:
     """The Phase-7 experiment design (docs/experiments/rent-cap.md): cap from tick 20 of 40 in
-    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1.
+    the tensioned zone, mean over the 16 post-cap ticks, scenario over baseline − 1. Returns the
+    PER-SEED list for each key rather than its mean — `_rent_cap_response`, below, is this
+    function averaged, and exists for every caller that only needs the pooled figure.
 
-    `selling_cost_share` and `holding_years` are the two structural parameters that now carry
-    the supply-response dispute under model-spec §7.2 — there is no elasticity argument here,
-    because the dial it used to set (`rental_supply_elasticity`) is retired. `None` leaves the
-    baseline `MarketConfig` / `CapResponseConfig` value untouched.
+    Split out 2026-09-16 (§7.2b Task 5, fix round 1) for G1, which the review found was
+    checking the SIGN of the pooled mean rather than "the rent sign correct in all ten seeds"
+    (model-spec §7.2b) — a model with six correctly-signed seeds and four inverted, averaging
+    negative, would have passed the mean check. G1 needs every seed's rent individually; the
+    ratio it also asserts stays on the pooled figures, computed from this same per-seed data so
+    the ten seeds are only run once.
+
+    `selling_cost_share` is the structural parameter that now carries the supply-response
+    dispute's price leg under model-spec §7.2 — there is no elasticity argument here, because
+    the dial it used to set (`rental_supply_elasticity`) is retired. `None` leaves the baseline
+    `MarketConfig` value untouched.
+
+    `intermediation_share` (§7.2b Task 5, G2) is forwarded to `RentCap`, which applies it only
+    to the CAPPED run — mirroring `selling_cost_share` above, because it is a property of the
+    cap's exit mechanics (`Unit.sale_route_draw` against `CapResponseConfig`), not of the
+    uncapped counterfactual.
+
+    `long_run_growth` (§7.2b Task 5, G4) replaces `MarketConfig.long_run_growth` on the SHARED
+    baseline `SimConfig`, before either run — unlike the two parameters above, the growth
+    anchor is a property of the whole economy the cap sits inside, and sweeping it must move
+    the counterfactual and the capped run together. Applying it only to the capped run would
+    conflate the anchor's own effect on rents with the cap's.
+
+    RETIRED (2026-09-16, §7.2b): this helper also took a `holding_years: float | None = None`
+    parameter, forwarded to `RentCap(holding_years=...)`. Both are gone — the withdrawal
+    horizon is now the cap's own declared statutory term, not a swept structural parameter —
+    and every caller below was updated to drop it. Kept as a dated note rather than deleted
+    outright: this project keeps the archaeology of its parameters. See model-spec.md §7.2b,
+    "Parameter ledger".
     """
     from resim.scenario import RentCap
 
     out: dict[str, list[float]] = {"rent": [], "leases": []}
     for seed in seeds:
         cfg = SimConfig.baseline(seed=seed, ticks=40)
+        if long_run_growth is not None:
+            cfg = dataclasses.replace(
+                cfg, market=dataclasses.replace(cfg.market, long_run_growth=long_run_growth)
+            )
         base = metrics.to_frame(Engine(Scenario(name="b", baseline=cfg)).run())
         cap = metrics.to_frame(
             Engine(
@@ -855,7 +887,7 @@ def _rent_cap_response(
                             start_tick=20,
                             index_binds_all=index_binds_all,
                             selling_cost_share=selling_cost_share,
-                            holding_years=holding_years,
+                            intermediation_share=intermediation_share,
                         ),
                     ),
                 )
@@ -864,7 +896,66 @@ def _rent_cap_response(
         post = slice(24, 40)
         for key, col in (("rent", "rent_transacted_tensioned"), ("leases", "new_leases_tensioned")):
             out[key].append(cap[col].iloc[post].mean() / base[col].iloc[post].mean() - 1.0)
+    return out
+
+
+def _rent_cap_response(
+    seeds=(1, 2, 3),
+    *,
+    index_binds_all: bool = False,
+    selling_cost_share: float | None = None,
+    intermediation_share: float | None = None,
+    long_run_growth: float | None = None,
+) -> dict[str, float]:
+    """Mean over seeds of `_rent_cap_response_per_seed` — see there for what each run measures
+    and what every parameter does. Kept as the pooled-figure entry point every caller other
+    than G1 uses.
+    """
+    out = _rent_cap_response_per_seed(
+        seeds,
+        index_binds_all=index_binds_all,
+        selling_cost_share=selling_cost_share,
+        intermediation_share=intermediation_share,
+        long_run_growth=long_run_growth,
+    )
     return {k: float(np.mean(v)) for k, v in out.items()}
+
+
+def _withdrawals_per_tick(*, index_binds_all: bool, start_tick: int, ticks: int) -> list[int]:
+    """Runs ONE capped scenario (seed 1, tensioned zone, `RentCap(start_tick=start_tick)`) and
+    returns the per-tick count of `WithdrawRental` intents, indexed by tick: `result[t]` is the
+    count collected while `WorldState.tick == t` (`result[0]` is unused — no step runs at
+    tick 0 — kept only so the list can be indexed by tick directly rather than tick-minus-one).
+
+    Neither of the two obvious sources holds this count. `metrics.to_frame` has no withdrawal
+    column: `seasonal_{z}` and `rent_listings` are STOCKS (levels), not the FLOW of exit
+    decisions this gate needs, and `Landlord._exit_destination` is the only producer of
+    `WithdrawRental` (`engine._apply_listings`'s own comment: "the cap channel is the only
+    producer left"). `WorldState.tick_events` keeps per-tick flow counters for starts,
+    completions and formation, but nothing for withdrawals. So this wraps
+    `Engine._collect_intents` — the one place the bundle is assembled each tick — in a
+    subclass that records `len(bundle.withdrawals)` against `state.tick` and otherwise defers
+    to the real method; it changes no engine behaviour, only observes it.
+    """
+    from resim.engine import Engine as _Engine
+    from resim.scenario import RentCap
+
+    counts: dict[int, int] = {}
+
+    class _CountingEngine(_Engine):
+        def _collect_intents(self, state):
+            bundle = super()._collect_intents(state)
+            counts[state.tick] = len(bundle.withdrawals)
+            return bundle
+
+    cfg = SimConfig.baseline(seed=1, ticks=ticks)
+    scenario = Scenario(
+        name="c",
+        baseline=cfg,
+        interventions=(RentCap(start_tick=start_tick, index_binds_all=index_binds_all),),
+    )
+    _CountingEngine(scenario).run()
+    return [counts.get(t, 0) for t in range(ticks + 1)]
 
 
 def test_rent_cap_lowers_contract_rents():
@@ -891,13 +982,19 @@ def test_rent_cap_lowers_contract_rents():
 
     REOPENED by model-spec §7.2 (2026-09-16). `hazard_scale` and `rental_supply_elasticity`
     are retired; withdrawal is now decided by the arbitrage condition `cap < r_req` instead.
-    At the shipped `selling_cost_share`/`holding_years`, under this same Ley 11/2020 regime,
-    that condition drives enough mass withdrawal that transacted rents in the capped zone
-    RISE rather than fall (measured ≈+54%, three seeds). This is a faithful, measured
-    consequence of the specified rule — recorded as a falsification (§7.2's Falsification
-    subsection), not tuned away here. See
-    test_the_supply_elasticity_lands_inside_the_monras_span for whether the correct sign is
-    reachable anywhere in the declared ranges.
+    At the shipped `selling_cost_share`/`holding_years` (the latter since retired outright by
+    §7.2b, which replaced it with the cap's own remaining statutory term — see model-spec.md
+    §7.2b, "Parameter ledger"), under this same Ley 11/2020 regime, that condition drives
+    enough mass withdrawal that transacted rents in the capped zone RISE rather than fall
+    (measured ≈+54%, three seeds). This is a faithful, measured consequence of the specified
+    rule — recorded as a falsification (§7.2's Falsification subsection), not tuned away here.
+    §7.2's own F1 (`test_the_supply_elasticity_lands_inside_the_monras_span`) asked only for a
+    witness anywhere in the declared ranges; it was deleted outright by §7.2b Task 5, once
+    `holding_years`, the second dimension it swept, stopped existing (see the note above
+    `test_g1_the_co_movement_emerges_at_the_shipped_parameters`, further down this file).
+    `test_g1_the_co_movement_emerges_at_the_shipped_parameters` is F1's declared, stricter
+    successor: it requires the correct sign at every one of ten seeds, not a witness at one
+    corner out of four.
     """
     # Ley 11/2020, for the reason the Monràs test gives: target 8 comes from the Catalan
     # evaluations, which is the regime the withdrawal channel is being asked to reproduce.
@@ -907,8 +1004,9 @@ def test_rent_cap_lowers_contract_rents():
 
 
 def test_rent_cap_supply_response_is_negative_at_the_shipped_structural_parameters():
-    """Target 8, supply leg, WEAK form: at the shipped `selling_cost_share` and
-    `holding_years` (model-spec §7.2), the withdrawal channel must still produce a real
+    """Target 8, supply leg, WEAK form: at the shipped `selling_cost_share` (model-spec §7.2;
+    `holding_years`, shipped alongside it at the time, was retired outright by §7.2b — see
+    model-spec.md §7.2b, "Parameter ledger"), the withdrawal channel must still produce a real
     contraction in new leases — regardless of what the price leg does.
 
     Asserted at −5%, well below what the studies report, so seed noise (σ ≈ 3pp on 3 seeds)
@@ -942,9 +1040,12 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     and −21.8% contracts before it). REOPENED by model-spec §7.2 (2026-09-16): the arbitrage
     condition's mass withdrawal now sends contract rents UP (measured ≈+54%, three seeds)
     while contracts still contract, so only the quantity leg survives. This is a faithful,
-    measured consequence of the specified rule, not a bug in the test — see
-    test_the_supply_elasticity_lands_inside_the_monras_span (§7.2 F1) for whether the
-    correct sign is reachable anywhere in the declared ranges.
+    measured consequence of the specified rule, not a bug in the test — §7.2's own F1
+    (`test_the_supply_elasticity_lands_inside_the_monras_span`) asked whether the correct
+    sign was reachable anywhere in the declared ranges; F1 is deleted (§7.2b Task 5, once
+    `holding_years`, the second dimension it swept, stopped existing) and its declared,
+    stricter successor is `test_g1_the_co_movement_emerges_at_the_shipped_parameters`,
+    further down this file.
     """
     # Catalonia's Ley 11/2020 bound the index on EVERY landlord, which is the world these
     # three studies measure. The model's default lever is Ley 12/2023, where the index binds
@@ -955,35 +1056,78 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"
 
 
-def test_the_supply_elasticity_lands_inside_the_monras_span():
-    """§7.2 F1. The elasticity is an OUTPUT now. Somewhere in the declared ranges of the two
-    structural parameters — `MarketConfig.selling_cost_share_range` and
-    `CapResponseConfig.holding_years_range` — the model must produce Δln contracts / Δln rent
-    inside Monràs's own OLS-to-IV span of 0.07–2.0. If no corner reaches it, §7.2 is false and
-    is NOT rescued by restoring a scale factor.
+# §7.2's F1 (`test_the_supply_elasticity_lands_inside_the_monras_span`) is DELETED, not
+# xfailed, as of §7.2b Task 5. F1 swept `MarketConfig.selling_cost_share_range` and
+# `CapResponseConfig.holding_years_range`, and asked only for a witness at ANY corner of
+# those ranges. §7.2b retired `holding_years` outright — the withdrawal horizon is now the
+# cap's own remaining statutory term, not a swept structural parameter — so the second
+# dimension F1 swept no longer exists, and a test that can only vary a parameter the model no
+# longer reads cannot be evaluated: it is not a falsification, it is a probe of retired
+# machinery. §7.2b's own Falsification subsection (model-spec.md §7.2b) names G1, directly
+# below, as F1's declared successor, and G1 is strictly stricter — F1 accepted a witness at
+# ANY corner of the declared ranges (and passed at exactly one, out of four, while three
+# inverted the sign); G1 requires the rent sign correct in ALL TEN seeds at the SHIPPED
+# values. Recorded in docs/validation.md ("F1 superseded by G1") rather than silently dropped.
 
-    Monràs & García-Montalvo's ≈2 is a LOG-difference elasticity, not an arithmetic
-    percent-change ratio: `_rent_cap_response` returns `mean/base_mean - 1`, and
-    `log1p` of that is `ln(mean/base_mean)`, the actual Δln quantity the regression
-    estimates. The two agree for small moves and diverge for large ones — and this
-    model is currently producing swings up to +64%, where the divergence is material —
-    so do not "simplify" this back to `leases / rent`; that would adjudicate a claim
-    the studies did not make.
+
+def test_g1_the_co_movement_emerges_at_the_shipped_parameters():
+    """§7.2b G1, deliberately stricter than the F1 it replaces. §7.2's F1 asked only for a
+    witness somewhere in the declared ranges, and passed at ONE corner while three inverted
+    the sign. G1 requires the rent sign right at the shipped values, with Δln contracts /
+    Δln rent inside Monràs's 0.07–2.0 OLS-to-IV span.
+
+    The sign check is PER SEED, not on the pooled mean: model-spec §7.2b says "the rent sign
+    correct in all ten seeds", and a mean check would pass a model with six seeds right and
+    four inverted. Only the ratio, which is not a per-seed claim, stays on the pooled figures.
     """
-    cfg = SimConfig.baseline()
-    cost_lo, cost_hi = cfg.market.selling_cost_share_range
-    horizon_lo, horizon_hi = cfg.cap_response.holding_years_range
-    ratios = []
-    for cost in (cost_lo, cost_hi):
-        for horizon in (horizon_lo, horizon_hi):
-            r = _rent_cap_response(
-                index_binds_all=True, selling_cost_share=cost, holding_years=horizon
-            )
-            rent, leases = r["rent"], r["leases"]
-            # log1p is undefined at/below -1 (a 100%+ drop), and the ratio is only
-            # meaningful where the price leg actually fell; skip any corner that can't
-            # produce a well-defined log-difference rather than let it contribute a
-            # garbage value.
-            if -1.0 < rent < -0.001 and leases > -1.0:
-                ratios.append(math.log1p(leases) / math.log1p(rent))
-    assert any(0.07 <= x <= 2.0 for x in ratios), f"no corner inside the span: {ratios}"
+    per_seed = _rent_cap_response_per_seed(tuple(range(1, 11)), index_binds_all=True)
+    assert all(rent < 0 for rent in per_seed["rent"]), (
+        f"rent sign wrong in at least one of the ten seeds: "
+        f"{[f'{rent:+.1%}' for rent in per_seed['rent']]}"
+    )
+    r = {k: float(np.mean(v)) for k, v in per_seed.items()}
+    ratio = math.log1p(r["leases"]) / math.log1p(r["rent"])
+    assert 0.07 <= ratio <= 2.0, f"co-movement outside Monràs's span: {ratio:.3f}"
+
+
+def test_g2_the_intermediation_share_moves_withdrawal():
+    """§7.2b G2. If sweeping the agency share does not move the supply response, Piece A is
+    decorative and the dispersion is not doing the work the section claims for it.
+    """
+    lo, hi = SimConfig.baseline().cap_response.intermediation_share_regional_range
+    low = _rent_cap_response(index_binds_all=True, intermediation_share=lo)
+    high = _rent_cap_response(index_binds_all=True, intermediation_share=hi)
+    assert abs(low["leases"] - high["leases"]) > 0.02, (
+        f"withdrawal insensitive to agency share: {low['leases']:.1%} vs {high['leases']:.1%}"
+    )
+
+
+def test_g3_withdrawal_is_front_loaded_within_the_declared_term():
+    """§7.2b G3. Withdrawal must concentrate after each declaration and taper toward expiry —
+    nobody sells to escape a cap about to lapse. Flat withdrawal means the statutory term is
+    inert. Contrastable against Incasòl's quarterly counts.
+    """
+    per_tick = _withdrawals_per_tick(index_binds_all=True, start_tick=20, ticks=44)
+    first_half = sum(per_tick[20:26])
+    second_half = sum(per_tick[26:32])
+    assert first_half > second_half, f"no taper within the term: {first_half} vs {second_half}"
+
+
+def test_g4_the_growth_anchor_no_longer_flips_the_sign():
+    """§7.2b G4, the direct test that this section did what it was written to do. Before
+    §7.2b the ten-seed anchor sweep gave 0/10 seeds with the rent sign right below 4%/yr and
+    10/10 above — a step function relocated, not removed, by the anchor. The table is in
+    docs/validation.md. If the boundary survives, the dispersion is too narrow for the
+    shortfall it faces.
+
+    Ten seeds, matching the table it is compared against — §7.2b's own text says "re-run the
+    TEN-SEED anchor sweep", and the anchors come from `MarketConfig.long_run_growth_sweep`
+    rather than a literal here, the same discipline G2 reads its corners from
+    `intermediation_share_regional_range` under.
+    """
+    anchors = SimConfig.baseline().market.long_run_growth_sweep
+    for anchor in anchors:
+        r = _rent_cap_response(
+            index_binds_all=True, seeds=tuple(range(1, 11)), long_run_growth=anchor
+        )
+        assert r["rent"] < 0, f"rent sign still flips at anchor {anchor}: {r['rent']:+.1%}"

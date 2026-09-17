@@ -50,10 +50,25 @@ class RentCap(Intervention):
     # 12/2023: it binds grandes tenedores, and the rest are held to their own
     # previous contract plus IRAV (agents/landlord.cap_level)
     index_binds_all: bool = False
-    # The two structural parameters that now carry the supply-response dispute (model-spec
-    # §7.2). None = leave the baseline MarketConfig / CapResponseConfig value untouched.
+    # statutory term length (model-spec §7.2b, PolicyConfig.cap_term_ticks): ZMRT are
+    # declared for three years (12 ticks) and renewable.
+    term_ticks: int = 12
+    # The household seller's debt-leg cost (MarketConfig.selling_cost_share, model-spec
+    # §7.2b's "declared debt"). None = leave the baseline MarketConfig value untouched. No
+    # longer the landlord's exit threshold — that is `exit_cost_for` (agents/landlord.py),
+    # driven by the per-unit `sale_route_draw` and `intermediation_share` below.
     selling_cost_share: float | None = None
-    holding_years: float | None = None
+    # RETIRED (2026-09-16, §7.2b). Was `holding_years: float | None = None`, applied as
+    # `replace(cfg.cap_response, holding_years=self.holding_years)`. The withdrawal horizon
+    # is now the ticks remaining in this cap's own declared term (`start_tick`, `term_ticks`
+    # above), not a swept structural parameter a scenario could override. Kept as a dated
+    # note rather than deleted outright: this project keeps the archaeology of its
+    # parameters. See model-spec.md §7.2b, "Parameter ledger".
+    #
+    # Share of landlords with a cheap (private) exit vs an expensive (agency) one
+    # (CapResponseConfig.intermediation_share, model-spec §7.2b Piece A). None = leave the
+    # baseline CapResponseConfig value untouched.
+    intermediation_share: float | None = None
 
     def apply(self, config: SimConfig) -> SimConfig:
         cfg = config.with_policy(
@@ -64,13 +79,18 @@ class RentCap(Intervention):
             cap_compliance=self.compliance,
             cap_coverage=self.coverage,
             seasonal_segment_capped=self.seasonal_segment_capped,
+            cap_start_tick=self.start_tick,
+            cap_term_ticks=self.term_ticks,
         )
         if self.selling_cost_share is not None:
             market = replace(cfg.market, selling_cost_share=self.selling_cost_share)
             cfg = replace(cfg, market=market)
-        if self.holding_years is not None:
+        if self.intermediation_share is not None:
             cfg = replace(
-                cfg, cap_response=replace(cfg.cap_response, holding_years=self.holding_years)
+                cfg,
+                cap_response=replace(
+                    cfg.cap_response, intermediation_share=self.intermediation_share
+                ),
             )
         return cfg
 

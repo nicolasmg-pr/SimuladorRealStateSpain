@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from resim.config import CapResponseConfig
 from resim.scenario import (
     CreditCrunch,
     DemandSubsidy,
@@ -37,6 +38,11 @@ LEVER_CLASSES = {
     "shock de desempleo": LabourShock,
 }
 
+# Slider bounds for the rent-cap lever's agency-share dial read from here, not from literals:
+# `CapResponseConfig.intermediation_share_regional_range` is the WIDE regional band (model-spec
+# §7.2b), `intermediation_share` its national default.
+_cap_defaults = CapResponseConfig()
+
 
 def lever_params(lever: str) -> dict:
     """Render the sliders for `lever` and return the Intervention kwargs."""
@@ -61,8 +67,8 @@ def lever_params(lever: str) -> dict:
             "Qué ley se aplica",
             ("Ley 11/2020 — Cataluña 2020–22", "Ley 12/2023 — la ley vigente"),
             help="Ley 11/2020 ataba el índice de referencia a TODOS los caseros, y es el "
-            "mundo que miden los tres estudios catalanes que los dos parámetros de abajo "
-            "recorren. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
+            "mundo que miden los tres estudios catalanes que el parámetro de abajo "
+            "recorre. Ley 12/2023 sólo obliga al gran tenedor (≥10 viviendas, ≥5 en la "
             "zona); al resto lo topa su propio contrato anterior más el IRAV, y nada si no "
             "hubo contrato en cinco años. Los particulares tienen el 85–92% del parque, así "
             "que la diferencia es casi todo el mercado.",
@@ -94,32 +100,28 @@ def lever_params(lever: str) -> dict:
             "Detalle y límites en docs/validation.md.",
             icon="🔎",
         )
-        params["selling_cost_share"] = st.slider(
-            "Coste de vender (fracción del precio)",
+        # RETIRED (2026-09-16, §7.2b). Was two sliders: `selling_cost_share` ("Coste de vender
+        # (fracción del precio)", 0.01-0.07) and `holding_years` ("Horizonte de la decisión
+        # (años)", 3.0-10.0) — the two structural parameters that carried the supply-response
+        # dispute under §7.2's arbitrage condition. `selling_cost_share` is no longer the
+        # landlord's exit threshold (that's `exit_cost_for`, driven by the per-unit
+        # `sale_route_draw`) and `holding_years` no longer exists (the shortfall now accrues
+        # over the cap's own statutory term). In their place: the share of landlords who sell
+        # through an agency, below. Kept as a dated note rather than deleted outright: this
+        # project keeps the archaeology of its parameters. See model-spec.md §7.2b, "UI".
+        params["intermediation_share"] = st.slider(
+            "Caseros que venden por agencia",
+            _cap_defaults.intermediation_share_regional_range[0],
+            _cap_defaults.intermediation_share_regional_range[1],
+            _cap_defaults.intermediation_share,
             0.01,
-            0.07,
-            0.02,
-            0.005,
-            help="Umbral de salida de §7.2: el casero vende cuando el déficit acumulado del "
-            "alquiler topado supera este coste. Los dos extremos son dos rutas de venta reales, "
-            "no un margen de error: **0,01 = venta propia** (sólo matriz, plusvalía y aranceles; "
-            "Código Civil art. 1455) y **0,07 = venta con agencia** (comisión 3–5% + IVA, redes "
-            "grandes hasta 7%). El valor fundamentado es 0,04 — pondera las dos rutas por la "
-            "cuota de "
-            "intermediación: las agencias intervienen en el 64% de las compraventas de segunda "
-            "mano (Fotocasa) y ~70% del total (idealista). El modelo aún envía 0,02: moverlo "
-            "descoloca tres canales ajenos al tope, y ese cambio va en su propia rama. "
-            "No incluye el IRPF de la ganancia.",
-        )
-        params["holding_years"] = st.slider(
-            "Horizonte de la decisión (años)",
-            3.0,
-            10.0,
-            5.0,
-            0.5,
-            help="Sobre cuántos años suma el casero el déficit antes de decidir. Con estos "
-            "dos se recorre el vano de Monràs (Δln contratos/Δln renta: OLS 0,07, IV 2,0), "
-            "que el modelo ahora PRODUCE en vez de recibirlo como dial (model-spec §7.2).",
+            help="Decide cuántos caseros tienen una salida BARATA, y con ello cuántos se "
+            "retiran ante un tope dado (model-spec §7.2b). Medido: las agencias intermedian "
+            "el 64% de las compraventas de segunda mano (Fotocasa) y ~70% del total "
+            "(idealista). El rango va más allá de esas dos fuentes a propósito, porque la "
+            "dispersión regional es grande — Murcia, Navarra y Baleares arriba; Extremadura, "
+            "País Vasco y Andalucía abajo. Es el dial que recorre el vano de Monràs "
+            "(Δln contratos/Δln renta: OLS 0,07, IV 2,0).",
         )
         params["cap_reference_discount"] = st.slider(
             "Índice de referencia por debajo del mercado",

@@ -11,8 +11,9 @@ Rules (investor-small §3, rent-cap §5, withdrawal margin §7.2):
     against: no withdrawal. A cap that breaks the reservation hurdle is weighed against
     the alternative uses of the capital: the seasonal-segment diversion first, because it
     is the cheaper exit, then sale, which beats letting when the cumulative shortfall over
-    the holding horizon exceeds the cost of leaving (`_exit_destination`, §7.2). Vacancy is
-    not a branch — it is the sale channel waiting for `clear_sales` to match it.
+    what is LEFT of the current declared term exceeds the landlord's own cost of leaving
+    (`_exit_destination`, §7.2b). Vacancy is not a branch — it is the sale channel waiting
+    for `clear_sales` to match it.
   - Below-cap units drift UP toward the reference (the cap is a magnet, Monràs).
 """
 
@@ -20,7 +21,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..config import ZoneType
+from ..config import SimConfig, ZoneType
 from ..market.stock import Tenure, Unit
 from ..state import WorldState
 from .base import Intent, ListForRent, WithdrawRental
@@ -260,8 +261,32 @@ class SmallLandlords:
         growth_wedge = max(
             0.0, capcfg.wedge_annualisation * zs.shadow_growth - pol.within_contract_update
         )
-        horizon = capcfg.holding_years
+        # §7.2b: the shortfall accrues over what is LEFT of the current declared term, not
+        # over a holding horizon. Terms repeat because the statute is renewed; the landlord
+        # discounts only the term it can see.
+        elapsed = max(0, state.tick - pol.cap_start_tick)
+        remaining_ticks = pol.cap_term_ticks - (elapsed % pol.cap_term_ticks)
+        horizon = remaining_ticks / TICKS_PER_YEAR
         shortfall = (r_req - cap) * 12.0 * horizon * (1.0 + horizon * growth_wedge / 2.0)
-        if shortfall > value * cfg.market.selling_cost_share:
+        if shortfall > value * exit_cost_for(unit, cfg):
             return "sale"
         return None
+
+
+def exit_cost_for(unit: Unit, cfg: SimConfig) -> float:
+    """The landlord's cost of leaving, as a share of the dwelling's value (model-spec §7.2b).
+
+    Monotone in `unit.sale_route_draw`: the cheap-to-extract private sellers sit at the bottom
+    and leave first, agency sellers at the top and hold out longest. Monotonicity is the point —
+    it makes a harder cap ADD landlords to the exiting set instead of reshuffling it.
+    """
+    c = cfg.cap_response
+    s = c.intermediation_share
+    u = unit.sale_route_draw
+    if u < 1.0 - s:
+        lo, hi = c.exit_cost_private
+        frac = u / (1.0 - s) if s < 1.0 else 0.0
+    else:
+        lo, hi = c.exit_cost_agency
+        frac = (u - (1.0 - s)) / s if s > 0.0 else 0.0
+    return lo + (hi - lo) * frac

@@ -2,6 +2,7 @@
 
 import collections
 import copy
+import math
 
 import numpy as np
 
@@ -10,11 +11,11 @@ from resim.agents.base import ListForSale, MakeOffer, StartConstruction, Withdra
 from resim.agents.developer import Developer
 from resim.agents.household import Households
 from resim.agents.investor import LargeInvestor
-from resim.agents.landlord import SmallLandlords, required_rent
+from resim.agents.landlord import SmallLandlords, cap_level, exit_cost_for, required_rent
 from resim.config import SimConfig, ZoneType
 from resim.engine import Engine
-from resim.market.stock import LARGE_INVESTOR_ID, Tenure
-from resim.scenario import Scenario
+from resim.market.stock import LARGE_INVESTOR_ID, Tenure, Unit
+from resim.scenario import RentCap, Scenario
 from resim.state import HouseholdState, HouseholdStatus
 
 
@@ -44,6 +45,7 @@ def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
         cap_index_binds_all=True,
         cap_coverage=0.0,
         seasonal_segment_capped=seasonal_closed,
+        cap_start_tick=0,
     )
     unit = next(
         u
@@ -79,6 +81,20 @@ def _capped_state(*, cap_ratio: float, seasonal_closed: bool = False):
 
     landlord = SmallLandlords(-11, np.random.default_rng(7))
     return state, landlord
+
+
+def _unit_with_draw(u: float) -> Unit:
+    """A minimal `Unit` carrying only the field `exit_cost_for` reads: `sale_route_draw`."""
+    return Unit(
+        id=0,
+        zone=ZoneType.TENSIONED,
+        quality=1.0,
+        owner_id=0,
+        occupant_id=None,
+        tenure=Tenure.RENTED,
+        last_sale_price=100_000.0,
+        sale_route_draw=u,
+    )
 
 
 def _exit_destinations(state, landlord: SmallLandlords, *, draws: int = 200) -> collections.Counter:
@@ -146,6 +162,152 @@ def test_closing_the_seasonal_segment_pushes_exits_into_sales():
     assert closed["seasonal"] == 0
     assert closed["sale"] > open_["sale"]
     assert "vacant" not in open_ and "vacant" not in closed
+
+
+def _exit_share_at_tick(*, cap_ratio: float, ticks_into_term: int) -> float:
+    """§7.2b Piece B. Share of 200 `landlord.decide` draws that produce a `WithdrawRental`,
+    with `PolicyConfig.cap_start_tick` set so the unit sits `ticks_into_term` ticks into a
+    12-tick declared term (`state.tick - cap_start_tick == ticks_into_term`).
+
+    `seasonal_closed=True` isolates the sale rule under test, the same reason
+    `test_sale_requires_the_shortfall_to_beat_the_cost_of_leaving` gives: an open seasonal
+    segment would divert exits before the remaining-term shortfall is ever evaluated.
+    """
+    state, landlord = _capped_state(cap_ratio=cap_ratio, seasonal_closed=True)
+    state.config = state.config.with_policy(cap_start_tick=0)
+    state.tick = ticks_into_term
+    withdrawals = sum(
+        1
+        for _ in range(200)
+        for intent in landlord.decide(state)
+        if isinstance(intent, WithdrawRental)
+    )
+    return withdrawals / 200.0
+
+
+def test_withdrawal_tapers_as_the_declared_term_runs_out():
+    """§7.2b Piece B. The shortfall accrues over the ticks left in the CURRENT declared term,
+    so nobody sells to escape a cap about to lapse. ZMRT are declared for three years and
+    renewed; the landlord does not anticipate the renewal, which is the friction.
+    """
+    early = _exit_share_at_tick(cap_ratio=0.6, ticks_into_term=1)
+    late = _exit_share_at_tick(cap_ratio=0.6, ticks_into_term=11)
+    assert early > late, f"no taper: early={early:.3f} late={late:.3f}"
+
+
+def test_the_exit_cost_map_is_monotone_in_the_draw():
+    """§7.2b Piece A. `k` must increase with the draw, so raising the cap's bite ADDS
+    landlords to the exiting set rather than reshuffling it — the same monotonicity
+    `declaration_draw`'s comment prizes for coverage, and for the same reason: two cap
+    scenarios have to stay comparable.
+    """
+    cfg = SimConfig.baseline(seed=1, ticks=4)
+    ks = [exit_cost_for(_unit_with_draw(u), cfg) for u in (0.0, 0.2, 0.4, 0.6, 0.8, 0.99)]
+    assert ks == sorted(ks), f"not monotone: {ks}"
+
+
+def test_the_exit_cost_map_lands_in_the_two_sourced_bands():
+    """Private sales 0.005–0.015 (Código Civil art. 1455, IIVTNU, aranceles); agency sales
+    0.04–0.07 (commission 3–5% + IVA). The share on the agency side is the measured
+    intermediation share, 0.64 of second-hand purchases [Fotocasa Research].
+    """
+    cfg = SimConfig.baseline(seed=1, ticks=4)
+    s = cfg.cap_response.intermediation_share
+    private_lo, private_hi = cfg.cap_response.exit_cost_private
+    agency_lo, agency_hi = cfg.cap_response.exit_cost_agency
+    private = [exit_cost_for(_unit_with_draw(u), cfg) for u in (0.0, (1 - s) * 0.99)]
+    agency = [exit_cost_for(_unit_with_draw(u), cfg) for u in (1 - s, 0.999)]
+    assert all(private_lo <= k <= private_hi for k in private), private
+    assert all(agency_lo <= k <= agency_hi for k in agency), agency
+
+
+def test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone():
+    """§7.2b's premise, measured rather than assumed.
+
+    §7.2b claims the exit decision is scale-invariant: `cap` and `r_req` both scale with
+    `Unit.quality`, so `cap / r_req` is near-identical across a zone's units and crosses 1
+    for all of them at once. If that is false, the dispersion §7.2b adds is repairing the
+    wrong thing. Asserted as a coefficient of variation below 0.10 — tight enough that no
+    meaningful share of units sits on the other side of the threshold from the rest.
+
+    Measured under Ley 11/2020 (`cap_index_binds_all=True`, set unconditionally by
+    `_capped_state`): the reference index binds every landlord regardless of `large_holder`
+    or declared-municipality coverage, which is the regime where the scale-invariance claim
+    is strongest.
+    """
+    state, _ = _capped_state(cap_ratio=0.8)
+    ratios = []
+    for unit in state.stock.units.values():
+        if unit.zone is not ZoneType.TENSIONED:
+            continue
+        value = state.zones[unit.zone].price_index * unit.quality
+        r_req = required_rent(state, unit.zone, value)
+        cap = cap_level(
+            state,
+            unit.zone,
+            unit.quality,
+            previous_rent=unit.rent or unit.last_contract_rent,
+            large_holder=False,
+        )
+        if cap is None or r_req <= 0:
+            continue
+        ratios.append(cap / r_req)
+    assert len(ratios) > 50, f"too few capped units to measure: {len(ratios)}"
+    mean = sum(ratios) / len(ratios)
+    sd = (sum((x - mean) ** 2 for x in ratios) / (len(ratios) - 1)) ** 0.5
+    cv = sd / mean
+    assert cv < 0.10, f"cap/r_req is NOT near-uniform: cv={cv:.3f}, mean={mean:.3f}"
+
+
+def test_the_real_cap_to_reservation_ratio_under_the_shipped_policy():
+    """The real number `test_the_cap_to_reservation_ratio_is_near_uniform_within_a_zone` cannot
+    give: that test's `mean` is forced to equal its own `cap_ratio` input by construction of
+    `_capped_state` (`zs.reference_rent = cap_ratio * floor / quality`), so it measures the
+    fixture, not the model. This test runs the shipped policy instead — `SimConfig.baseline`
+    plus a `RentCap` intervention at its own default `cap_reference_discount` (0.05,
+    config.py), under Ley 11/2020 (`index_binds_all=True`) — and samples the population a few
+    ticks after the cap activates.
+
+    This is a MEASUREMENT, not a gate: no particular value is asserted, only that the run
+    produced a usable number over a population large enough to trust. `cap / r_req`'s distance
+    from 1.0 is the cap's "bite" on the reservation hurdle, and §7.2b's design turns on where
+    the resulting shortfall lands relative to the two sourced exit-cost bands (private
+    0.005-0.015, agency 0.04-0.07) — Task 2 and Task 5 need this number, not this test's
+    opinion of it.
+    """
+    cfg = SimConfig.baseline(seed=42, ticks=12)
+    scenario = Scenario(
+        name="cap", baseline=cfg, interventions=(RentCap(start_tick=8, index_binds_all=True),)
+    )
+    engine = Engine(scenario)
+    state = engine.initialise()
+    for _ in range(12):  # 4 ticks past the cap's own default start_tick=8
+        engine.step(state)
+
+    zone = ZoneType.TENSIONED
+    ratios = []
+    for unit in state.stock.units.values():
+        if unit.zone is not zone or unit.owner_id < 0:  # small landlords only — owner_id < 0
+            continue  # is LARGE_INVESTOR_ID, not this regime
+        value = state.zones[zone].price_index * unit.quality
+        r_req = required_rent(state, zone, value)
+        cap = cap_level(
+            state,
+            zone,
+            unit.quality,
+            previous_rent=unit.rent or unit.last_contract_rent,
+            large_holder=False,
+        )
+        if cap is None or r_req <= 0:
+            continue
+        ratios.append(cap / r_req)
+
+    assert len(ratios) >= 50, f"too few capped units to measure: {len(ratios)}"
+    mean = sum(ratios) / len(ratios)
+    assert math.isfinite(mean) and mean > 0, f"unusable mean: {mean}"
+    sd = (sum((x - mean) ** 2 for x in ratios) / (len(ratios) - 1)) ** 0.5
+    cv = sd / mean if mean else float("nan")
+    print(f"\nreal cap/r_req: n={len(ratios)} mean={mean:.6f} cv={cv:.3e}")
 
 
 def test_household_cannot_bid_above_credit_limit():

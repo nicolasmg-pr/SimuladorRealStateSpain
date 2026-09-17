@@ -533,6 +533,14 @@ class MarketConfig:
     # λ, weight on trailing growth; range 0.5–0.9 [household-owner §6 — low; THE cycle knob]
     expectation_momentum: float = 0.7
     long_run_growth: float = 0.005  # /tick nominal anchor ≈2%/yr [exogenous income growth]
+    # The §7.2b G4 comparison grid (model-spec §7.2b, Falsification): the four anchors the
+    # ten-seed rent-cap sweep in docs/validation.md re-runs `long_run_growth` at, spanning the
+    # pre-§7.2b regime boundary the sweep found between 4%/yr (0/10 seeds correctly signed) and
+    # 6%/yr (9/10) — 1%, 2%, 4%/yr sit inside the old 0/10 band, 8%/yr was already 10/10. A
+    # config field rather than a literal in the test, so the grid is declared once and the test
+    # reads it rather than retyping it (the same discipline `intermediation_share_regional_range`
+    # is read from, not hardcoded, in G2).
+    long_run_growth_sweep: tuple[float, float, float, float] = (0.0025, 0.0050, 0.0100, 0.0200)
     # Weight of this tick's median transaction in the index update. **MEASURED 2026-09-15**,
     # where it was a bare guess, and it is the second-largest term in the price level's
     # variance (Sobol ST 0.26). The observable: the price signal Spanish buyers, sellers and
@@ -747,6 +755,14 @@ class PolicyConfig:
     # ratio, medium on the exact value]
     within_contract_update: float = 0.015
     seasonal_segment_capped: bool = False  # Jan-2026-style closure of the evasion segment
+    # The tick the current cap term was declared, and its statutory length. ZMRT are declared
+    # for THREE YEARS and renewable (MIVAU's compiled table gives vigencia inicio–fin for all
+    # 317 municipalities), so a landlord's shortfall accrues over what is left of the current
+    # term, not over a holding horizon. The statute renews — Catalonia extended 302
+    # municipalities to 2027 — so the term resets rather than the cap lapsing, and the
+    # landlord does NOT anticipate that renewal: model-spec §7.2b, and that is the friction.
+    cap_start_tick: int = -1
+    cap_term_ticks: int = 12
     # transaction tax (transaction-tax.md)
     itp_delta: float = 0.0  # pp change on zone ITP rate, every buyer
     itp_zones: tuple[ZoneType, ...] = (ZoneType.TENSIONED, ZoneType.SECONDARY, ZoneType.RURAL)
@@ -859,20 +875,52 @@ class CapResponseConfig:
     magnet_gain: float = 1.05
     magnet_gain_range: tuple[float, float] = (1.00, 1.10)
 
-    # Horizon of the withdrawal decision. `wedge_annualisation` turns a per-tick growth rate
-    # into a per-year one (4 quarters — arithmetic, not a guess). `holding_years` is the
-    # horizon `agents/landlord` sums the monthly shortfall `(r_req - cap)` over — UNDISCOUNTED
-    # months; there is no present value anywhere in §7.2, unlike this comment used to claim
-    # (stale wording from the retired-hazard era, on a parameter the UI now exposes directly).
-    # `holding_years` stays a [guess]: Spanish holding periods ARE in docs/sources.md, since
-    # 2026-09-15 (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d,
-    # cited as a bound in §7.2's own Sources subsection), but the REALISED holding period is
-    # not the same quantity as the decision horizon a landlord weighs when comparing the
-    # withdrawal margin — treating them as one would be the error, which is exactly why the
-    # label stays. [guess]
+    # `wedge_annualisation` turns a per-tick growth rate into a per-year one (4 quarters —
+    # arithmetic, not a guess). It survives §7.2b: the trapezoid it feeds is now applied over
+    # the ticks remaining in the cap's declared term (`PolicyConfig.cap_term_ticks`), not over
+    # the horizon below, but the quarterly-to-annual conversion is unchanged.
     wedge_annualisation: float = 4.0
-    holding_years: float = 5.0
-    holding_years_range: tuple[float, float] = (3.0, 10.0)
+
+    # RETIRED (2026-09-16, §7.2b). Was `holding_years: float = 5.0`, `holding_years_range:
+    # tuple[float, float] = (3.0, 10.0)` — the horizon `agents/landlord` summed the monthly
+    # shortfall `(r_req - cap)` over. [guess]: Spanish holding periods ARE in docs/sources.md
+    # (Registradores ERI Anuario 2020 — mean 15y 256d, series minimum 7y 106d), but the
+    # REALISED holding period is not the same quantity as the decision horizon a landlord
+    # weighs when comparing the withdrawal margin, and no source gave that horizon directly —
+    # hence the [guess]. §7.2b replaces it with a measured one: the shortfall now accrues over
+    # the ticks remaining in the cap's declared statutory term (`PolicyConfig.cap_term_ticks`,
+    # `RentCap.term_ticks`), which is sourced (BOE ZMRT resolutions, three-year vigencia) where
+    # `holding_years` was a bare guess with no empirical band. Kept as a dated note rather than
+    # deleted outright: this project keeps the archaeology of its parameters. See
+    # model-spec.md §7.2b, "Parameter ledger".
+
+    # Share of dwelling sales that go through an agency, which decides how many landlords have
+    # a CHEAP exit and therefore how many leave at a given cap (model-spec §7.2b). Agencies
+    # handle 64% of SECOND-HAND purchases [Fotocasa Research] and ~70% of all operations
+    # [idealista] — two portals competing for the same sellers, agreeing within 6pp. The model
+    # takes the second-hand figure: a landlord selling a let dwelling makes a second-hand sale.
+    # Regional spread is wide (Murcia, Navarra, Baleares high; Extremadura, País Vasco,
+    # Andalucía low), which is why the UI slider is wider than this band.
+    intermediation_share: float = 0.64
+    # National two-source band (0.64, 0.70): Fotocasa's 64% of second-hand purchases to
+    # idealista's ≈70% of all operations. Provenance only, not a field — nothing reads it (not
+    # the sweep, which reads `intermediation_share_regional_range` below; not the UI; not any
+    # test), and a dead field is the wrong thing to carry on a branch arguing about parameter
+    # headcount. Demoted to this comment 2026-09-16; the sources stay registered in
+    # `docs/sources.md`.
+    #
+    # The regional spread behind `intermediation_share`, which IS read: Murcia, Navarra and
+    # Baleares run high, Extremadura, País Vasco and Andalucía run low [Fotocasa Research /
+    # idealista, by autonomous community]. The sweep and the UI slider read this field rather
+    # than hardcoding the regional extremes.
+    intermediation_share_regional_range: tuple[float, float] = (0.40, 0.85)
+    # The two sale routes, as shares of price. Statutory: CC art. 1455 puts the escritura
+    # matriz on the seller, IIVTNU falls on the transmitente but is levied on cadastral LAND
+    # value, plus aranceles RD 1426/1989 and RD 1427/1989. Market: commission 3–5% + IVA, so a
+    # 4% fee costs 4.84% of price; large networks reach 7%. Uniform within band is a declared
+    # convention — the sources give ranges, not distributions.
+    exit_cost_private: tuple[float, float] = (0.005, 0.015)
+    exit_cost_agency: tuple[float, float] = (0.04, 0.07)
 
 
 @dataclass(frozen=True)
