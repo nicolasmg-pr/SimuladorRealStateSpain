@@ -3398,6 +3398,65 @@ vacancy-gradient repair being built. It is not enough to calibrate anything.
 **The remaining route is the one that needs no new source**: why the withholding rule puts 57% of
 tensioned vacancy off-market and 85% of rural vacancy off-market, answerable on the baseline.
 
+## The off-market split is not a rule — it is a calibration identity (2026-09-17)
+
+The route left standing needed no new source: why does the model put **57% of tensioned vacancy and
+85% of rural vacancy off-market**? Answered on the baseline, and the answer is that **there is no
+withholding rule to investigate.**
+
+`Unit.withheld` is a flag drawn once at creation with probability `ZoneConfig.withheld_share`
+(`engine.py:243`) and never revisited — only a `vacancy_tax` intervention ever clears it
+(`engine.py:397–405`). No agent decides to withhold; nothing responds to rent, price or tightness.
+The off-market share of vacancy is an **initial condition**.
+
+**And its per-zone levels are solved, not sourced.** `config.py` is explicit: the *gradient* rural ≫
+secondary > tensioned is the sourced claim [INE Censo 2021 / Funcas 104 ch.1], the **levels are a
+guess**, fixed by holding mobilisable stock per household equal across zones —
+`(units_per_household − 1) × (1 − withheld_share) = 0.0455`. Evaluated on the shipped config:
+
+| zone | `units_per_household` | `withheld_share` | (upH−1)(1−w) |
+|---|---|---|---|
+| tensioned | 1.0750 | 0.39 | **0.0457** |
+| secondary | 1.1240 | 0.63 | **0.0459** |
+| rural | 1.2420 | 0.81 | **0.0460** |
+
+The identity holds to three decimals in all three zones. It is not emergent; `withheld_share` is
+the variable the equation is solved for.
+
+**So the model asserts, by construction, that a household has the same usable empty stock available
+to it — 0.046 dwellings — whether it lives in Madrid or in a village.** Every bit of the zone
+variation in vacancy is absorbed into the withheld flag. The design note defends this deliberately:
+recognising the empty stock zone by zone "changes what the model *counts*, not what the market can
+*use*", which is Funcas 104's own claim that the Spanish empty stock "can hardly serve as an
+umbrella" for unmet demand.
+
+**The chain from that one identity to §7.3's blocker is short and complete.**
+
+1. mobilisable stock per household equal across zones, by construction, →
+2. market vacancy per household equal, →
+3. market vacancy *rate* lowest where stock per household is highest — **rural**, →
+4. a rural landlord faces the least letting risk in the model, →
+5. the 12.26% rural gross yield is a near-riskless return, →
+6. yield-chasing buy-to-let entry arbitrages the price ladder to T/R 1.65 against a 2.6 floor.
+
+§7.3 has been treated as a problem about what the investor *sees*. It is a consequence of what the
+zone configuration *asserts*, three steps upstream, and no discount applied at step 4 can undo an
+identity imposed at step 1.
+
+**Where the identity binds wrongly, on the one measurement available.** Against the EUV's 14.9%
+offered share the model's rural leg is right (14.8%) and the tensioned leg is ~3× high (43.0%). The
+constraint is not wrong everywhere — it is wrong at the metro end, which is where mobilisable stock
+per household being *equal* is least plausible: the zone with the strongest demand and the least
+empty stock is exactly where the umbrella argument has least to say.
+
+**What this does and does not license.** It identifies the load-bearing assumption and it is
+measured, not argued. It does **not** license changing `withheld_share`: the levels are tied to
+§9 moments through the 0.0455 calibration, so moving one moves the mobilisable stock the whole
+model was fitted against, and the only evidence pointing at a different tensioned level is a single
+regional survey — the same single-source objection that closed the gate route. Retiring the
+identity means re-deriving `units_per_household` and `withheld_share` per zone from the Censo
+ladder directly and re-running the §9 moments, which is a phase of work, not an edit.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

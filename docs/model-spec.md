@@ -1222,8 +1222,17 @@ rule, **and the second, independent split was searched for and does not appear t
 APCE-UPF monograph is unreachable (403), Fotocasa's owner survey makes no such split, Navarra's
 register holds 216 dwellings, and neither the Censo nor MITMA's review classifies by market
 status. The search trail is in `docs/validation.md`. So "gate it first" is closed on the evidence.
-What remains needs no new source: the withholding rule itself, which puts 57% of tensioned vacancy
-and 85% of rural vacancy off-market, is answerable on the baseline.
+What remains needed no new source and has now been answered: **there is no withholding rule.**
+`Unit.withheld` is drawn once at creation from `ZoneConfig.withheld_share` and never revisited
+outside a vacancy-tax intervention, and the per-zone levels are **solved**, not sourced — the
+gradient is sourced, the levels hold `(units_per_household − 1)(1 − withheld_share) = 0.0455`
+identically in all three zones (measured: 0.0457 / 0.0459 / 0.0460). The model therefore asserts
+that a household has the same mobilisable empty stock wherever it lives, which is what makes rural
+market vacancy the lowest of the three, which is what makes the rural yield riskless, which is what
+lets yield-chasing entry arbitrage the ladder. **§7.3's blocker is a consequence of the zone
+configuration three steps upstream, and no discount applied to the investor's comparison can undo
+an identity imposed on the initial conditions.** Full chain and the measured table in
+`docs/validation.md`.
 
 **So the open decision is not "how big a haircut".** It is whether the withheld/market split is
 right in rural, and that is a question about the withholding rule, answerable on the baseline and
