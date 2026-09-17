@@ -3496,6 +3496,76 @@ ladder — now registered directly rather than via Funcas 104 — gives empty sh
 ≈1.239 against the shipped 1.0750, 1.1240 and 1.2420. **The derived half of the identity is right;
 only `withheld_share`, the solved half, is not.** That narrows phase H to one parameter.
 
+## Phase H step 2 — the evidence base, and it is smaller than the parameter (2026-09-17)
+
+Sourcing for the mechanism that would replace the solved `withheld_share`. Two independent rows
+per leg, per the bias rule. **The result narrows the phase and questions its recommended route.**
+
+### Leg 1 — condition. Two sources, agreeing in direction, and both far below the parameter
+
+**INE Censo 2011** carries the only condition × use cross-tab there is: the 2021 Censo is
+register-based and does not survey condition, so this is the primary and it is fifteen years old.
+Share of dwellings whose building is **not** in good state:
+
+| | ruinoso | malo | deficiente | **not good** |
+|---|---|---|---|---|
+| principales | 0.2% | 0.7% | 4.7% | **5.6%** |
+| secundarias | 0.3% | 0.9% | 5.6% | **6.8%** |
+| **vacías** | 1.1% | 3.3% | 10.6% | **15.1%** |
+
+Vacant stock is **≈2.7× more likely** to be in poor condition than occupied stock — the gradient
+the mechanism needs exists and is measured. Ruinoso+malo is 4.4% ≈ 151,500 dwellings; not-good is
+≈520,000. Both reproduce the figures quoted in the press, so the parse is verified.
+
+**Fotocasa Research** (5,000+ respondents, Feb 2025) is the self-reported sibling, independent in
+method and institution: the **most-cited reason** for holding a dwelling empty is that it is **not
+in habitable condition, 21–22%**. Higher than the register's 15.1%, as expected — an owner's
+notion of "not habitable" is wider than *deficiente*.
+
+**So condition supports a withheld share of roughly 15–21%. The model ships 39%, 63% and 81%.**
+The evidence does not reach the parameter, and it is not close: even the self-report ceiling is
+half the *tensioned* value and a quarter of the rural one.
+
+### Leg 2 — the rest is mostly not economic, which is the problem
+
+The EUV's own question on why a dwelling is kept out of the market answers it: **45.1%** of
+responses are *reserving it for children or other descendants*. Fotocasa's next reasons after
+condition are inheritance deadlock and distrust of tenants. **The dominant declared reason for
+withholding is not a return calculation at all.**
+
+### What this does to route (b)
+
+The phase plan recommended making withholding a **decision** — withheld when expected net letting
+return fails to clear a threshold. The evidence says such a rule would reproduce at most the
+15–21% that condition explains, and would predict the rest re-entering the market when returns
+rise. **The measured reasons say they do not**: a dwelling reserved for a descendant is not
+supplied at any rent.
+
+That is not a refutation of (b), but it fixes its shape. A defensible mechanism has **two
+components, not one**:
+
+1. a **non-economic core**, exogenous and persistent, covering reservation, inheritance deadlock
+   and unfitness — the part no rent mobilises; and
+2. an **economic margin** on top, where condition and rehabilitation cost are weighed against
+   local rent, which is the part a vacancy tax or a rent rise can actually move.
+
+The current model is all core and no margin; a pure route (b) would be all margin and no core.
+**Neither is right, and the split between them is now measured rather than assumed** — roughly
+15–21% of the empty stock is unfit, ~45% is reserved, and the remainder is the margin.
+
+### What is still missing before anything is coded
+
+- **Rehabilitation cost.** The official anchor is RD 853/2021 (BOE), whose per-dwelling
+  subsidisable limits run **6,300–18,000 €** by energy-saving band, up to 18,800–21,400 € in some
+  programmes. Its second source is weak: commercial quote aggregators at 600–1,200 €/m² for an
+  integral renovation, which are the same *kind* of source as each other and would not satisfy
+  independence.
+- **A condition gradient by municipality size.** Leg 1 is national. The zone structure needs the
+  ladder, and the Censo 2011 cross-tab is published by CCAA and province, not by size band.
+  Provinces are a usable proxy — Ourense 23%, Lugo and Castellón ≈20% against the three Basque
+  provinces, Madrid and Barcelona all under 11% — but mapping province to the model's three zones
+  is a step that needs writing down before it is used.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
