@@ -3312,6 +3312,57 @@ smaller question — whether the withheld/market split is right in rural — whi
 withholding rule and is answerable on the baseline, with neither the rent cap nor buy-to-let entry
 in the picture.
 
+## A source DOES separate market from withheld vacancy, and it moves the suspect (2026-09-17)
+
+The entry above closed on a wall: the investor's zone choice reads market vacancy, and "no source
+separates the market component from the withheld one" — `test_vacancy`'s own docstring, citing
+investor-small §7.3. **That is false for at least one source, found by going to look.**
+
+The Basque **Encuesta sobre el Uso de la Vivienda** (EUV, Gobierno Vasco, biennial since 1997)
+classifies every non-principal dwelling as `en oferta` (en venta o alquiler) or `fuera de mercado`,
+and publishes it stratified by **municipality size**. Registered in `docs/sources.md` with the 2023
+edition parsed. Of **43,051** *viviendas deshabitadas* in the CAE, **11,681 — 27.1% — are on the
+market**; on the wider non-principal base (78,357, adding *temporada*/second residences) the offered
+share is **14.9%**, and **14.2%** of non-principal dwellings are specifically `en oferta de alquiler`.
+
+**The comparable ratio in the model, and it moves the suspect from rural to the metro.** The model's
+`vacancy_market_{z}` over `vacancy_{z}` is the share of vacant stock that is on the market, and its
+denominator includes withheld units — so the EUV's **14.9%** non-principal base is the like-for-like
+figure, not the 27.1%:
+
+| | share of vacant stock on the market |
+|---|---|
+| model, tensioned | **43.0%** |
+| model, secondary | **51.3%** |
+| model, rural | **14.8%** |
+| EUV 2023, CAE, offered / non-principal | **14.9%** |
+| EUV 2023, CAE, offered / deshabitadas | 27.1% |
+
+**The rural leg lands on the measured figure almost exactly (14.8% against 14.9%). The two urban
+legs are roughly three times it.** The earlier entry read the inversion as rural being too tight;
+on the only basis that has a measurement behind it, rural is right and **tensioned and secondary
+are the legs putting too much of their empty stock on the market**. That is the opposite
+attribution, and it matters because §7.3's whole problem is the rural yield looking riskless — if
+the rural offered-share is right, the missing discount is not there either.
+
+**Three caveats, none of which the finding survives without.**
+
+1. **One source is not two.** The bias rule wants ≥2 independent rows before a behavioural rule
+   cites them. This is one, and a gate built on it now would breach the project's own standard.
+2. **The CAE is not Spain, and is predominantly urban.** Comparing a model *rural* zone against a
+   CAE-wide average is not like-for-like. The EUV's municipality-size table exists (§3.1.3) but
+   reports *gestionable* share, which nets out second residences and so answers a different
+   question; the offered-share by size is not in the results report.
+3. **The mapping is an assumption.** Model `withheld` ↔ EUV *temporada*/second residence is
+   asserted here, not measured. If withheld covers more than second homes, the model's denominator
+   is wider and every model figure in the table above is understated.
+
+**What this changes about the route.** "Gate it first" is no longer blocked on the non-existence of
+a source — it is blocked on having only one, and on that one being regional. The concrete next
+retrieval is a second, independent split of the same kind: Catalonia's equivalent, or a national
+one. The Cátedra APCE-UPF monograph on *viviendas vacías en España y Cataluña* is the obvious
+candidate and was not reachable (HTTP 403) on this pass.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.

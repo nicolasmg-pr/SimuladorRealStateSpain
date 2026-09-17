@@ -1210,8 +1210,15 @@ and **no source separates the market component from the withheld one** (investor
 measures, and it passes. So the rural market leg is ungated **by declared necessity**: there is
 nothing registered to gate it against.
 
-That is the wall. The investor's decision reads a quantity no registered source measures, and the
-one thing the evidence does pin — full-stock vacancy — the model already gets right.
+**That wall turned out to be lower than it looked (2026-09-17).** A source does make the split:
+the Basque **EUV** classifies non-principal dwellings as `en oferta` or `fuera de mercado`, and its
+2023 edition is now registered. On its non-principal base **14.9%** of vacant stock is on the
+market, against the model's **14.8% rural, 43.0% tensioned, 51.3% secondary** — so the rural leg is
+right and the two urban legs are the outliers, the opposite of the attribution the paragraph above
+implies. Full measurement, and the three caveats it does not survive without — one source, a
+predominantly urban region, and an assumed mapping of `withheld` to second residences — in
+`docs/validation.md`. A gate still cannot be built on one regional row without breaching the bias
+rule; the second, independent split is the next retrieval.
 
 **So the open decision is not "how big a haircut".** It is whether the withheld/market split is
 right in rural, and that is a question about the withholding rule, answerable on the baseline and
