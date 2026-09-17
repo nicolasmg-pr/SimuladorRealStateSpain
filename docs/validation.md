@@ -3872,6 +3872,47 @@ not retried: the outside-option comparison in the reservation rent (a no-op — 
 `min(ask, cap)` already listed those units at the cap), and the strict-xfail registration (tracking,
 not repair).
 
+## The cap's two legs are locked together, measured at three bite settings (2026-09-17)
+
+The last failing gate is `test_rent_cap_reproduces_the_monras_co_movement`, on its **price** leg.
+Chasing it produced the same result three times from three directions, which is what makes it a
+finding rather than a to-do.
+
+The reference index's realised discount at activation drives both legs. Three settings were built
+and measured, ten seeds, Ley 11/2020, IRPF in the exit cost:
+
+| reference rule | realised discount | rent | new leases | monràs verdict | suite |
+|---|---|---|---|---|---|
+| EWMA w=0.1 (**shipped**) | −20.7% | −20.6% | **−17.0%** | price fails | **1 failed** |
+| EWMA w=0.4 (derived from a 12-month window) | −11.1% | −10.9% | −8.4% | **both** fail | 1 failed |
+| tracks index at the declared 5% | −5% | **−6.8%** | −7.2% | quantity fails | 2 failed |
+| *the evidence* | — | **−5%** | **−10% to −20%** | — | — |
+
+**Every setting moves both legs together.** The model's co-movement ratio sits near **1** — at the
+declared discount it reads 1.061, at the shipped one 0.809 — while Monràs measures a price effect
+of −5% against a quantity effect of −10% to −20%, a ratio of **2 to 3**. There is no bite that
+delivers a small price effect and a large quantity one, because in this model the cap's price cut
+and its supply loss are the same quantity seen twice.
+
+**That is the residual finding, and it is sharper than "the magnitude is wrong".** G1 passes at the
+shipped setting; what fails is the tighter joint claim.
+
+**And the spec–code question it exposed is real but not what it first looked like.**
+`cap_reference_discount` declares the index sits "5% below prevailing market rent", range 0–10%,
+and the shipped EWMA delivers −20.7%. That looked like a bug in the code. It is more likely a bug
+in the **label**: Catalonia's ZMRT index is built from **registered contracts** — the stock, held
+below market by LAU indexation — not from asking rents. The model's own series say the same thing:
+`rent_sitting` 1,509 against `rent_index` 1,692, a gap of 10.8% before any discount. **A reference
+anchored on sitting contracts rather than on asks would be the faithful mechanism**, would land
+near the shipped level for a principled reason rather than as an EWMA artefact, and needs its own
+spec section plus a re-derivation of the withdrawal timing — `engine` holds no per-zone sitting
+rent today, only `metrics` computes one.
+
+**Not improvised.** Both alternative settings were built, measured and reverted: w=0.4 broke G3 and
+the supply-response gate (both of which turned out to be low-seed-count artefacts, since fixed and
+kept), and direct tracking broke G3 outright at 2 failed. The shipped state is kept because it
+scores best, and that is recorded as what it is — not a claim that the EWMA is right.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
