@@ -1239,6 +1239,99 @@ right in rural, and that is a question about the withholding rule, answerable on
 without the rent cap or buy-to-let entry anywhere near it. Until it is settled there is no §7.3
 decision to write down, and the branch should not merge.
 
+### 7.4 Withholding, as a core and a margin (2026-09-17)
+
+**Specification only.** Nothing here is implemented. It replaces the solved `withheld_share` of
+§ZoneConfig, whose retirement is argued in `docs/validation.md` ("there is no withholding rule")
+and planned in `docs/superpowers/specs/2026-09-17-zone-stock-identity.md`.
+
+**What it retires.** `(units_per_household − 1)(1 − withheld_share) = 0.0455`, held identically
+across zones, with `withheld_share` as the solved variable. `units_per_household` **survives**: the
+INE ladder confirms it at the primary source (implied 1.081 / 1.130 / 1.239 against a shipped
+1.0750 / 1.1240 / 1.2420). Only the solved half goes.
+
+**Why two pieces and not one.** The phase plan proposed making withholding a return decision. The
+evidence refuses a pure version of that: the dominant declared reason for holding a dwelling off
+the market is **reserving it for descendants** (EUV 2023, 45.1% of *gestionable* stock), and such a
+dwelling is not supplied at any rent. A return rule alone would mobilise it as soon as rents rose.
+So the model needs a part that no rent moves and a part that rent does.
+
+#### Piece A — the non-economic core
+
+A vacant unit is in the core if a persistent per-unit draw falls below `withheld_core_share`. The
+draw is taken once at creation from the engine's seeded Generator and never redrawn, the same
+discipline as `declaration_draw` and `sale_route_draw` (§7.2b): a unit cannot cross the threshold
+and come back, and two scenarios stay comparable. **No rent, tightness or price mobilises a core
+unit.** Only an explicit rehabilitation or empty-home-recovery intervention does.
+
+**The core is uniform across zones, and that is the point.** No source gives the core by
+municipality size — ECEPOV 2021's conservation table bands are ≤50k / 50–100k / 100–500k / >500k,
+which do not separate this model's rural from its secondary. Imposing a gradient here would
+reinstate the defect this section exists to remove. **The zone gradient must come out of Piece B
+or not at all**, and whether it does is the falsification.
+
+#### Piece B — the economic margin
+
+A vacant, non-core unit carries a second persistent draw, `rehab_draw` ~ U(0,1), mapped onto the
+work its building needs. **The map's shape is the Censo 2011 condition distribution of vacant
+stock, which is sourced**: *bueno* 84.9%, *deficiente* 10.6%, *malo* 3.3%, *ruinoso* 1.1%. So
+
+```
+u < 0.849                → cost 0                      (bueno: lettable as it stands)
+0.849 ≤ u < 0.955        → cost ~ accessibility band    (deficiente)
+0.955 ≤ u < 0.988        → cost ~ structural band       (malo)
+u ≥ 0.988                → cost prohibitive             (ruinoso: never lettable)
+```
+
+The unit is withheld this tick when the expected net letting income over `mobilisation_horizon`
+falls short of that cost. Because rents differ by zone and the cost does not, **the same
+distribution produces more withholding where rents are lowest** — which is how the rural gradient
+is supposed to emerge rather than be asserted.
+
+#### Parameter ledger
+
+| parameter | value | basis |
+|---|---|---|
+| `withheld_core_share` | **0.40**, range **0.33–0.48** | Bounded, not fitted. Reservation is 45.1% of *gestionable* = **32.9%** of *deshabitadas* [EUV 2023]; unfitness is **15.1%** [Censo 2011 register] to 22% [Fotocasa self-report]. The two may overlap, so the lower bound is the max (32.9%) and the upper the sum (48.0%, or 54.9% on the self-report). Central 0.40 |
+| `rehab_cost_*` (three bands) | 8,000 / 13,000 / 20,500 € | **WEAKLY SOURCED, and shipped labelled.** Both anchors are policy ceilings, not cost measurements: RD 853/2021 (6,300–18,000 €/dwelling) and the Plan Estatal 2026–2030 (structural 8,000, accessibility 13,000, energy 20,500). Same kind of instrument, so they corroborate an order of magnitude and are not two independent measurements |
+| `mobilisation_horizon` | — | **Not decided here.** §7.2b's precedent is a statutory term; a landlord's own horizon is the alternative. Whichever is chosen needs its own justification in this file before it is coded |
+| `rehab_draw` band edges | 0.849 / 0.955 / 0.988 | Censo 2011 condition distribution of vacant stock, cumulative. Sourced outright |
+
+**Retired:** `withheld_share` (0.35 default; 0.39 / 0.63 / 0.81 per zone) and the 0.0455 identity.
+**Added:** `withheld_core_share`, three cost bands, one horizon, one per-unit draw. Four parameters
+out, five or six in — a regression on headcount, recorded as one, and the same trade §7.2b made:
+what dies is one solved quantity governing a whole channel; what is born is bounded by evidence
+except the cost, which ships labelled.
+
+#### What the evidence already says about the values being replaced
+
+The core's bound is **0.33–0.48**. The model ships **0.39 tensioned** — inside it — and **0.63
+secondary** and **0.81 rural**, both **above even the disjoint upper bound of 0.55**. So the
+evidence brackets the tensioned value and rejects the other two. That is the numerical form of
+this section's claim, and it is the reason the gradient has to become emergent: the current
+gradient is not merely unsourced, its two larger values are outside what the sources admit.
+
+#### Falsification
+
+- **H1 — the ordering emerges.** Market vacancy must rank rural > secondary > tensioned from
+  Piece B alone. If it does not, the gradient was real and exogenous and this section is wrong.
+- **H2 — the offered share moves toward the measured one without being fitted to it.** Scored once
+  against the EUV's 14.9%, after parameterisation is frozen. The EUV is a hold-out (§13.11
+  discipline): any pass that required consulting it first is not a pass.
+- **H3 — the rural leg does not break.** It reads **20.2%** at the freeze, the closest of the
+  three to 14.9%. A mechanism that fixes the metro end by breaking rural has moved the error.
+- **H4 — the ladder survives buy-to-let entry.** With §7.3's mechanism on, T/R must stay above its
+  2.6 floor. This is the gate the phase exists to reach.
+- **H5 — the §9 moments that pass today still pass, or every break is attributed.** Target 5d, the
+  national vacancy band and the seeker share are the exposed ones.
+
+#### What is deliberately not decided here
+
+The cost level and the horizon. Both are named above with the evidence that exists and the
+evidence that does not, so that whoever fixes them does it in this file and not in a config
+comment. **Until they are fixed, this section cannot be coded** — which is the rule this project
+applies to itself, applied here.
+
 ## 5d. What stops a falling market (2026-09-15)
 
 The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model
