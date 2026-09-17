@@ -889,20 +889,31 @@ together; A separates the landlords.**
 Retired: `holding_years` (5.0, range 3–10, **[guess]**), `holding_years_range`, and the sweep entry
 added for it on 2026-09-16.
 
-Added: `intermediation_share` (0.64, range 0.64–0.70), the two exit-cost bands (0.005–0.015 and
-0.04–0.07), `cap_term_ticks` (12). `Unit.sale_route_draw` is per-unit state, not a parameter.
-Renewal is not a fifth parameter: there is no `cap_renews` flag anywhere in `src/` — renewal is a
-property of the term arithmetic, `elapsed % cap_term_ticks` at `landlord.py:268`, which recycles
-the horizon every declared term without a boolean to carry or default. That is the better
-implementation, so this ledger entry is corrected rather than a field added to match it.
+Added: `intermediation_share` (0.64, range 0.64–0.70), `intermediation_share_regional_range`
+(0.40–0.85 — the regional spread, not the national band above; `ui/levers.py` bounds its slider
+to it and `sensitivity.py`'s Morris/Sobol sweep reads it), the two exit-cost bands (0.005–0.015
+and 0.04–0.07), `cap_term_ticks` (12). `Unit.sale_route_draw` is per-unit state, not a parameter.
+Renewal is not a parameter at all: there is no `cap_renews` flag anywhere in `src/` — renewal is
+a property of the term arithmetic, `elapsed % cap_term_ticks` at `landlord.py:268`, which
+recycles the horizon every declared term without a boolean to carry or default. That is the
+better implementation, so this ledger entry is corrected rather than a field added to match it.
 
-**§7.2 retired five parameters and §7.2b returns four.** On a headcount this is a regression, and
+**§7.2 retired five parameters and §7.2b returns five.** On a headcount this is a regression, and
 it is recorded as one. The project's criterion is not the count but the **unsourced share of
 variance** (§13.2): what dies is a `[guess]` that governed the whole channel, and what is born is
-four quantities with published sources — three committed on 2026-09-16, one from the BOE. There is
+five quantities with published sources — four committed on 2026-09-16, one from the BOE. There is
 also an asymmetry worth naming: `holding_years` was a guess with **no empirical band**, so
 sweeping it measured the model's ignorance; the new bands are ranges of evidence, so sweeping them
 measures disagreement between sources.
+
+**A hash consequence, not a modelling one.** Removing `intermediation_share_range` changed
+`CapResponseConfig`'s field set, and `cli.py`'s `config_hash()` hashes `asdict(config)` over the
+whole config tree — so every configuration's hash string changed with it. No simulation output
+changed; this is bookkeeping, not a result. But `runs/` caches expensive work under a filename
+keyed on that hash (per this file's own convention), so any cached artefact keyed on a
+pre-this-branch hash is now silently orphaned, not invalidated with a warning. A later reader
+re-running a sweep and finding no cache hit for a hash that "should" exist need not suspect a
+bug: this is why.
 
 #### Sources
 
