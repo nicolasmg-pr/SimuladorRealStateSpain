@@ -3060,6 +3060,70 @@ experiments, not refinement.
 **Where that leaves the suite**: 10 registered xfails, none of them a phase-G regression, and
 every one carrying its diagnosis and its falsification condition.
 
+## What this model cannot do, and where refinement stopped (2026-09-17)
+
+§13.12 says sourcing stops on purpose rather than on exhaustion. This is that stop applied to
+the rent-cap work, and this section is the register it produces. **After it, work on this channel
+is experiments, not refinement.**
+
+### The suite is at 6 failed / 175 passed / 8 xfailed, and the count is misleading
+
+Before §7.2 the suite read 0 failed. That number was not precision — it was concealment. The rent
+cap under the statute in force produced a **rent rise of +16.6%**, and that failure lived inside a
+fitted `hazard_scale` and a 0–2 dial, **labelled as not-reportable rather than tested**. A model
+whose broken channel is annotated instead of asserted will always show fewer failures than one
+whose breakage is under test. The six break down as:
+
+| | |
+|---|---|
+| `test_rent_cap_reproduces_the_monras_co_movement` | **pre-existing**, unmasked. It was a strict xfail; §7.2b removed the marker because its recorded reason had been superseded. Same failure, now visible |
+| `test_g1_the_co_movement_emerges_at_the_shipped_parameters` | **new test**. §7.2b's own declared falsification firing. Its failure is the finding |
+| `test_non_resident_surcharge_removes_foreign_purchases` | **an improvement**. A strict xfail that now XPASSes, which pytest reports as a failure |
+| `test_the_registered_xfails_show_red_in_the_panel` | bookkeeping, downstream of the row above |
+| `test_forbearance_raises_the_arrears_stock_and_lowers_the_flow` | **genuine regression** |
+| `test_rate_shock_cuts_transactions_before_prices` | **genuine regression**, missing its bound by 0.9pp |
+
+**Two genuine regressions.** Both in the sale-side channel, both from one mechanism, both caused by
+replacing a `[guess]` with evidence.
+
+### What the rent cap can and cannot be used for
+
+**Can**: the direction of the supply response, and its ordering across policies. The sign is
+repaired in all ten seeds, the regime boundary in the growth anchor is gone, and the supply
+response now varies with a measured quantity (the intermediation share) rather than with a dial.
+
+**Cannot**: any magnitude. G1 fails at a Δln co-movement of 3.563 against Monràs's 0.07–2.0 span.
+The quantity leg reads −46.6% against measured tenancy responses of −10% [Monràs] and −13%
+[Pérez García]; the price leg reads −16.2% against Monràs's −5%, ≈**3.2×**. Neither the number nor
+its confidence interval may be quoted.
+
+**And the excess is not where re-calibration could reach it.** At an intermediation share of 0.85 —
+the top of the sourced regional band — leases still fall 26.8%. The model over-responds at the
+extreme edge of what the evidence admits, so no setting within the sourced range reproduces the
+measured response.
+
+### Three things left deliberately outside, knowing they matter
+
+1. **The forbearance inversion.** With the sourced selling cost, forbearance leaves **more**
+   foreclosures (112) than its absence (103). The mechanism is coherent — a seller who cannot sell
+   is a seller who forecloses — and the suspicion is that the test's claim, not the model, is what
+   needs restating. Left open rather than repaired, because repairing it by moving another guess
+   would re-form the guess-joint somewhere else and hide it again.
+2. **The rate shock's volume leg**, missing its bound by 0.9pp for the same reason: a thinner
+   baseline of sales to measure an incremental cut against.
+3. **The magnitude of the rent-cap response**, above.
+
+### What would reopen this
+
+Not a better parameter inside the sourced ranges — that is closed, measured. It would take a
+mechanism the model does not have: something that makes *some* landlords hold on where the current
+two pieces make them all leave together, beyond the exit-cost dispersion and the statutory horizon
+already in place. A source for the landlord's required return would be the obvious candidate,
+since `small_landlord_premium`'s residual is still the largest unsourced share on the rent side.
+
+**Until such a thing is sourced, this channel is finished.** It reports directions, it refuses
+magnitudes, and it knows which of its own tests are red and why.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
