@@ -946,7 +946,9 @@ def _rent_cap_response(
     return {k: float(np.mean(v)) for k, v in out.items()}
 
 
-def _withdrawals_per_tick(*, index_binds_all: bool, start_tick: int, ticks: int) -> list[int]:
+def _withdrawals_per_tick(
+    *, index_binds_all: bool, start_tick: int, ticks: int, seed: int = 1
+) -> list[int]:
     """Runs ONE capped scenario (seed 1, tensioned zone, `RentCap(start_tick=start_tick)`) and
     returns the per-tick count of `WithdrawRental` intents, indexed by tick: `result[t]` is the
     count collected while `WorldState.tick == t` (`result[0]` is unused — no step runs at
@@ -973,7 +975,7 @@ def _withdrawals_per_tick(*, index_binds_all: bool, start_tick: int, ticks: int)
             counts[state.tick] = len(bundle.withdrawals)
             return bundle
 
-    cfg = SimConfig.baseline(seed=1, ticks=ticks)
+    cfg = SimConfig.baseline(seed=seed, ticks=ticks)
     scenario = Scenario(
         name="c",
         baseline=cfg,
@@ -1048,7 +1050,11 @@ def test_rent_cap_supply_response_is_negative_at_the_shipped_structural_paramete
     a dial, but the quantity-leg contraction itself still holds at the shipped parameters. The
     full sweep is in docs/experiments/rent-cap.md.
     """
-    assert _rent_cap_response(index_binds_all=True)["leases"] < -0.05
+    # TEN SEEDS since 2026-09-17, per model-spec §9. At the default three the pooled figure
+    # sits close enough to the threshold to flip with the draw: measured under a smaller cap
+    # bite it read -4.52% on three seeds against -8.40% on ten, failing and passing the same
+    # assertion on the same model.
+    assert _rent_cap_response(seeds=tuple(range(1, 11)), index_binds_all=True)["leases"] < -0.05
 
 
 def test_rent_cap_reproduces_the_monras_co_movement():
@@ -1157,9 +1163,16 @@ def test_g3_withdrawal_is_front_loaded_within_the_declared_term():
     nobody sells to escape a cap about to lapse. Flat withdrawal means the statutory term is
     inert. Contrastable against Incasòl's quarterly counts.
     """
-    per_tick = _withdrawals_per_tick(index_binds_all=True, start_tick=20, ticks=44)
-    first_half = sum(per_tick[20:26])
-    second_half = sum(per_tick[26:32])
+    # POOLED OVER TEN SEEDS since 2026-09-17, per model-spec §9's rule that nothing is reported
+    # on fewer than ten. On one seed the counts are small enough to be a coin flip — measured
+    # under a smaller cap bite, seed 1 reads 27 against 27, an exact tie, while the pooled
+    # result holds comfortably. The claim is about where withdrawal CONCENTRATES within a
+    # declared term, which is a distributional statement and not a per-seed one.
+    first_half = second_half = 0
+    for seed in range(1, 11):
+        per_tick = _withdrawals_per_tick(index_binds_all=True, start_tick=20, ticks=44, seed=seed)
+        first_half += sum(per_tick[20:26])
+        second_half += sum(per_tick[26:32])
     assert first_half > second_half, f"no taper within the term: {first_half} vs {second_half}"
 
 
