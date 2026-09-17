@@ -3828,46 +3828,49 @@ now tested rather than asserted: the one mechanism identified as missing turned 
 and the magnitude error survives it. **The two rent-cap gates stay red on evidence, not on
 policy.**
 
-## The suite reads 0 failed, and this time the count is not concealment (2026-09-17)
+## The rent cap's quantity leg is repaired, and G1 passes (2026-09-17)
 
-**179 passed, 10 xfailed, 0 failed**, from 6 failed / 175 passed / 8 xfailed at the start of the
-day. The last two — the rent cap's magnitude gates — are now **strict xfails carrying their
-current findings**, and the distinction from the state this register opens by criticising has to
-be stated precisely, because the numbers look the same.
+**1 failed / 180 passed / 8 xfailed**, from 6 / 175 / 8 at the start of the day. The last step was
+a model fix, not bookkeeping — an earlier attempt to close the two cap gates by marking them strict
+xfail was correctly called out as tracking rather than repair, and is reverted.
 
-**Before §7.2 the suite read 0 failed and that WAS concealment**: the rent cap produced a +16.6%
-rent rise, and the failure lived inside a fitted `hazard_scale` and a 0–2 dial, *labelled
-not-reportable rather than tested*. There was no assertion. Nothing would have noticed if the
-model had changed.
+**The missing friction: IRPF on the realised gain.** `exit_cost_for` charged only the transaction
+cost of selling. Spain also charges 19–28% of the gain. On an appreciated dwelling that is several
+times the transaction cost, and the model charged a landlord selling a doubled asset exactly what
+it charged one selling at cost. It had been excluded deliberately on two reasons, **both wrong**:
+`r_req` nets *expected future* growth while IRPF taxes the *realised past* gain, and the per-unit
+basis it said was missing is `Unit.last_sale_price`, set on every transaction.
 
-**What it reads now is different in the one way that matters: the assertions still run.** A strict
-xfail is executed on every suite run and **breaks the build if it passes**. The magnitude error is
-under test, not annotated. If any future change lands the co-movement inside Monràs's span, the
-suite goes red until someone explains why — which is the opposite of what an annotation does.
+The test applied before reversing a deliberate exclusion — *would this be done if the gate were
+passing?* — it would, because the cost of leaving is understated without it whatever any gate
+reads.
 
-**Nothing in the model changed to get here.** Ten seeds, unchanged: rent **−14.0%**, new leases
-**−47.5%**, ratio **4.272** against 0.07–3.2. What changed is that both markers carry *current*
-reasons. `test_rent_cap_reproduces_the_monras_co_movement` had a docstring describing **+54% rents
-on three seeds** — the §7.2 arbitrage state, superseded by §7.2b and moved again by §5b.2 and
-§7.1c. It was documenting a model that stopped existing two days ago.
+| ten seeds, Ley 11/2020 | before | after | sourced |
+|---|---|---|---|
+| new leases | −47.5% | **−17.0%** | **−10% to −20%** |
+| co-movement ratio | 4.272 | **0.809** | **0.07–3.2** |
 
-**And the reasons now carry why it is not repaired**, which is what makes them registrations rather
-than excuses:
+**G1 passes.** §7.2b's declared falsification, red since it was written, closes on a mechanism the
+model was missing rather than on a parameter moved inside a range.
 
-- no value inside the sourced ranges reaches it — intermediation 0.85, the band top, still gives
-  −26.8% leases against a measured −10% to −20%;
-- the flow collapse is the withdrawal channel one for one — offered pool **−45.5%**, leases
-  **−45.6%** — so the excess is the withdrawal rate and nothing else;
-- the one missing mechanism identified, an outside-option comparison in the reservation rent, was
-  implemented and proved a **no-op**: the existing `min(ask, cap)` already listed those units at
-  the cap;
-- IRPF on the realised gain is excluded deliberately, with its reason recorded in `config.py`, and
-  adding it *because* a gate fails would be fitting a mechanism to a band.
+**What remains is the price leg, and its cause is measured.** Rent reads −20.6% against a −3% to
+−7% band. It is the cap's own mechanical bite: `cap_reference_discount` declares the index sits 5%
+below prevailing market rent (range 0–10%) and the **realised** discount at activation is
+**−20.7%** over five seeds. The reference is an EWMA at weight 0.1, mean lag `(1−w)/w` = **9
+quarters**, so it drifts far below the index it shadows. **Rent falls by exactly the realised
+discount** — −20.6% against −20.7%.
 
-**The honest summary of the day.** Eight failures closed, two targets closed (9 and 11), one
-source conflict registered, two tests that were measuring the wrong world corrected, two candidate
-repairs tested and refuted, and four corrections to claims of my own. The rent cap's magnitude is
-exactly as wrong as it was this morning, and it is now impossible for that to go unnoticed.
+**A correction was attempted and reverted, and the attempt is the useful part.** The published
+Catalan index is a twelve-month trailing mean lagging ≈1.5 quarters, so `(1−w)/w = 1.5` gives
+w = 0.4 — derived, not chosen. It moved rent to −10.9% and leases to −8.4% and **broke G3 and the
+supply-response gate**, 1 failed → 3. Reverted. The declared-versus-realised mismatch is a
+spec–code disagreement and is the next repair, but the withdrawal timing has to be re-derived with
+it rather than an EWMA weight changed underneath it.
+
+**Two candidate repairs were tested and refuted along the way**, and both are recorded so they are
+not retried: the outside-option comparison in the reservation rent (a no-op — the existing
+`min(ask, cap)` already listed those units at the cap), and the strict-xfail registration (tracking,
+not repair).
 
 ## Known gaps
 
