@@ -3291,10 +3291,20 @@ letting risk than a metro one — so the 12.26% yield is, inside the model, a re
 riskless return, and yield-chasing entry arbitraging the price ladder is the correct response to
 it. No haircut on the yield repairs a model whose risk ordering is inverted.
 
-Target 5d gates the **total** vacancy ordering (R > S > T, levels R 15.6–24.6%, S 8.1–13.1%) and
-passes at 18.1 / 11.8 / 8.7. **Market** vacancy is gated nowhere, and it is the basis the
-investor's decision reads; `metrics.py` documents it as the Censo-comparable 6–9% urban basis, and
-the tensioned leg sits at 3.79%, below that band, with no registered reference for rural.
+**CORRECTED within the hour, because the first version of this entry overstated it.** It said
+market vacancy was "gated nowhere". It is gated: `test_vacancy` asserts tensioned market vacancy
+in **2–10%** and the model **passes** at 3.79%. The band sits below the 6–9% urban Censo figure on
+purpose, and the test's docstring already carried the reason — that figure includes second homes
+and withheld stock, and **no source separates the market component from the withheld one**
+(investor-small §7.3). `test_vacancy_ladder` gates the full-stock ordering R > S > T with levels,
+on the basis the source measures, and passes at 18.1 / 11.8 / 8.7.
+
+**So the rural market leg is ungated by declared necessity, not by oversight**, and that changes
+what "gate it first" can achieve: there is nothing registered to gate it against. Searching
+`docs/sources.md` for anything separating frictional from withheld vacancy returns one theory
+paper (Han, Stacey & Chen 2023, on vacancy-tax incidence) and no measurement. The investor's
+decision reads a quantity no registered source measures, while the one quantity the evidence does
+pin — full-stock vacancy by municipality size — the model already reproduces.
 
 **What this costs and what it saves.** It falsifies §7.3's nominated repair on arithmetic, for the
 price of one baseline sweep, before the mechanism was written. What it opens is a different and

@@ -1201,10 +1201,17 @@ seeds**). All of the rural vacancy sits in withheld units. So a rural landlord i
 entry arbitrages the ladder away. **No haircut applied to the yield can fix a model that says the
 risk runs the other way.**
 
-**And nothing gates it.** Target 5d gates *total* vacancy by zone and passes. Market vacancy —
-the basis the investor's decision should read, and the one `metrics.py` documents as
-"Censo-comparable 6–9% urban" — is gated nowhere, and the tensioned leg sits at 3.79%, below that
-band, with no registered reference for the rural leg at all.
+**It is gated, and the gate cannot reach the inversion — which is a source gap, not an
+oversight.** `test_vacancy` asserts tensioned **market** vacancy in 2–10% and the model passes at
+3.79%. That band was deliberately widened below the 6–9% urban Censo figure, and the reason is on
+the record in the test's own docstring: the Censo figure includes second homes and withheld stock,
+and **no source separates the market component from the withheld one** (investor-small §7.3).
+`test_vacancy_ladder` gates the *full-stock* ordering R > S > T, on the basis the source actually
+measures, and it passes. So the rural market leg is ungated **by declared necessity**: there is
+nothing registered to gate it against.
+
+That is the wall. The investor's decision reads a quantity no registered source measures, and the
+one thing the evidence does pin — full-stock vacancy — the model already gets right.
 
 **So the open decision is not "how big a haircut".** It is whether the withheld/market split is
 right in rural, and that is a question about the withholding rule, answerable on the baseline and
