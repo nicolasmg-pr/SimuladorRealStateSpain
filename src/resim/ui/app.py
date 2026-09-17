@@ -18,6 +18,7 @@ precisely so the comparison arithmetic is testable.
 
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from resim import benchmarks, diagnostics, metrics
@@ -86,6 +87,7 @@ def chart_block(
     policy_start: int | None = None,
     zero_line: bool = False,
     y_format: str = ",.0f",
+    reference: pd.DataFrame | None = None,
 ) -> None:
     """One chart + its two companions: 'how do I read this' and the data table."""
     st.altair_chart(
@@ -97,6 +99,7 @@ def chart_block(
             policy_start=policy_start,
             zero_line=zero_line,
             y_format=y_format,
+            reference=reference,
         ),
         width="stretch",
     )
@@ -171,6 +174,12 @@ def actor_reactions(lever: str) -> None:
 def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> None:
     frame = scenario_frame if scenario_frame is not None else baseline_frame
     policy_start = params.get("start_tick") if scenario_frame is not None else None
+    # The same indicators WITHOUT the policy, drawn dashed underneath so the reader sees what
+    # the model predicted before the intervention rather than holding it in their head. Only
+    # when a policy is active: with none, the scenario IS the baseline and a second copy of the
+    # same line would be noise. The Δ charts below never take it — their baseline is the zero
+    # rule they already draw.
+    reference = baseline_frame if scenario_frame is not None else None
 
     if lever == "ninguna":
         st.info(
@@ -192,6 +201,7 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         y_title="€",
         colors=charts.ZONE_COLORS,
         policy_start=policy_start,
+        reference=reference,
     )
     st.subheader("Alquileres por zona (€/mes, oferta de nuevos contratos)")
     chart_block(
@@ -201,6 +211,7 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         y_title="€/mes",
         colors=charts.ZONE_COLORS,
         policy_start=policy_start,
+        reference=reference,
     )
     st.subheader("Accesibilidad de la vivienda (% de no propietarios que puede comprar)")
     chart_block(
@@ -211,6 +222,7 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         colors=charts.ZONE_COLORS,
         policy_start=policy_start,
         y_format=".1%",
+        reference=reference,
     )
 
     if scenario_frame is not None:
@@ -263,6 +275,7 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
             {"transactions": "Compraventas", "new_leases": "Nuevos contratos"},
             y_title="Operaciones/trimestre",
             policy_start=policy_start,
+            reference=reference,
         )
     with c2:
         chart_block(
@@ -276,6 +289,7 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
             y_title="Proporción de hogares",
             policy_start=policy_start,
             y_format=".1%",
+            reference=reference,
         )
 
 

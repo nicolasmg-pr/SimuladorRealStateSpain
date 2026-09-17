@@ -63,8 +63,16 @@ def line_chart(
     zero_line: bool = False,
     y_format: str = ",.0f",
     height: int = 320,
+    reference: pd.DataFrame | None = None,
 ) -> alt.LayerChart:
-    """Multi-series line chart: hover tooltip, click-on-legend focus, policy marker."""
+    """Multi-series line chart: hover tooltip, click-on-legend focus, policy marker.
+
+    `reference` is the SAME indicators run WITHOUT the policy. When given it is drawn as
+    dashed lines in each series' own colour, so the reader sees the counterfactual the
+    policy departs from rather than having to hold the baseline in their head. It carries
+    no tooltip and no legend entry of its own: it is context for the solid line beside it,
+    and doubling either would make the hover unreadable.
+    """
     long = _melt(frame, columns)
     if colors is None:
         colors = palette_for(list(columns.values()))
@@ -99,6 +107,22 @@ def line_chart(
         .transform_filter(hover)
     )
     layers = [lines, points.add_params(hover), crosshair]
+
+    if reference is not None:
+        # Drawn FIRST in paint order (inserted at the front) so the policy's own line reads
+        # on top of its counterfactual rather than under it.
+        ref_long = _melt(reference, columns)
+        ref_lines = (
+            alt.Chart(ref_long)
+            .mark_line(strokeWidth=1.5, strokeDash=[4, 3], interpolate="monotone", opacity=0.45)
+            .encode(
+                x=alt.X("trimestre:Q", title="Trimestre", axis=alt.Axis(tickMinStep=4)),
+                y=alt.Y("valor:Q", title=y_title, scale=alt.Scale(zero=zero_line)),
+                color=alt.Color("serie:N", scale=color_scale, legend=None),
+                opacity=alt.condition(legend_sel, alt.value(0.45), alt.value(0.1)),
+            )
+        )
+        layers.insert(0, ref_lines)
 
     if zero_line:
         zero = (
