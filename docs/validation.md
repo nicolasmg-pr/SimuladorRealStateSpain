@@ -2100,6 +2100,62 @@ their evidence in `docs/kb-refresh-2026-09.md` §8 and `model-spec` §10.
   6.9 years** — *slower* than the ≈5-year LAU minimum for an individual landlord implies. Monràs
   states that *"new contracts signed is a good approximation of changes in the overall supply"*; in
   this model that approximation fails by a factor of about 3.7, and the cause is **not identified**.
+- **The cause IS identified, and it is turnover — measured 2026-09-17, ten seeds.** The bullet
+  above left the flow/stock divergence open. `metrics.py` now emits the denominator
+  (`rented_stock_{z}`) and the rate (`rental_turnover_{z}`, annualised, reciprocal = mean tenancy
+  in years), because `flow = stock x turnover` is an identity and nothing in the model was
+  emitting the third term for the residual to be read off. On the G1 design (cap at tick 20 of 40,
+  Ley 11/2020, mean of ticks 24-40, seeds 1-10):
+
+  | | baseline | capped | change |
+  |---|---|---|---|
+  | new leases, tensioned | 45.74 | 23.57 | **-48.2%** |
+  | rented stock, tensioned | 1219.4 | 1140.1 | **-6.5%** |
+  | rental turnover, tensioned | 0.150/yr | 0.082/yr | **-44.9%** |
+
+  The identity closes: Δln flow -0.6571 = Δln stock -0.0670 + Δln turnover -0.5954, residual
+  +5.3x10⁻³ (aggregation, not a leak). **Mean tenancy goes from 6.7 to 12.2 years under the cap.**
+
+  **A basis error in the register, corrected here.** The -13.1% stock figure above is the **final
+  tick**; the flow and rent figures it is compared against are **means of the post-cap window**.
+  Measured on the window basis the stock falls **-6.5%**, so the divergence is a factor of
+  **≈7.4, not ≈3.7** — the register understated it by comparing two different bases. (-13.1% at
+  the final tick is reproduced exactly, so the number was right and its label was not.)
+
+- **And it is neither tenant lock-in nor a seeker queue: the rental market drains (2026-09-17).**
+  The turnover collapse has two readings with opposite policy meanings, and seekers discriminate
+  between them. Same design, ten seeds:
+
+  | | baseline | capped | change |
+  |---|---|---|---|
+  | seeker share | 0.0454 | 0.0454 | **+0.1%** |
+  | tenant share | 0.2111 | 0.2028 | -3.9% |
+  | ownership rate | 0.7435 | 0.7518 | +1.1% |
+  | market vacancy, tensioned | 0.0387 | 0.0193 | **-49.7%** |
+  | rental tightness, tensioned | 1.157 | 13.045 | **+1041%** |
+
+  Seekers do not pile up, so it is not a matching failure with a queue; tenants leave the tenure
+  for ownership instead. But the offered pool **halves** and tightness goes up **11-fold**.
+  Turnover does not fall because sitting tenants choose to stay — it falls because there is
+  nothing to move into.
+
+  **This relocates the error away from where every repair has aimed.** §7.2, §7.2b Piece A and
+  Piece B all target the **exit margin** — which landlords sell, and when. The measurement says
+  the exit margin is the small term (-6.5% of stock) and the large one is what happens to the
+  units that **stay** rented. A tensioned rental market at tightness 13 has no counterpart in the
+  episode being matched: Catalonia 2020-22 is where Monràs measures -5% rents and -10% to -20%
+  new contracts, not a market where the offered pool halves. Under `index_binds_all=True` every
+  unit is capped and no rent can rise to clear, so the model has no relief valve; the real episode
+  had several (temporada contracts, rooms, informal letting, non-compliance) and
+  `MarketConfig.seasonal_evasion_share` is 0.15 of exits. Whether those valves are under-sized is
+  a **sourceable** question, and it is not the question the register named as the reopening
+  condition ("a mechanism that makes SOME landlords hold on").
+
+  **It does not rescue G1, which is what licenses recording it.** G1 reads the flow, and the flow
+  is unchanged at **3.655**. Read on the stock the same ratio is **0.373**, inside Monràs's span —
+  so the gate's verdict rests entirely on which of the two the model is asked for, and the honest
+  statement is that the model's flow is being driven by a tightness regime the episode did not
+  have. No parameter was moved and no threshold was touched to produce any of this.
 - **`selling_cost_share` ships at its sourced 0.040, and the joint it was co-calibrated with
   breaks — in both directions (2026-09-17).** The band (0.01–0.07, two real sale routes) and the
   intermediation-weighted point (0.040) were sourced on 2026-09-16 and deliberately held back for
