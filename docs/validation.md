@@ -3913,6 +3913,50 @@ the supply-response gate (both of which turned out to be low-seed-count artefact
 kept), and direct tracking broke G3 outright at 2 failed. The shipped state is kept because it
 scores best, and that is recorded as what it is — not a claim that the EWMA is right.
 
+## Why the two legs are locked, traced to the bottom (2026-09-17)
+
+The entry above measured that no reference-index bite delivers Monràs's small price effect with his
+large quantity one. This is why, and it terminates on a parameter this register already calls the
+project's highest-value evidence work.
+
+**The bite is the same number for every landlord. Measured:**
+
+```
+cap / r_req over 1,194 tensioned small-landlord units
+  mean 0.7527   sd 0.000000   cv 1.05e-16   min = max = 0.7527
+```
+
+**A point mass at machine epsilon**, after §7.2b. That section diagnosed exactly this — *"the exit
+decision is scale-invariant... `quality` cancels identically between `required_rent` and the index
+branch of `cap_level`"* — and repaired it by dispersing the **exit cost** (`sale_route_draw`,
+Piece A). It never touched the hurdle. `r_req = V·(i_bond + π − E[g]) / (12(1−c))` and
+`cap = reference × quality` with `V = price_index × quality`: quality cancels, and every other term
+is zone-level, so the ratio is identical across the zone by construction. **§7.2b dispersed who
+leaves. It did not disperse how hard the cap bites.**
+
+**That is the lock, in one line.** Every landlord's rent is cut by the same fraction, so the average
+contract rent falls by exactly the bite; and the shortfall each landlord weighs against its exit
+cost is that same scalar. The price leg and the quantity leg are two readings of one number, which
+is why every bite setting moved them together and why the co-movement sits at ≈1 against a measured
+2–3.
+
+**Breaking it requires dispersing the hurdle**, i.e. `π = prime_risk_spread +
+small_landlord_premium`, so that a small bite catches the landlords already near their own
+threshold while leaving the rest untouched — which is the shape that produces a large quantity
+response at a small price one. **`small_landlord_premium` is a scalar whose *level* is already
+declared unexplained**: §7.1b priced its components at 0.5–1.2pp against the 3.0pp the model needs
+and recorded the 1.8–2.5pp residual as unexplained. Giving it a *distribution* means sourcing a
+spread for a quantity whose central value has no source.
+
+**So the last failing gate terminates on the work this register already names as the highest-value
+evidence work available on this model**, and it cannot be closed by any mechanism change that does
+not first give `small_landlord_premium` an empirical spread. Inventing one to move a gate is the
+thing §13.2 exists to prevent.
+
+**The suite finishes at 1 failed / 180 passed / 8 xfailed**, from 6 / 175 / 8. The remaining
+failure is `test_rent_cap_reproduces_the_monras_co_movement`'s price leg, its cause is measured to
+machine precision, and the next step is evidence work rather than code.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
