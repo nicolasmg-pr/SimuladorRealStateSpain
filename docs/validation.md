@@ -3270,10 +3270,22 @@ magnitudes, and it knows which of its own tests are red and why.
   evidence for the location-amenity fix now exists (Funcas 104 ch.5: Madrid/Barcelona wages
   +45%, cost of living +20%, net +21%); the mechanism decision does not.
 - Sensitivity: Morris screening and Sobol indices are DONE (see "Sensitivity analysis" above).
-  What they leave open is the finding, not the method: **`overbid_sigma` explains 56% of the
-  variance in price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned
-  market vacancy and 40% of the rent level — and both are unsourced guesses.** Sourcing those two
-  is now the highest-value evidence work available on this model.
+  What they leave open is the finding, not the method: **`small_landlord_premium` explains 65% of
+  the rent level, 75% of tensioned market vacancy and 62% of overburden, and its 1.8–2.5pp
+  residual is declared unexplained (§7.1b)** — so the whole rent side stays direction-only.
+  `buy_attempt_prob` is next (36% of the ownership rate, 34% of the zone price ratio), then
+  `search_listings` (41% of the cash share). **Sourcing `small_landlord_premium`'s residual is
+  the highest-value evidence work available on this model.**
+
+  > **CORRECTED 2026-09-17.** This bullet read *"`overbid_sigma` explains 56% of the variance in
+  > price-to-income and `landlord_required_spread` 65% of overburden, 74% of tensioned market
+  > vacancy and 40% of the rent level — and both are unsourced guesses"*, on the 230 + 1,152 run.
+  > `landlord_required_spread` **no longer exists** — retired in §7.1 on 2026-09-14 — and
+  > `overbid_sigma` has left the screening entirely and is counted as sourced; price-to-income is
+  > now a reportable magnitude, the opposite of what the bullet claimed. The list of gaps was
+  > directing evidence work at a parameter that had been deleted from the model three days
+  > earlier. Figures above are the phase-G re-run recorded in "Morris and Sobol re-run, and the
+  > variance rule flips".
 - Latin-hypercube moment fitting not needed yet — hand calibration hits the targets — but
   becomes necessary if targets tighten further. Four moments now sit at band edges.
 - 2008-style bust reproduction untested end-to-end; a `CreditCrunch` intervention (tightening
