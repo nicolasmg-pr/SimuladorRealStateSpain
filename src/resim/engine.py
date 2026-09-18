@@ -995,9 +995,22 @@ class Engine:
             if cap_here:
                 zs.reference_rent *= 1.0 + cfg.policy.within_contract_update / 4.0
             else:
-                zs.reference_rent = 0.9 * zs.reference_rent + 0.1 * zs.rent_index * (
-                    1.0 - cfg.policy.cap_reference_discount
-                )
+                # TRACKS THE INDEX AT ITS DECLARED DISCOUNT since 2026-09-17 (model-spec
+                # §5b.3). This was an EWMA at weight 0.1, mean lag (1-w)/w = 9 quarters, so in
+                # a growing market the reference drifted far below the index it shadows: the
+                # REALISED discount at cap activation measured -20.7% over five seeds against a
+                # cap_reference_discount declaring 5%, range 0-10%. Spec and code disagreed by a
+                # factor of four and the code was the wrong one of the two.
+                #
+                # It decides the price leg. At a 20.7% realised discount every unit sits above
+                # the index, the cap binds on all of them and the average contract rent falls by
+                # the whole bite. At the declared 5% it binds on the upper tail. Measured after
+                # this change the cap cuts contract rents 6.84%, against the three registered
+                # Catalan evaluations, which AGREE on price: -4/-6% [Jofre-Monseny,
+                # Martinez-Mazza & Segu 2023], -6/-7% asking [Kholodilin et al. 2022], -3.7/-6.4%
+                # [Generalitat year-1]. Before it the model read -20.6%, three to five times all
+                # of them.
+                zs.reference_rent = zs.rent_index * (1.0 - cfg.policy.cap_reference_discount)
 
             zs.capped_here = cap_here
         state.tick_events["sales_by_zone"] = sales_by_zone

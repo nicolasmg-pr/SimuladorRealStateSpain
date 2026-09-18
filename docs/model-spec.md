@@ -614,6 +614,36 @@ out-of-regime extrapolation; it is now superseded by a refutation that covers bo
 they are red, so spending the Ley 12/2023 evidence on a mechanism already known to be broken would
 have bought nothing. The repair is §7.2b.
 
+### 5b.3 The reference index delivers the discount it declares (2026-09-17)
+
+**A spec–code disagreement of a factor of four.** `PolicyConfig.cap_reference_discount` declares
+that the statutory index sits **5% below prevailing market rent, range 0–10%**
+(`docs/policies/rent-cap.md` §5). The code built it as an EWMA at weight 0.1 toward
+`rent_index × (1 − discount)`, whose mean lag is `(1−w)/w` = **9 quarters**. In a market growing
+≈3%/yr the reference drifts far below the index it shadows, and the **realised** discount at cap
+activation measured **−20.7%** over five seeds — four times the declared value and twice the top of
+its declared range.
+
+Fixed on the code side: the reference tracks the index at the discount the parameter names.
+
+**It decides the price leg, and not only its level.** At a 20.7% realised discount **every** unit
+sits above the index, so the cap binds on all of them and the average contract rent falls by the
+whole bite. At the declared 5% it binds on the upper tail only, which is the shape the Catalan
+evaluations describe.
+
+| | before | after | sourced |
+|---|---|---|---|
+| contract rent under the cap | −20.6% | **−6.84%** | −4/−6% [Jofre-Monseny, Martínez-Mazza & Segú 2023], −6/−7% asking [Kholodilin et al. 2022], −3.7/−6.4% [Generalitat year-1], −5% [Monràs] |
+
+**The three independent evaluations agree on price**, and the model was three to five times all of
+them. It is now inside every one.
+
+**And the supply leg is where they disagree.** `docs/sources.md` flags it in as many words —
+*"(supply disagreement)"* — with Jofre-Monseny reporting **no supply effect** and Kholodilin **no
+listings effect**, against Monràs's −10% to −20% of contracts. The model reads **−7.24%**, inside
+the span the literature admits and on neither extreme of it. **That is the honest position under a
+disputed estimate**, and it is what §13.2's bias rule asks for: a range, not a resolved point.
+
 ### 7.1c The zone risk premium, netted against expected growth (2026-09-17)
 
 **A leftover of the form §7.1 retired.** `MarketConfig.landlord_zone_risk_premium` (0.015, range
