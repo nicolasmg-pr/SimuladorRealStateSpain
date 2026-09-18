@@ -3970,9 +3970,30 @@ starts from the map rather than the beginning.
 | 3 | **IRPF on the realised gain in the exit cost** | leases −47.5% → **−17.0%**, ratio 4.272 → **0.809**, G1 passes | **SHIPPED** |
 | 4 | reference-index EWMA weight 0.1 → 0.4 (derived from the index's 12-month window) | rent −10.9%, leases −8.4% — both legs fail | reverted |
 | 5 | reference tracks the index at the declared 5% | rent **−6.8%**, in band; leases −7.2%, out | reverted (2 failed) |
-| 6 | disperse the hurdle across landlords (`hurdle_draw` over `small_landlord_premium_range`) | `cap/r_req` cv **1.05e-16 → 3.2e-02** — the point mass breaks — ratio 0.809 → **1.253** | reverted (suite worse) |
+| 6 | disperse the hurdle across landlords (`hurdle_draw` over `small_landlord_premium_range`) | `cap/r_req` cv **1.05e-16 → 3.2e-02** — the point mass breaks — ratio 0.809 → 1.253, **but that gain was a LEVEL artefact: see the correction below** | reverted (suite worse) |
 | 7 | 6 + 5 together | leases **−10.7%**, in band and passing; rent −9.2%, 2.2pp out; **suite 4 failed** — it moves `required_rent` on the baseline too, breaking the boom yield-compression and rate-shock gates | reverted |
 | 8 | match the evaluation window to Monràs's ~2 years | ticks 21–28 give leases **+5.8%**; 21–32 give +0.7%. The shipped 24–40 window is the best of the three | **refuted** |
+
+**CORRECTION to routes 6 and 7, measured after the table was written, and it reverses their
+conclusion.** Both drew the premium uniformly over `small_landlord_premium_range` (0.020–0.030).
+That moved the **mean** down 0.5pp, because the shipped value is **0.030 — the top of its own
+range** — put there by §7.1b precisely because *"below ≈2.5pp the insider/outsider wedge inverts
+and the boom stops compressing the yield"*. So route 6 was a **level change wearing a dispersion's
+clothes**, and it broke exactly the two gates §7.1b had predicted it would.
+
+Re-run **mean-preserving** — the draw centred on the shipped 0.030 with only its *width* taken from
+the range — `cap/r_req` still disperses (cv **3.01e-02**, spread 0.664–0.812) and the cap response
+is **rent −20.6%, leases −16.8%, ratio 0.799**, against main's −20.6% / −17.0% / 0.809.
+**Identical.** Dispersing the hurdle at constant mean does essentially nothing to the co-movement.
+
+Not shipped: a mechanism that moves no measured quantity is decorative, which is the test §7.2b's
+own G2 applies to its Piece A.
+
+**And it closes the line the other way round from how the map read.** §7.2b's requirement that the
+scale-invariance of `cap / r_req` be broken **is** satisfiable, and satisfying it changes nothing.
+So the scale-invariance was never what held the two legs together. What holds them together is the
+**level** of the bite, which both legs read off the same number — and the level is set by the
+reference index, whose realised discount is the quantity routes 4, 5 and 7 were moving all along.
 
 **What routes 6 and 7 establish, and it is the useful part.** §7.2b's stated requirement — *"any
 repair must break the scale-invariance of `cap / r_req` inside a zone"* — is met by dispersing the
