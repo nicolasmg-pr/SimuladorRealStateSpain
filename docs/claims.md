@@ -180,6 +180,15 @@ adjudicate: **the same runs raise rents 9%**, because a credible supply programm
 expected appreciation (−1.9pp/yr) and the landlord's return shifts from capital gain to yield
 (+1.14pp). Direction-only, and flagged as a prediction rather than a finding.
 
+**Downgraded to no direction at all on 2026-09-18** (model-spec §7.6). That +9% was read off
+this lever alone; running the *public-housing* lever to saturation and measuring the rent on
+ten seeds gives −197 to +92 €/month in the tensioned zone — the sign splits 6/4. The reason is
+that the only channel carrying slack into a posted ask is clipped at −2.5%, so the yield-shift
+above has nothing of comparable size pushing back and the net is dominated by whatever the
+price path did that seed. **The price leg of this row is untouched and stays as measured**; the
+rent leg is now not reportable in either direction. What survives is the mechanism, not the
+number: a credible supply programme moves the landlord's return from gain to yield.
+
 ---
 
 ## F-4 · "Tourist flats are why rents rose"

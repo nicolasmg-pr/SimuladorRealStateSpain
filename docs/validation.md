@@ -1253,6 +1253,111 @@ admitted guess — not the auction this target exists to test.
   purchase effort lands inside the BdE's observed 35–40%. Whether σ is under the variance
   rule's 25% threshold is phase E's Sobol run, and it is reported either way.
 
+## Supply saturation does not reach the rent (2026-09-18)
+
+**Registered as a limitation, not a target.** Nothing here is a §9 moment; it is the answer to
+a question an outside reader put to the UI and the model had no written answer for. Recorded
+because the answer is counterintuitive, because the app was drawing it as a coloured arrow, and
+because the first draft of this entry got it wrong on one seed.
+
+**The question.** Run the public-housing lever at saturation — 30 units/tick from tick 8, no
+crowding out, ≈+8% of the parque over 60 ticks — and the vacancy rate climbs four points while
+the rent does not move. Is the matching broken? Are the new units failing to enter the eligible
+set?
+
+**No.** `tests/test_supply_saturation.py::test_the_units_are_built_and_do_reach_households`
+closes that reading in every seed: the units are built, listed and let, public tenancies more
+than double, and the count of housed dwellings rises. The supply enters the market.
+
+**What is closed is the channel from supply to the ask**, and there is exactly one —
+`agents/landlord.decide`'s `pressure = 1 + 0.05 · clip(tightness − 1, −0.5, 3.0)`. Saturation
+puts rental tightness at ≈0.2, i.e. raw slack ≈ −0.8, and the clip discards everything past
+−0.5. **The maximum possible response of a posted ask to any quantity of new supply is −2.5%**,
+and the model is against that bound at all ten seeds. Note the asymmetry: +15% is allowed
+upward (the sourced Barcelona congestion figure, rent-cap §3) against −2.5% down, and the
+downward bound is sourced by nothing.
+
+**Measured** — ten seeds, tail-20 mean of a 60-tick run, saturated minus baseline:
+
+| zone | rent Δ €/month | vacancy Δ | tightness (saturated) |
+|---|---|---|---|
+| tensioned | mean −14.9 · range −197…+92 · 6/10 negative | **+4.28pp** (min +3.83) | 0.23 |
+| secondary | mean +14.6 · range −44…+87 · 5/10 negative | **+2.18pp** (min +1.55) | 0.16 |
+| rural | mean −9.3 · range −90…+100 · 6/10 negative | +0.42pp (min −0.37) | 1.44 |
+
+The rent leg is **indistinguishable from zero** in all three zones — the sign splits and the
+spread is an order of magnitude wider than the mean. The vacancy leg is large and present in
+every seed in the two priced zones. **Supply becomes empty dwellings, not cheaper ones.**
+
+**The second mechanism, and the correction.** `ask = max(floor, market_ask)` floors every ask
+at §7.1's total-return hurdle, a function of the price index and of E[g] and never of how many
+units stand empty; since supply depresses E[g] and E[g] enters the hurdle negatively, the floor
+can *rise* with supply. The first draft of this entry named that as the cause, on the evidence
+of seed 42's final tick, where the floor bound on 391/391 vacant tensioned units. Ten seeds on
+the settled tail refuted it: the on-floor share is bimodal, not universal — tensioned 3/10
+seeds, secondary 6/10, and the secondary share *falls* from 0.90 baseline to 0.60 saturated. It
+is a regime the model enters in some seeds and reinforces the closure where it binds. It is not
+the cause. The lesson is the one this file keeps relearning: a final tick of one seed is not a
+measurement.
+
+**Consistency with what was already written.** §10 has said since 2026-09-15 that rural rent
+clears at the landlord's floor rather than the household ceiling, and that "discounting demand
+further would not lower rural rent, it would leave units unlet". Saturation puts the priced
+zones in that state too. Nothing new is being claimed about the mechanism — what is new is that
+it is now tested and that its reporting consequence is written down.
+
+**The rent leg only.** `docs/claims.md` F-3 measures the land-release lever moving the national
+*price* −7.5% to −12.9% (0/10 seeds up) once the pipeline lag is halved, and attributes the
+accompanying **+9% rent** to exactly the mechanism above: killing expected appreciation shifts
+the landlord's return from capital gain to yield. The sale market has a tightness term in its
+auction (§5c.7); the rental market has only the clipped multiplier. This entry is about the
+second, and must not be read as "supply does nothing".
+
+**Reporting consequence (§13.2).** No supply lever reports a rent magnitude or a rent
+direction, in any zone. The vacancy response carries a consistent sign across seeds in the two
+priced zones and is reportable as a **direction** only. Not fixable by tuning: widening the clip
+is unsourced, and the floor cannot be lowered without breaking the gross-yield bands §5b.2 put
+in place. The route is §10's size/quality margin, which is a phase.
+
+## Seed pooling reaches the tabs where conclusions are drawn (2026-09-18)
+
+The same outside reading pointed out that the averaging machinery existed **only** behind an
+opt-in checkbox in the 🏛️ Contraste oficial tab — the one tab where no policy conclusion is
+drawn — while "📈 Explorar" and "⚖️ Comparar" ran a single seed and drew the result as a
+one-decimal green or red arrow with no interval. That was correct and it was serious: the
+saturation numbers above show a tensioned rent delta running −197 to +92 €/month around a mean
+of −15, and the rent-cap panel's zone deltas change sign between seeds.
+
+Changed: the sidebar carries "Semillas a promediar" (**default 3**, range 1–10) and it governs
+every tab. Levels are the pooled median over the settled 20-tick tail, not one seed's last
+tick. Deltas are paired seed by seed, then reported as median ± half-range, and **greyed to
+«≈ 0» whenever the magnitude does not exceed the half-range** — an arrow the seed draw could
+flip is not drawn as a finding. At one seed the app says so and warns. The pooling functions
+are `metrics.pool`, `metrics.seed_spread` and `metrics.pooled_delta`: in metrics.py, because a
+median across seeds is an indicator and CLAUDE.md puts every indicator there.
+
+Rounding went with it: the comparison table printed `+7.022 €` against a seed spread of
+thousands. Price deltas are now in thousands of euros, rent to the euro, shares to 0.1pp.
+
+## The overburden headline has a composition control (2026-09-18)
+
+`rent_overburden_share` is averaged over whoever is a market tenant at that tick, and that
+population is one of the things a housing policy moves — a cap changes who signs, a public
+programme moves the poorest tenants onto administered rents and out of the denominator. So a
+rise can be worsening or it can be the average being taken over different households, and the
+two were not separable from the headline. The UI was drawing the difference as a causal arrow.
+
+Added (metrics.py): `rent_overburden_share_founding` and `rent_burden_median_founding`, the
+same readings over the **founding cohort** — households that existed at tick 0, a population no
+policy can add to — and `tenant_entry_share`, the share of current market tenants that is not
+founding. The last is the dial: when a scenario moves it away from the baseline, the headline's
+denominator has changed and the headline is not a clean read.
+
+This is not a fix for the headline, and it is not offered as one. It is the evidence that says
+whether the headline can be read at all, which is what was missing. The cohort boundary
+(`id < n_households`) is a property of how the engine hands out ids, so it is asserted in
+`tests/test_metrics.py` rather than assumed.
+
 ## Phase C — insolvency and forced sale (2026-09-14)
 
 The budget constraint binds from this pass. `engine._household_flows` used to write
