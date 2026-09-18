@@ -919,6 +919,17 @@ refuse while `holding_years` and `selling_cost_share` remain guesses. The warnin
 > accordingly: it now says what may be read (the lease direction), what may not (any magnitude,
 > either leg), and what the rent leg is (no measurable effect, not a measured zero).
 
+> **THE PANEL NO LONGER CARRIES IT (2026-09-18).** At the user's explicit and repeated request
+> the four caveat boxes were removed from `ui/levers.py`: the rent-cap panel now renders its
+> controls and nothing else, under either statute. Nothing about the reporting category changed
+> — new leases remain **direction**, contract rent remains **not reportable**, and no magnitude
+> in that panel is citable under §13.2. What changed is where the obligation is discharged: in
+> this file, in `docs/validation.md`, and in the F4 pre-registration — no longer at the point of
+> use. The known cost, recorded here because it is the reason the boxes existed: a silent panel
+> reads as a sound one, and a reader who meets these numbers only in the UI now meets them
+> without their category. Any figure taken from that screen and quoted as a quantity is a
+> misreading this file can no longer prevent.
+
 > **SUPERSEDED (2026-09-16).** F1 passed at exactly one corner of the declared ranges while three
 > inverted the sign, F3 did not fire, and F4 was never run because this section gates it on the
 > Ley 11/2020 tests being green and they are red. The rent cap is not reportable under either
@@ -1637,6 +1648,81 @@ variance of a quantity that is currently a reportable magnitude. If it does, it 
 and that is a cost of the phase, to be paid visibly at step 6 rather than avoided by picking a
 point value.
 
+### 7.6 Supply does not reach the rent, and the reason is one clip (2026-09-18)
+
+An outside reading of the UI asked the question this file should have answered already: a
+public programme run at saturation raises vacancy by four points and leaves the rent alone —
+where does the supply go? The reading offered was a defect in the buyer/unit matching or in the
+vacancy rule. Both are wrong, and ruling them out is the first thing `tests/test_supply_saturation.py`
+does: the units are built, listed, and let, public tenancies multiply, and the number of housed
+dwellings rises in every seed.
+
+**What is closed is the channel from supply to the ask, and there is exactly one.** In
+`agents/landlord.decide`:
+
+```
+pressure = 1 + CONGESTION_GAIN · clip(tightness − 1, −0.5, 3.0)      # CONGESTION_GAIN = 0.05
+```
+
+Saturation drives rental tightness in the priced zones to ≈0.2, i.e. raw slack ≈ −0.8. The clip
+discards everything past −0.5. So the **most** that any quantity of new supply can take off a
+posted ask is **2.5%**, and the model sits against that bound at every seed tested. The channel
+is not weak, it is saturated: the marginal dwelling moves nothing at all. The asymmetry is
+worth naming — the same clip allows +15% upward (3.0 × 0.05) against −2.5% down. The upward
+side is sourced (≈65 contacts per listing in Barcelona, rent-cap §3); the downward bound is
+not sourced by anything, and is the tighter of the two.
+
+**Measured**, ten seeds, tail-20 mean of a 60-tick run, saturated (30 units/tick, no crowding
+out, ≈+8% of the parque) minus baseline:
+
+| zone | rent Δ (€/month) | vacancy Δ | tightness |
+|---|---|---|---|
+| tensioned | mean −14.9, range −197…+92, 6/10 negative | **+4.28pp** (min +3.83) | 0.23 |
+| secondary | mean +14.6, range −44…+87, 5/10 negative | **+2.18pp** (min +1.55) | 0.16 |
+
+The rent response is **indistinguishable from zero** — the sign splits and the spread is an
+order of magnitude wider than the mean. The vacancy response is large and present in every
+seed. **Supply becomes empty dwellings, not cheaper ones.**
+
+**A second mechanism, observed and deliberately not asserted.** `ask = max(floor, market_ask)`
+floors every ask at the total-return hurdle of §7.1, a function of the price index and of
+expected price growth and never of how many units stand empty. Supply depresses E[g], which
+enters the hurdle negatively, so the floor can *rise* with supply. Across the same ten seeds
+the share of vacant private units sitting on that floor is bimodal rather than universal —
+tensioned 3/10 seeds, secondary 6/10, and the secondary share *falls* from 0.90 baseline to
+0.60 saturated. It is a regime the model enters in some seeds, not a law, and it reinforces the
+closure where it binds rather than causing it. The first draft of this section asserted it as
+the cause, on one seed's final tick; ten seeds on the settled tail refuted that.
+
+**This is consistent with what §10 already says about the rural zone** — "Rural rent clears at
+the landlord's floor — 812 against a `required_rent` of 800 — not at the household ceiling of
+507. Discounting demand further would not lower rural rent, it would leave units unlet." What
+was not written down is that saturation puts the priced zones in the same state.
+
+**This is the RENT leg only, and the sale leg behaves differently.** `docs/claims.md` (F-3,
+land release, ten seeds, 80 ticks) measures the national *price* at −7.5% with the pipeline lag
+halved and −12.9% with permits cut too, 0/10 seeds up. Supply reaches the sale price through
+the §5c auction, which has a tightness term; it does not reach the rent, which has only the
+clipped congestion multiplier. Anyone reading this section as "supply does nothing in this
+model" has it wrong — the two markets have different price formation and only one of them was
+ever given a scarcity channel that can bite.
+
+That same claims.md row already names the mechanism this section re-derives from the other
+end: a credible supply programme kills expected appreciation (−1.9pp/yr) and the landlord's
+return shifts from capital gain to yield (+1.14pp), so rents go UP by ≈9%. §7.6 adds what that
+row could not say — that the compensating downward channel is capped at −2.5% and therefore
+cannot offset it at any dose.
+
+**Reporting consequence.** No supply lever reports a rent magnitude or a rent direction, in any
+zone, under §13.2. The sale-price leg is unaffected by this section and keeps whatever
+category docs/claims.md gives it. The vacancy response is the one leg with a consistent sign across seeds and
+is reportable as a **direction** only. This is not a defect awaiting a parameter fit: widening
+the clip is unsourced tuning, and the floor cannot be lowered without breaking the gross-yield
+bands §5b.2 put in place. The route, if it is ever taken, is the one §10 already names — a
+size/quality margin so that a tenancy can be less than a whole dwelling — and it is a phase, not
+a patch.
+
+
 ## 5d. What stops a falling market (2026-09-15)
 
 The hold-out found the gap and `docs/assumptions.md` registers it: **nothing in this model
@@ -2219,6 +2305,14 @@ moments 1–6; Morris screening then Sobol on survivors; hold-out = moment 7.
 
 ## 10. Known limitations
 
+- **Supply does not reach the rent, and no supply lever reports a rent number** (§7.6,
+  2026-09-18). The only channel from slack to the posted ask is clipped at −2.5%, and
+  saturation runs past the clip rather than through it: 30 public units/tick with no crowding
+  out moves tensioned rent by −197 to +92 €/month across ten seeds (mean −15, sign splits
+  6/4) while raising vacancy +4.3pp in every one of them. Supply becomes empty dwellings, not
+  cheaper ones. Tested in `tests/test_supply_saturation.py`; the downward clip is an unsourced
+  bound recorded in docs/assumptions.md. Not tunable — the route is the size/quality margin
+  below.
 - **No macro feedback**: income, employment, euríbor, migration are exogenous paths;
   the model cannot capture housing→GDP→housing loops (2008 amplification understated).
 - **Zone types, not geography**: no within-zone heterogeneity, no specific cities; zone

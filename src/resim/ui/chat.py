@@ -258,10 +258,28 @@ def screen_context(
     params: dict,
     baseline_frame,
     scenario_frame,
+    n_seeds: int = 1,
 ) -> str:
-    """Plain-text snapshot of the current run for the system prompt."""
+    """Plain-text snapshot of the current run for the system prompt.
+
+    Carries the seed COUNT since 2026-09-18: the frames handed in are the pooled median over
+    `n_seeds` runs, not one run, and an assistant told "seed 42" about a three-seed median
+    would describe the screen wrongly. At one seed it also carries the warning, because that
+    is the case where the numbers on screen have no interval attached to them.
+    """
     lines = [
-        f"- Semilla: {seed}; trimestres simulados: {ticks} (≈ {ticks / 4:.0f} años).",
+        f"- Semilla base: {seed}; semillas promediadas: {n_seeds}"
+        + (
+            f" (las series de abajo son la MEDIANA de las semillas {seed}–{seed + n_seeds - 1}, "
+            "no una ejecución; las diferencias que el usuario ve llevan la semi-amplitud entre "
+            "semillas y se marcan «≈ 0» cuando no la superan)."
+            if n_seeds > 1
+            else " — UNA SOLA: las cifras de abajo no llevan intervalo y varias de ellas "
+            "cambian de signo entre semillas. No describas ninguna diferencia como un "
+            "resultado sin decir esto."
+        ),
+        f"- Trimestres simulados: {ticks} (≈ {ticks / 4:.0f} años). El modelo no tiene "
+        "calendario: el trimestre 1 no es una fecha.",
         f"- Momento de expectativas λ: {momentum}.",
         f"- Política activa: {lever}"
         + (f" con parámetros {params}." if params else " (simulación base, sin política)."),
