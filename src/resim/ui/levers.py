@@ -74,92 +74,17 @@ def lever_params(lever: str) -> dict:
             "que la diferencia es casi todo el mercado.",
         )
         params["index_binds_all"] = regime.startswith("Ley 11/2020")
-        # The warning is UNCONDITIONAL since 2026-09-16 and stays so: it used to fire only for
-        # Ley 12/2023, on the ground that the withdrawal hazard had been identified in the other
-        # regime, and §7.2 retired that hazard for a condition that broke BOTH.
-        #
-        # REWRITTEN 2026-09-17. The text had gone stale at §7.2: it still reported the arbitrage
-        # condition's +53.6% rent RISE and its three failing tests, both of which §7.2b repaired.
-        #
-        # REWRITTEN AGAIN 2026-09-18, and stale for the same reason: §5b.3 landed that morning and
-        # the panel still announced the state of the night before — G1 at 3,655 over a 3,2 ceiling,
-        # the flow/stock divergence, the channel's refinement "stopped", and, in the other tab, a
-        # deferral justified by a gate that is no longer red. `reference_rent` was an EWMA at
-        # weight 0.1 (mean lag 9 quarters) against a declared 5% discount, so the realised discount
-        # read −20.7% and the cap bound on EVERY unit instead of the upper tail; with the parameter
-        # honoured the price leg lands inside all three evaluations and G1 reads 1.061. Suite:
-        # 181 passed, 8 xfailed, 0 failed.
-        #
-        # What does not change across any of these rewrites: NEITHER tab is ever shown without a
-        # caveat. A silent tab reads as a sound one, which is the error the 2026-09-16 note
-        # guarded — and a green suite is the moment that error is easiest to make. Numbers here are
-        # quoted from the limits register in `docs/validation.md` ("Zero failures, and exactly what
-        # was changed to get there", 2026-09-18); the UI computes none of them (CLAUDE.md).
-        if params["index_binds_all"]:
-            st.info(
-                "**Bajo la Ley 11/2020 el precio ya es reportable como cantidad; el tamaño de la "
-                "respuesta de oferta, no.** §5b.3 (2026-09-18) corrigió un desacuerdo de factor "
-                "cuatro entre la especificación y el código: el índice de referencia se construía "
-                "como una media exponencial de retardo medio 9 trimestres, así que el descuento "
-                "realizado en la activación era del **−20,7%** frente al **5%** declarado, y el "
-                "tope mordía en **todas** las viviendas en vez de en la cola alta. Con el "
-                "parámetro respetado, el tope recorta la renta de los contratos un **−6,84%**, "
-                "dentro de las tres evaluaciones independientes que **coinciden** en el precio "
-                "(−4/−6% [Jofre-Monseny, Martínez-Mazza y Segú 2023]; −6/−7% en anuncios "
-                "[Kholodilin et al. 2022]; −3,7/−6,4% [Generalitat, año 1]), donde antes marcaba "
-                "−20,6%. El co-movimiento Δln contratos / Δln renta queda en **1,061**, dentro del "
-                "vano 0,07–3,2 (Monràs, CEPR DP20018, feb. 2025), y no depende del dial: en todo "
-                "el rango fuenteado de ventas por agencia (0,40–0,85) la renta se queda fija en "
-                "−6,84% y el co-movimiento va de 0,85 a 1,27, dentro del vano en los cinco puntos.",
-                icon="📐",
-            )
-            st.warning(
-                "**Lo que sigue sin ser un resultado: la magnitud de la retirada de oferta.** Ahí "
-                "la literatura no coincide, y el modelo no puede coincidir con ella. Dos de los "
-                "tres estudios registrados no encuentran efecto de oferta alguno (Jofre-Monseny "
-                "et al.; Kholodilin et al., sin efecto en anuncios) frente al −10% a −20% de "
-                "contratos de Monràs. El modelo da **−7,24%**: dentro del vano que admite la "
-                "evidencia y por debajo de todo lo que mide Monràs — dentro de la evidencia, no "
-                "un ajuste a ella. La prueba que lo cubre se ensanchó ese mismo día a ese vano, "
-                "por la regla de sesgo de CLAUDE.md (una estimación disputada es un rango, nunca "
-                "un valor resuelto), así que **acota** la cifra, no la confirma. Detalle y "
-                "límites en docs/validation.md.",
-                icon="⚠️",
-            )
-        else:
-            # F4 RAN 2026-09-18, once, and did not fire. §7.2's "Reporting consequence" says in
-            # as many words that this warning is then rewritten "to say what may be read rather
-            # than only what may not" — so it is. But the consequence is discharged LEG BY LEG,
-            # because that is how F4 passed: the lease leg carries a sign (t = −3.59, 8/10 seeds)
-            # and the rent leg lands on the span's zero end (|mean| < 1 se, 4/10 seeds positive),
-            # which is Pérez García's endpoint reproduced and not a measured fall. Pre-registered
-            # at 4c4eb58 before the run at 21a5623; record in the prereg file and in
-            # docs/validation.md ("F4, the one shot, taken"). The UI computes none of it.
-            st.info(
-                "**Bajo la ley vigente se puede leer una dirección, y sólo en los contratos.** La "
-                "prueba fuera de muestra de este régimen (§7.2, F4) se corrió **una vez**, el "
-                "2026-09-18, con el vano y el diseño registrados por escrito **antes** de "
-                "ejecutarla. No disparó: el tope **no** sube las rentas — lo que este escenario "
-                "publicaba antes (+16,6%) era un artefacto anterior a §7.2b y §5b.3. Diez "
-                "semillas, parámetros de serie: nuevos contratos **−8,06%** (t = −3,59, "
-                "negativo en 8 de 10 semillas), dentro del vano que va de +1.374 contratos "
-                "[registro, O-HB nº 4] a −13% de arrendamientos [Pérez García]. Eso es una "
-                "**dirección**: el tope contrae los contratos nuevos.",
-                icon="🧭",
-            )
-            st.warning(
-                "**Y no se puede leer nada más: ni el tamaño, ni el efecto sobre la renta.** La "
-                "renta de los contratos marca −0,79%, indistinguible de cero (error típico 1,59pp,"
-                " cuatro de las diez semillas en positivo). Eso reproduce el extremo «efecto ≈0» "
-                "del vano y **no** es la medida de una caída: aquí no hay dirección que reportar, "
-                "sólo la ausencia de la subida que F4 buscaba. **Ninguna cifra de este panel es "
-                "una cantidad citable** — la categoría se fijó en «dirección, nunca magnitud» "
-                "antes de conocer los números. Recuerda además que la ley topa a otra población: "
-                "al particular lo ata su propio contrato anterior más el IRAV, no el índice, y "
-                "los particulares tienen el 85–92% del parque. Registro completo en "
-                "docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md.",
-                icon="⚠️",
-            )
+        # CAVEATS REMOVED FROM THE PANEL (2026-09-18, at the user's explicit request, twice
+        # stated). Until this commit both regimes rendered an st.info + st.warning pair here:
+        # Ley 11/2020 said the price leg is reportable as a quantity (-6.84%, inside all three
+        # evaluations, G1 co-movement 1.061) and the supply-withdrawal SIZE is not; Ley 12/2023
+        # said F4 ran once on 2026-09-18 and did not fire, that the lease leg carries a
+        # direction (-8.06%, t = -3.59) and the rent leg lands on the span's zero end, and that
+        # no figure in the panel is a citable quantity. None of that changed — only its
+        # display. The reporting category of each leg still lives in docs/validation.md and in
+        # docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md; the model-spec obligation
+        # (§7.2, 'Reporting consequence') is now discharged there and NOT in the UI.
+
         # RETIRED (2026-09-16, §7.2b). Was two sliders: `selling_cost_share` ("Coste de vender
         # (fracción del precio)", 0.01-0.07) and `holding_years` ("Horizonte de la decisión
         # (años)", 3.0-10.0) — the two structural parameters that carried the supply-response

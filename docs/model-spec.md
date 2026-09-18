@@ -919,6 +919,17 @@ refuse while `holding_years` and `selling_cost_share` remain guesses. The warnin
 > accordingly: it now says what may be read (the lease direction), what may not (any magnitude,
 > either leg), and what the rent leg is (no measurable effect, not a measured zero).
 
+> **THE PANEL NO LONGER CARRIES IT (2026-09-18).** At the user's explicit and repeated request
+> the four caveat boxes were removed from `ui/levers.py`: the rent-cap panel now renders its
+> controls and nothing else, under either statute. Nothing about the reporting category changed
+> — new leases remain **direction**, contract rent remains **not reportable**, and no magnitude
+> in that panel is citable under §13.2. What changed is where the obligation is discharged: in
+> this file, in `docs/validation.md`, and in the F4 pre-registration — no longer at the point of
+> use. The known cost, recorded here because it is the reason the boxes existed: a silent panel
+> reads as a sound one, and a reader who meets these numbers only in the UI now meets them
+> without their category. Any figure taken from that screen and quoted as a quantity is a
+> misreading this file can no longer prevent.
+
 > **SUPERSEDED (2026-09-16).** F1 passed at exactly one corner of the declared ranges while three
 > inverted the sign, F3 did not fire, and F4 was never run because this section gates it on the
 > Ley 11/2020 tests being green and they are red. The rent cap is not reportable under either
