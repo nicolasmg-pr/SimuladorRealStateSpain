@@ -1086,7 +1086,13 @@ def test_rent_cap_reproduces_the_monras_co_movement():
     # three studies measure. The model's default lever is Ley 12/2023, where the index binds
     # grandes tenedores only (§5b, agents/landlord.cap_level) — running the default here would
     # be adjudicating a 2020 evaluation against a 2023 statute.
-    response = _rent_cap_response(index_binds_all=True)
+    # TEN SEEDS since 2026-09-17, per model-spec §9's rule that nothing is reported on fewer
+    # than ten once phase E has landed. This was the last gate in the file still deciding a
+    # MAGNITUDE — two tight bands — on three. It does not change the verdict, which is the
+    # point of recording it: three seeds give rent -21.47% and leases -12.63%, ten give -20.55%
+    # and -16.98%, and on both the quantity leg passes and the price leg fails. The rule is
+    # applied because it is the rule, not because it moves anything.
+    response = _rent_cap_response(seeds=tuple(range(1, 11)), index_binds_all=True)
     assert response["leases"] < -0.09, f"quantity leg: {response['leases']:.1%}"
     assert -0.07 <= response["rent"] <= -0.03, f"price leg: {response['rent']:+.1%}"
 
