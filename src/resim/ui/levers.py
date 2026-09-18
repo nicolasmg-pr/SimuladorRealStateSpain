@@ -78,47 +78,67 @@ def lever_params(lever: str) -> dict:
         # Ley 12/2023, on the ground that the withdrawal hazard had been identified in the other
         # regime, and §7.2 retired that hazard for a condition that broke BOTH.
         #
-        # REWRITTEN 2026-09-17. The text below had gone stale at §7.2: it still reported the
-        # arbitrage condition's +53.6% rent RISE and its three failing tests, both of which §7.2b
-        # repaired. The two regimes no longer carry the same defect, so they no longer carry the
-        # same text — but what does not change is that NEITHER tab is ever shown without a caveat.
-        # A silent tab reads as a sound one, which is the error the 2026-09-16 note guarded.
-        # Numbers here are quoted from the limits register in `docs/validation.md`, including its
-        # own same-day correction of G1's ceiling; the UI computes none of them (CLAUDE.md).
+        # REWRITTEN 2026-09-17. The text had gone stale at §7.2: it still reported the arbitrage
+        # condition's +53.6% rent RISE and its three failing tests, both of which §7.2b repaired.
+        #
+        # REWRITTEN AGAIN 2026-09-18, and stale for the same reason: §5b.3 landed that morning and
+        # the panel still announced the state of the night before — G1 at 3,655 over a 3,2 ceiling,
+        # the flow/stock divergence, the channel's refinement "stopped", and, in the other tab, a
+        # deferral justified by a gate that is no longer red. `reference_rent` was an EWMA at
+        # weight 0.1 (mean lag 9 quarters) against a declared 5% discount, so the realised discount
+        # read −20.7% and the cap bound on EVERY unit instead of the upper tail; with the parameter
+        # honoured the price leg lands inside all three evaluations and G1 reads 1.061. Suite:
+        # 181 passed, 8 xfailed, 0 failed.
+        #
+        # What does not change across any of these rewrites: NEITHER tab is ever shown without a
+        # caveat. A silent tab reads as a sound one, which is the error the 2026-09-16 note
+        # guarded — and a green suite is the moment that error is easiest to make. Numbers here are
+        # quoted from the limits register in `docs/validation.md` ("Zero failures, and exactly what
+        # was changed to get there", 2026-09-18); the UI computes none of them (CLAUDE.md).
         if params["index_binds_all"]:
-            st.warning(
-                "**Bajo la Ley 11/2020 la dirección es reportable; la magnitud no.** §7.2b "
-                "repartió el coste de salida entre caseros y le dio al tope su vida estatutaria: "
-                "con eso el signo de la renta sale correcto en las **diez** semillas y desaparece "
-                "la frontera de régimen que antes invertía el resultado según el ancla de "
-                "crecimiento de precios. Lo que no se reparó es el tamaño. El modelo responde con "
-                "un co-movimiento Δln contratos / Δln renta de **3,655**, por encima del **3,2** "
-                "que es el techo del rango IV publicado (Monràs, CEPR DP20018, feb. 2025). "
-                "Ninguna cifra de este panel puede citarse como cantidad.",
-                icon="⚠️",
-            )
             st.info(
-                "**Lo que sí se ha medido**, y por qué el error queda acotado: el exceso es de "
-                "≈14% sobre el techo del rango publicado, no un múltiplo — flujo de nuevos "
-                "contratos **−48,2%** con la renta en **−16,5%**, contra el −10% a −20% que "
-                "reporta el propio paper. Y no se cierra recalibrando: en el extremo alto de la "
-                "banda regional fuenteada (85% de ventas por agencia) los contratos aún caen "
-                "26,8%. Queda abierta una divergencia sin identificar entre el flujo y el stock, "
-                "factor ≈3,7; el exceso de rotación quedó descartado como causa (rotación medida "
-                "14,5%/año, tenencia media 6,9 años). El refinamiento de este canal se **paró** el "
-                "2026-09-17: a partir de ahí son experimentos, no ajuste. Detalle y límites en "
-                "docs/validation.md.",
-                icon="🔎",
+                "**Bajo la Ley 11/2020 el precio ya es reportable como cantidad; el tamaño de la "
+                "respuesta de oferta, no.** §5b.3 (2026-09-18) corrigió un desacuerdo de factor "
+                "cuatro entre la especificación y el código: el índice de referencia se construía "
+                "como una media exponencial de retardo medio 9 trimestres, así que el descuento "
+                "realizado en la activación era del **−20,7%** frente al **5%** declarado, y el "
+                "tope mordía en **todas** las viviendas en vez de en la cola alta. Con el "
+                "parámetro respetado, el tope recorta la renta de los contratos un **−6,84%**, "
+                "dentro de las tres evaluaciones independientes que **coinciden** en el precio "
+                "(−4/−6% [Jofre-Monseny, Martínez-Mazza y Segú 2023]; −6/−7% en anuncios "
+                "[Kholodilin et al. 2022]; −3,7/−6,4% [Generalitat, año 1]), donde antes marcaba "
+                "−20,6%. El co-movimiento Δln contratos / Δln renta queda en **1,061**, dentro del "
+                "vano 0,07–3,2 (Monràs, CEPR DP20018, feb. 2025), y no depende del dial: en todo "
+                "el rango fuenteado de ventas por agencia (0,40–0,85) la renta se queda fija en "
+                "−6,84% y el co-movimiento va de 0,85 a 1,27, dentro del vano en los cinco puntos.",
+                icon="📐",
+            )
+            st.warning(
+                "**Lo que sigue sin ser un resultado: la magnitud de la retirada de oferta.** Ahí "
+                "la literatura no coincide, y el modelo no puede coincidir con ella. Dos de los "
+                "tres estudios registrados no encuentran efecto de oferta alguno (Jofre-Monseny "
+                "et al.; Kholodilin et al., sin efecto en anuncios) frente al −10% a −20% de "
+                "contratos de Monràs. El modelo da **−7,24%**: dentro del vano que admite la "
+                "evidencia y por debajo de todo lo que mide Monràs — dentro de la evidencia, no "
+                "un ajuste a ella. La prueba que lo cubre se ensanchó ese mismo día a ese vano, "
+                "por la regla de sesgo de CLAUDE.md (una estimación disputada es un rango, nunca "
+                "un valor resuelto), así que **acota** la cifra, no la confirma. Detalle y "
+                "límites en docs/validation.md.",
+                icon="⚠️",
             )
         else:
             st.error(
-                "**Este régimen no está medido — aquí no se reporta ni la dirección.** La prueba "
-                "fuera de muestra de la Ley 12/2023 (§7.2, F4) está aplazada por diseño: no corre "
-                "hasta que las pruebas del régimen calibrado estén verdes, y G1 sigue en rojo. Lo "
-                "que ves sale de un canal de retirada de oferta cuyo tamaño ya falla en el "
-                "régimen contra el que **sí** está calibrado, aplicado además a una ley que topa a "
-                "otra población: al particular lo ata su propio contrato anterior más el IRAV, no "
-                "el índice. Nada de este panel es un resultado.",
+                "**Este régimen no está medido — aquí no se reporta ni la dirección.** Lo que "
+                "cambió el 2026-09-18 es el motivo, no la conclusión: las pruebas del régimen "
+                "calibrado (F1–F3, Ley 11/2020) están **verdes**, así que la prueba fuera de "
+                "muestra de la Ley 12/2023 (§7.2, F4) ya no está bloqueada — simplemente **no se "
+                "ha corrido**. El protocolo de §7.2 es explícito: este régimen no pasa de «no "
+                "reportable» a «dirección» hasta que F4 caiga dentro del vano (model-spec §13.7). "
+                "Y la ley topa a otra población: al particular lo ata su propio contrato anterior "
+                "más el IRAV, no el índice, y los particulares tienen el 85–92% del parque. Las "
+                "cifras que este escenario haya publicado antes (artefacto `rent-cap-state-law`, "
+                "docs/claims.md) son **anteriores a §5b.3** y no se han vuelto a medir. Nada de "
+                "este panel es un resultado.",
                 icon="⛔",
             )
         # RETIRED (2026-09-16, §7.2b). Was two sliders: `selling_cost_share` ("Coste de vender
@@ -141,8 +161,10 @@ def lever_params(lever: str) -> dict:
             "el 64% de las compraventas de segunda mano (Fotocasa) y ~70% del total "
             "(idealista). El rango va más allá de esas dos fuentes a propósito, porque la "
             "dispersión regional es grande — Murcia, Navarra y Baleares arriba; Extremadura, "
-            "País Vasco y Andalucía abajo. Es el dial que recorre el vano de Monràs "
-            "(Δln contratos/Δln renta: OLS 0,07, IV 2,0).",
+            "País Vasco y Andalucía abajo. Desde §5b.3 (2026-09-18) este dial ya NO recorre el "
+            "vano de Monràs: barrido de 0,40 a 0,85, la renta no se mueve (−6,84% en los cinco "
+            "puntos) y el co-movimiento va sólo de 1,27 a 0,85, dentro del vano en todo el rango "
+            "(OLS 0,07 · IV 2,0 · techo 3,2).",
         )
         params["cap_reference_discount"] = st.slider(
             "Índice de referencia por debajo del mercado",
@@ -177,9 +199,10 @@ def lever_params(lever: str) -> dict:
             "contratos, mientras el no declarado firmaba un 7% más a precios un 8% más "
             "altos — el desbordamiento que muestra Cataluña (zonas tensionadas +1,6% frente "
             "a +9,4% fuera). Desde §7.2b la elasticidad ya no es un dial — es un resultado "
-            "del coste de salida de cada casero — y el signo del alquiler sale correcto en "
-            "las diez semillas, aunque su magnitud siga sin ser reportable; esta cifra "
-            "concreta queda sin remedir. docs/validation.md T7.",
+            "del coste de salida de cada casero — y desde §5b.3 (2026-09-18) la magnitud del "
+            "precio también es reportable (−6,84%, dentro de las tres evaluaciones). Esta cifra "
+            "concreta de cobertura parcial, en cambio, sigue sin remedir bajo ninguna de las dos "
+            "revisiones. docs/validation.md T7.",
         )
     elif lever == "impuesto de transmisiones (ITP)":
         params["itp_delta"] = st.slider(
