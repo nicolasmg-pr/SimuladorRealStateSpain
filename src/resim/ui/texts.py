@@ -602,127 +602,172 @@ ACTOR_REACTIONS: dict[str, list[tuple[str, str]]] = {
 MODEL_EXPLANATION = """
 ### ¿Qué es esto?
 
-Un **modelo basado en agentes** del mercado de vivienda español. No es una bola de
-cristal: es un laboratorio. Miles de hogares, caseros, inversores, promotores, un
-banco y un gobierno simulados toman decisiones cada trimestre, y los precios y
-alquileres **emergen** de sus transacciones — nunca se imponen desde fuera.
+Un **laboratorio**, no una bola de cristal.
 
-### Los actores
+Dentro viven 10.000 hogares, caseros, inversores, promotores, un banco y un gobierno
+simulados. Cada tres meses, cada uno toma una decisión pequeña y egoísta: si le sale mejor
+alquilar que comprar, si le compensa vender, si el banco le concede la hipoteca o no.
+**Nadie fija los precios desde fuera.** El precio es lo que queda cuando todas esas
+decisiones chocan entre sí, igual que en un mercado real.
 
-| Actor | Qué decide cada trimestre |
-|---|---|
-| 🏠 Hogar propietario | Quedarse, mudarse, vender |
-| 🔑 Hogar inquilino / buscador | Seguir de alquiler, mudarse, intentar comprar |
-| 👤 Pequeño casero / inversor | Alquilar, subir renta, vender, pasar a temporada |
-| 🏢 Gran inversor | Comprar o vender cartera según rentabilidad |
-| 🏗️ Promotor | Iniciar obra nueva si los márgenes salen |
-| 🏦 Banco | Conceder o denegar hipotecas, declarar la mora, quedarse la vivienda ejecutada |
-| 🏛️ Gobierno | Aplica la política que eliges en la barra lateral |
+Sirve para preguntas del tipo *«¿y si...?»* que en la realidad no se pueden hacer, porque
+España no se puede repetir dos veces. Ejemplo: topas el alquiler en la zona tensionada,
+dejas correr quince años y miras qué pasó con la renta, con el número de contratos firmados
+y con quién acaba viviendo dónde.
 
-Desde la fase C los hogares pueden **dejar de pagar**: hay riesgo de renta sobre una senda
-exógena de paro, mora contra un suelo de consumo en el umbral de pobreza y ejecución
-hipotecaria por el artículo 24 de la Ley 5/2019. Por eso la barra lateral tiene, además de
-las siete políticas, dos **condiciones de contorno** que nadie «elige» en la realidad —
-restricción de crédito y shock de desempleo: son las dos entradas del episodio 2008–13.
+Lo que este modelo hace bien es **comparar dos mundos idénticos** en los que sólo cambia la
+política. Lo que no hace es decirte el precio del metro cuadrado en Madrid en 2029.
 
-### Cómo funciona una simulación
+### Quién decide qué
 
-1. **Escala:** 1 hogar del modelo ≈ 2.000 hogares reales (10.000 agentes ≈ 19,9M
-   de hogares españoles). 1 tick = 1 trimestre.
-2. **Tres zonas:** metro tensionado (Madrid/Barcelona y costa caliente), ciudad
-   secundaria (Valladolid, Zaragoza, Murcia) y rural (la España vaciada: Soria,
-   Teruel, Cuenca), con migración entre ellas. La mayoría de políticas solo
-   muerde en la tensionada.
-3. **Causalidad limpia:** cada escenario se compara con una base ejecutada con la
-   **misma semilla** — el mismo mundo, la misma suerte, la única diferencia es la
-   política. Los gráficos «escenario menos base» son efecto causal puro *dentro
-   del modelo*.
-4. **La semilla:** fija el azar. Cambiarla y repetir es la forma honesta de
-   comprobar que una conclusión no es un golpe de suerte.
+| Actor | Qué decide cada trimestre | Ejemplo |
+|---|---|---|
+| 🏠 Propietario | Quedarse, mudarse, vender | «Vale más que mi hipoteca y me mudo: vendo» |
+| 🔑 Inquilino o buscador | Alquilar, mudarse, comprar | «Llego a la entrada: pido hipoteca» |
+| 👤 Pequeño casero | Alquilar, subir la renta, vender | «Con el tope gano menos que vendiendo» |
+| 🏢 Gran inversor | Comprar o vender cartera | «Fuera del metro renta un 7%: compro allí» |
+| 🏗️ Promotor | Empezar obra nueva si salen las cuentas | «El precio cubre suelo y obra: arranco» |
+| 🏦 Banco | Dar o denegar hipotecas, ejecutar | «Se iría al 45% de su renta: denegada» |
+| 🏛️ Gobierno | Aplica la política que elijas | Tope de alquiler, vivienda pública, impuestos |
+
+Desde la fase C los hogares también pueden **dejar de pagar**: si alguien se queda en paro
+y la cuota no cabe después de comer, entra en mora, y si la mora dura lo que dice la ley
+(artículo 24 de la Ley 5/2019) el banco puede quedarse la vivienda.
+
+Por eso la barra lateral, además de las políticas, trae **condiciones de contorno**:
+restricción de crédito, shock de desempleo y shock de tipos. No son políticas que nadie
+elija — son cosas que le pasan a un país. Las dos primeras son, exactamente, las dos
+entradas con las que se reconstruyó el episodio 2008–13.
+
+### Las reglas del juego
+
+1. **Un trimestre por paso.** Una simulación típica son 60 pasos, unos quince años.
+2. **Un hogar del modelo equivale a 2.000 hogares reales** (10.000 agentes ≈ 19,9 millones
+   de hogares españoles). Es lo que permite traducir a cifras oficiales: si el modelo
+   termina 12 viviendas en un trimestre, son 12 × 2.000 × 4 ≈ **96.000 viviendas al año**,
+   que es el orden de magnitud del dato real.
+3. **Tres zonas, y se puede uno mudar entre ellas:** metro tensionado (Madrid, Barcelona y
+   costa caliente), ciudad secundaria (Valladolid, Zaragoza, Murcia) y rural (Soria, Teruel,
+   Cuenca). Casi todas las políticas sólo muerden en la tensionada.
+4. **Comparación limpia:** cada escenario se ejecuta contra un mundo gemelo sin política, con
+   la misma suerte. Cuando ves «escenario menos base», la única diferencia entre los dos
+   mundos es la política. Dentro del modelo, eso es causalidad pura.
+5. **La semilla es la suerte de ese mundo.** Quién se queda en paro, quién hereda, a quién le
+   toca el piso bueno. Cambiar la semilla es repetir el experimento con otra tirada de dados.
+
+### Por qué la app corre varios mundos a la vez
+
+Porque un solo mundo engaña. Ejemplo medido en este modelo: un programa de vivienda pública
+a saturación mueve el alquiler tensionado entre **−197 y +92 €/mes** según la semilla. Con
+una sola semilla, la app te habría pintado una flecha verde grande o una roja grande, y las
+dos habrían sido ruido.
+
+Por eso el deslizador «Semillas a promediar» viene en **3** y gobierna todas las pestañas:
+lo que ves es la **mediana** de esos mundos, con la distancia entre ellos al lado. Cuando el
+efecto de la política es más pequeño que esa distancia, la app lo pinta **«≈ 0» en gris**:
+significa «cambiando de semilla esta flecha cambia de sentido, no te la creas».
 
 ### Por qué hay deslizadores «en disputa»
 
-Regla del proyecto: cuando los estudios serios no se ponen de acuerdo, el modelo
-**no elige un bando**. El desacuerdo se convierte en un deslizador y tú exploras
-ambos mundos. El ejemplo estrella: tres estudios sobre el tope de alquiler catalán,
-con los mismos datos, concluyen desde «no se retiró oferta» hasta «−10% de
-contratos». Desde §7.2b ese deslizador ya no es una elasticidad de conducta, sino el
-**coste de salida** de cada casero: la parte que vende por agencia, 0,40–0,85.
+Regla del proyecto: cuando los estudios serios no se ponen de acuerdo, el modelo **no elige
+bando**. El desacuerdo se convierte en un deslizador y tú recorres los dos mundos.
 
-Y aquí va la letra pequeña, que es del propio modelo, actualizada el 18-09-2026 tras §5b.3.
-Bajo la ley que esos tres estudios evalúan (Ley 11/2020, el índice ata a **todos** los
-caseros), la pata de **renta** sale plana a lo largo del dial — la mueve el nivel del tope,
-no el parámetro de conducta: −6,84% en los cinco puntos del barrido, dentro de las tres
-evaluaciones que coinciden en el precio. Así que el tamaño **de la renta** sí es citable, y
-lo que el dial ya no recorre es el desacuerdo sobre la **oferta**: el modelo da −7,24% de
-contratos, dentro del vano que admite la evidencia y por debajo de todo lo que mide Monràs.
-**Esa magnitud no es citable**; su signo sí (`docs/experiments/rent-cap.md`).
+El ejemplo estrella es el tope de alquiler catalán: tres equipos, los mismos datos, y
+conclusiones que van desde «no se retiró ni un piso del mercado» hasta «−10% de contratos».
+El deslizador que recoge ese desacuerdo ya no es una elasticidad abstracta, sino algo
+concreto: **cuánto le cuesta al casero salirse** (la parte que vende por agencia, entre 0,40
+y 0,85).
+
+Y la letra pequeña, que es del propio modelo, medida el 18-09-2026: bajo la ley que esos
+tres estudios evalúan (Ley 11/2020, el índice ata a **todos** los caseros), la **renta** sale
+igual en todo el recorrido del deslizador — la mueve el nivel del tope, no el parámetro de
+conducta: −6,84% en los cinco puntos del barrido, dentro de lo que coinciden las tres
+evaluaciones. Así que **ese tamaño sí se puede citar**. Lo que el deslizador ya no recorre es
+el desacuerdo sobre la **oferta**: el modelo da −7,24% de contratos, por debajo de todo lo
+que mide Monràs. **Ese tamaño no se puede citar**; su signo sí
+(`docs/experiments/rent-cap.md`).
 
 ### Límites que conviene recordar
 
-- Los resultados son **condicionales a los deslizadores**: mueve los parámetros en
-  disputa antes de creerte ninguna conclusión.
-- Varios efectos clave no tienen estudio causal español (ITP, impuesto a la
-  vivienda vacía, avales ICO): la evidencia es importada y los rangos, anchos.
-- **La base no reproduce todos los objetivos de validación.** Los objetivos
-  {xfail_targets} siguen rojos y registrados como *xfail estrictos* — yield rural, orden de
-  alquileres, entradas interiores al metro y entregas de vivienda al acreedor. Están en la
-  pestaña «Diagnóstico del modelo», con su mecanismo y su fase, en vez de escondidos.
-- **La mitad de las cifras se leen sólo como dirección.** Ninguna cantidad se reporta como
-  magnitud si un parámetro sin fuente explica más del 25% de su varianza (regla de varianza,
-  model-spec §13.2). Todo el lado del alquiler está en ese grupo. El desglose está en «Qué
-  puede decir el modelo, y qué no», en la pestaña de diagnóstico.
+- **Los resultados dependen de dónde dejes los deslizadores.** Muévelos antes de creerte
+  ninguna conclusión: ésa es la forma de usar la herramienta, no un defecto de ella.
+- **Hay efectos sin ningún estudio causal español** (ITP, impuesto a la vivienda vacía,
+  avales ICO). Ahí la evidencia es importada y los rangos, anchos.
+- **La base todavía falla en dos sitios**, y están escritos, no escondidos: los objetivos
+  {xfail_targets}. El primero es que al metro no entra nunca nadie (el saldo migratorio sale
+  bien por el motivo equivocado); el segundo, que casi nadie pierde la vivienda a manos del
+  banco. Los tienes con su mecanismo en la pestaña «🔬 Diagnóstico del modelo».
+- **La mitad de las cifras se leen sólo como dirección, no como cantidad.** Si un parámetro
+  sin fuente explica más de una cuarta parte de la variación de un número, ese número se
+  reporta como «sube» o «baja», nunca como «sube un 7%». Todo el lado del alquiler está en
+  ese grupo. El desglose está en «Qué puede decir el modelo, y qué no», dentro de la pestaña
+  de diagnóstico.
+- **Más oferta no abarata el alquiler dentro de este modelo.** Es una limitación conocida y
+  medida (18-09-2026): construir llena de pisos vacíos la zona, y la renta pedida casi no se
+  mueve, porque el único canal por el que la oferta llega al alquiler está topado en −2,5%.
+  Las viviendas se construyen y se alquilan de verdad —eso está comprobado—, pero el precio
+  del alquiler no recoge la holgura. Léelo como un límite del modelo, no como un hallazgo
+  sobre España.
 - El modelo informa la discusión; no la sustituye.
 """
 
 BDE_INTRO = """
-**El Banco de España no publica ninguna previsión de vivienda.** Sus tablas de proyecciones
-macro no tienen ni una fila de vivienda: ni precios, ni inversión residencial, ni viviendas
-iniciadas, ni renta bruta disponible de los hogares, ni tipo hipotecario. Se verificó una a
-una (`docs/external-forecasts.md` §1). Así que **no existe una «previsión del BdE» contra la
-que comparar la proyección de este simulador**: si alguien te la ofrece, no es del BdE.
+Aquí el modelo pone sus cifras al lado de las cifras oficiales publicadas de lo mismo, para
+que se vea dónde acierta el nivel y dónde no. Es un **chequeo**, no un examen: ningún ✅ es
+un aprobado y ningún 🔽 es un suspenso.
 
-Lo que el BdE sí publica son **datos observados y diagnósticos estructurales** — un déficit
-medido, una banda de sobrevaloración, una elasticidad de oferta. Eso sí es comparable, y es
-lo que hay en esta tabla: las cifras nacionales del modelo frente a la cifra oficial de la
-misma variable.
+**Primero, una advertencia útil fuera de esta app: el Banco de España no publica ninguna
+previsión de vivienda.** Sus tablas de proyecciones no tienen ni una fila de vivienda — ni
+precios, ni obra nueva, ni tipo hipotecario. Se comprobaron una a una
+(`docs/external-forecasts.md` §1). Si alguien te enseña «la previsión de precios del BdE»,
+no es del BdE.
 
-La mayoría de las filas son del BdE. El resto son series del INE (Censo y Encuesta de
-Presupuestos Familiares) recopiladas en Funcas, *Estudios* 104, *Mercado inmobiliario y
-política de la vivienda en España* (2024): vivienda vacía por tamaño de municipio, esfuerzo
-del alquiler, gasto medio en alquiler, compras sin hipoteca y demanda embalsada. Cada fila
-lleva su fuente; ninguna es una previsión. El detalle de qué es y qué no es cada cifra está
-en `docs/funcas-104.md`.
+Lo que el BdE sí publica son **datos observados y diagnósticos** — cuántas viviendas faltan,
+cuánto se desvía el precio de sus fundamentales, cuánto responde la construcción al precio.
+Eso sí es comparable, y es lo que hay en la tabla.
 
-Tres cosas distintas, a propósito separadas:
+La mayoría de filas son del BdE. Las demás son series del INE (Censo y Encuesta de
+Presupuestos Familiares) recopiladas en Funcas, *Estudios* 104 (2024): vivienda vacía por
+tamaño de municipio, esfuerzo del alquiler, gasto medio en alquiler, compras sin hipoteca y
+demanda embalsada. Cada fila lleva su fuente; ninguna es una previsión.
 
-- **`docs/validation.md`** — ¿la base reproduce la historia? **Es una puerta**: ningún
-  escenario se reporta si falla.
-- **Esta pestaña** — ¿cómo quedan las cifras del modelo frente a las oficiales publicadas?
-  **No es una puerta**, es diagnóstico.
-- **`docs/external-forecasts.md` §4** — ¿nuestra senda cae dentro de lo que proyectan otros?
-  No es una puerta, y no es del BdE.
+**Tres cosas distintas, a propósito separadas:**
 
-Cómo leerla sin equivocarse:
+| Dónde | Qué pregunta | ¿Es una puerta? |
+|---|---|---|
+| `docs/validation.md` | ¿La base reproduce la historia? | **Sí.** Si falla, no se reporta nada |
+| **Esta pestaña** | ¿Los niveles se parecen a los oficiales? | No, es diagnóstico |
+| `docs/external-forecasts.md` §4 | ¿Y frente a lo que proyectan otros? | No, y no es del BdE |
 
-- **Las bases se igualan explícitamente.** El modelo corre a escala 1:2.000 y por trimestres;
-  cada fila dice en qué la convierte. Comparar sobre bases distintas es peor que no comparar.
-- **El reloj del modelo no es un calendario.** 60 trimestres son «≈15 años de un mercado
-  parecido al español», no 2011–2026. Por eso se contrasta la **fase estabilizada** del modelo
-  contra la ventana plurianual del BdE (2021–2025), nunca trimestre a trimestre.
-- **Las dos filas de crecimiento (precio y alquiler) van con trampa de fase**: comparan un
-  estado estacionario del modelo con 2025, el año más fuerte en 18 años. Van a quedar por
-  debajo, y eso no es un error. Para contrastar un auge, carga un escenario de auge.
+### Cómo leer la tabla sin equivocarse
+
+- **Las bases se igualan antes de comparar, y cada fila dice cómo.** El modelo corre a
+  escala 1:2.000 y por trimestres. Ejemplo: 12 viviendas terminadas en un trimestre del
+  modelo son 12 × 2.000 × 4 ≈ 96.000 al año, y ése es el número que se compara con el
+  oficial. Comparar sobre bases distintas es peor que no comparar.
+- **El reloj del modelo no es un calendario.** El trimestre 60 no es 2026T4: son «quince
+  años de un mercado parecido al español». Por eso se contrasta la **fase estabilizada** del
+  modelo contra una ventana de varios años del BdE (2021–2025), nunca trimestre a trimestre.
+- **Las dos filas de crecimiento (precio y alquiler) van con trampa, y se avisa.** Comparan
+  un modelo ya estabilizado con 2025, el año más fuerte en dieciocho. Es como comparar la
+  velocidad media de un coche en un viaje largo con la del adelantamiento: van a quedar por
+  debajo, y eso no es un fallo. Para contrastar un auge hay que cargar un escenario de auge.
+- **Con una sola semilla, varias filas bailan más que la propia banda publicada.** La
+  formación de hogares es un sorteo, y una ventana de cinco años oscila ±10.000 hogares al
+  año a escala nacional. Si vas a mirar esta tabla en serio, sube «Semillas a promediar».
+- **La columna Δ relativa** es simplemente cuánto se separa el modelo del dato oficial, en
+  tanto por ciento del dato oficial. −20% quiere decir que el modelo se queda una quinta
+  parte corto.
 """
 
 BDE_FORECAST_PANEL = """
-### ¿Y si quiero comparar una *proyección*?
+### ¿Y si lo que quiero es comparar una *previsión*?
 
-Entonces el BdE no sirve, porque no la publica. Sí existen sendas de precio de vivienda
-para España, pero de **entidades comerciales y multilaterales**, y todas en PDF: ninguna
-serie es legible por máquina (`docs/external-forecasts.md` §4).
+Entonces el BdE no sirve, porque no publica ninguna. Sí existen sendas de precio de vivienda
+para España, pero de **bancos, agencias y organismos multilaterales**, y todas en PDF:
+ninguna serie es legible por máquina (`docs/external-forecasts.md` §4).
 
-| Institución | 2026 | 2027 | Base |
+| Institución | 2026 | 2027 | Sobre qué índice |
 |---|---|---|---|
 | BBVA Research (jul 2026) | +12,0% | +5,7% | MIVAU valor tasado, nominal |
 | CaixaBank Research (mar 2026) | +10,1% | +5,5% | INE IPV, nominal |
@@ -734,19 +779,24 @@ serie es legible por máquina (`docs/external-forecasts.md` §4).
 | Bankinter (feb 2026) | +7,0% | +4,0% | INE vivienda libre |
 
 El par **base + adverso del FMI/EBA** es el más útil de la lista: es el único camino
-publicado para España con un escenario de crisis emparejado, así que es el contraste natural
-para la palanca `CreditCrunch` — que **desde la fase C sí existe**, junto con `LabourShock`,
-en la barra lateral bajo «restricción de crédito» y «shock de desempleo». No son políticas:
-son condiciones de contorno, las dos entradas del episodio 2008–13 (model-spec §6c).
+publicado para España que trae emparejado un escenario de crisis. Por eso es el contraste
+natural de las condiciones de contorno de la barra lateral, «restricción de crédito» y
+«shock de desempleo» — que no son políticas, sino las dos entradas con las que se
+reconstruye el episodio 2008–13.
 
-Nota de honestidad: el panel de 2026 **subestimó mucho** el precio real. El IPV del INE
-cerró el primer semestre de 2026 en **+12,55% interanual de media** (1T +12,9%, 2T +12,2%,
-publicado el 7-sep-2026), así que toda previsión en la banda 7–9% necesitaría un segundo
-semestre en +3,5/+5,7% para cumplirse; sólo BBVA (+12,0%, base valor tasado) queda cerca, y
-las bases de tasación (Tinsa ago-2026 +14,9%, Registradores +16,7%) corren por encima. En
-volumen ocurre lo contrario: el Notariado da 1S 2026 −7,7% y Registradores julio −7,7%. Y el
-euríbor a 12 meses ya está en 2,95% (ago-2026), por encima de todas las sendas del panel. No
-es un tribunal; es contexto (`docs/kb-refresh-2026-09.md` §6).
+**Nota de honestidad, y conviene leerla antes de fiarse de cualquier panel de previsiones:**
+el de 2026 **se quedó muy corto**. El índice de precios del INE cerró el primer semestre de
+2026 en **+12,55% interanual de media** (1T +12,9%, 2T +12,2%, publicado el 7-sep-2026). Para
+que se cumpliera una previsión del 7–9% haría falta un segundo semestre entre +3,5% y +5,7%;
+sólo BBVA (+12,0%) queda cerca, y los índices de tasación corren aún por encima (Tinsa
+ago-2026 +14,9%, Registradores +16,7%).
+
+En **volumen** pasa lo contrario: el Notariado da −7,7% en el primer semestre de 2026 y
+Registradores −7,7% en julio. Se vende más caro y se vende menos. Y el euríbor a doce meses
+está en 2,95% (ago-2026), por encima de todas las sendas del panel.
+
+Esto no es un tribunal para nadie; es contexto (`docs/kb-refresh-2026-09.md` §6). Y es el
+mejor recordatorio de por qué esta app no publica un pronóstico fechado.
 """
 
 KPI_HELP: dict[str, str] = {
@@ -802,54 +852,82 @@ KPI_HELP: dict[str, str] = {
 # resim.diagnostics; this is only the framing the reader needs before the table.
 
 DIAGNOSTICS_INTRO = """
-Esta pestaña no explora ninguna política. Muestra **en qué se equivoca el modelo**.
+Esta pestaña no explora ninguna política. Es la **lista de averías conocidas** del modelo:
+qué se le ha pedido que reproduzca de la España real, qué reproduce y qué no.
 
-La fase 0 del rediseño añadió siete observables y **no cambió ni una regla de
-comportamiento**. Ése era su propósito: convertir defectos invisibles en fallos que la
-suite reporta. La tabla ha crecido con cada fase; los contadores de aquí abajo dicen cuántos
-criterios y cuántos objetivos hay hoy. Estos son los objetivos que **siguen con un xfail
-estricto vivo**, registrados, no escondidos:
+**Cómo leer las tres columnas que importan:**
 
-- **Objetivo 9** — el yield bruto rural corre al doble de su banda publicada.
-- **Objetivo 11** — el alquiler pedido en rural adelanta al de la zona tensionada.
-- **Objetivo 12** — las entradas interiores **brutas** al metro se van a cero: el neto sale
-  del sitio correcto por el motivo equivocado.
-- **Objetivo 15** — las entregas de vivienda al acreedor salen ≈0,02%/año contra 0,10–0,16%
-  observado: el modelo convierte casi todo disparo estatutario en venta voluntaria.
+- **Criterio** — lo que dice la fuente oficial. Ejemplo: un piso en alquiler en una ciudad
+  secundaria renta al propietario entre un 6,5% y un 7,5% bruto al año.
+- **Encaja** — dónde cae **este run** (la mediana de las semillas que estés promediando en
+  la barra lateral). ✅ dentro, 🔽 por debajo, 🔼 por encima.
+- **Estado** — cómo está registrado el objetivo en el proyecto, que es lo que manda:
+  - **✓ gatillado**: hay un test que lo vigila. Si el modelo se rompe por ahí, la suite falla.
+  - **✗ xfail estricto**: fallo **registrado**. El test existe, se espera que falle y está
+    escrito que falla; si algún día pasara, la suite avisaría también. Es lo contrario de
+    esconder un defecto: es clavarlo en la pared.
+  - **○ reportado**: se mide y se enseña, pero todavía no hay banda contra la que juzgarlo.
 
-Los objetivos 9 y 11 **ya no esperan a la fase B**: la fase B entró entera y no los cerró.
-Lo que falta es la entrada *buy-to-let* (§7.3), medida y **aparcada** en la rama
-`buy-to-let-remeasure` porque la entrada por yield arbitra la escalera de precios entre
-zonas. El 12 espera al término de amenidad de §7.5 («dónde está el empleo»); el 15, a las
-fricciones de venta que las fases D y E dejaron abiertas.
+Las dos columnas pueden discrepar, y no es un error: **Encaja** habla de esta ejecución,
+**Estado** de lo que la suite comprueba con diez semillas. Una fila puede salirte ✅ hoy y
+seguir siendo un fallo registrado.
 
-**El objetivo 12 cambió de signo el 2026-09-14, y no por el modelo.** Esta pestaña pedía
-migración interna neta *positiva* hacia el metro. INE EVR/EMCR dicen lo contrario en todos
-los años desde 2017 y en los tres mapeos candidatos: el modelo acertaba y la ficha lo
-contaba como fallo. La fila ahora está gatillada sobre el signo correcto.
+### Qué está roto hoy, en cristiano
 
-⚠️ **Esto no es la puerta de validación.** La suite promedia 3 semillas sobre los últimos
-20 de 60 trimestres (`tests/test_validation.py`); esta pestaña mide **la semilla que tengas
-puesta en la barra lateral**. Una fila puede salir ✅ aquí en una semilla y seguir siendo un
-xfail registrado — la columna *Estado* es la que manda, y las bandas de aquí están copiadas
-de las aserciones de los tests, no re-derivadas.
+Quedan **dos** fallos registrados vivos:
+
+- **Objetivo 12 — al metro no entra nadie.** El saldo migratorio del metro sale negativo, que
+  es lo correcto (España lleva desde 2017 perdiendo migración interna en las zonas
+  tensionadas). El problema es *cómo* sale: en el modelo el saldo es negativo porque no entra
+  nadie, cuando en la realidad entran muchos y salen algunos más. Es como decir que un bar
+  pierde clientela porque no entra nadie, cuando lo que pasa es que entran cien y salen
+  ciento treinta. Falta el motivo por el que la gente va al metro aunque sea caro: **dónde
+  está el empleo** (§7.5).
+- **Objetivo 15 — casi nadie pierde la casa.** El modelo entrega al banco 2 viviendas por
+  cada 10.000 hipotecas al año (0,02%), contra las 10–16 por cada 10.000 (0,10–0,16%) que se
+  observan en años tranquilos. El motivo: en el modelo, el hogar que no puede pagar siempre
+  encuentra comprador a tiempo y vende. En la realidad no siempre puede — si debes más de lo
+  que vale el piso, la venta no cancela la hipoteca, y además vender lleva meses. Esas
+  fricciones faltan, y son de las fases D y E.
+
+### Qué se ha cerrado, y cuándo
+
+- **Objetivos 9 y 11 (rentabilidad del alquiler por zona y orden de alquileres) están
+  gatillados desde el 17-09-2026.** Durante meses el modelo daba un alquiler rural por encima
+  del metropolitano y una rentabilidad rural al doble de lo publicado. Los dos eran el mismo
+  agujero visto por dos lados, y se cerraron juntos.
+- **El objetivo 12 cambió de signo el 14-09-2026, y no por el modelo.** La ficha pedía
+  migración interna *hacia* el metro. Los datos del INE dicen lo contrario en todos los años
+  desde 2017. El modelo acertaba y la ficha lo contaba como fallo; se corrigió la ficha.
+
+⚠️ **Esto sigue sin ser la puerta de validación.** La puerta es la suite
+(`tests/test_validation.py`), que promedia **diez** semillas sobre los últimos 20 de 60
+trimestres. Esta pestaña mide lo que tengas puesto en la barra lateral — desde el 18-09-2026
+la mediana de las semillas promediadas, no una sola, salvo que bajes el deslizador a 1. Las
+bandas de aquí están **copiadas** de las aserciones de los tests, no recalculadas.
 """
 
 DIAGNOSTICS_OUTRO = """
-**Por qué dos de estos son el mismo agujero.** El nivel de alquiler rural (objetivo 11) y el
-yield rural (objetivo 9) son el mismo defecto visto desde dos lados: la escalera de zona
-estaba gatillada **sólo en precios**, así que un alquiler rural por encima del metropolitano
-sobrevivió 60 trimestres y 3 semillas sin que nada saltara.
+**Por qué no se ensancha la banda cuando algo falla.** Es la regla que sostiene toda esta
+pestaña: cuando el modelo entrega 2 viviendas al acreedor por cada 10.000 hipotecas y el dato
+observado son 10–16, se reporta el fallo. Bajar la banda hasta que el modelo entre sería
+convertir la medida en decoración: **la banda es el dato**, no un ajuste del modelo.
 
-**El objetivo 15 ya es un test, desde la fase C.** Antes no existía mecanismo de
-insolvencia: `wealth = max(0, wealth − cuota)` absorbía cualquier falta de pago, y un xfail
-sobre un mecanismo ausente habría sido decoración. La fase C metió riesgo de renta sobre una
-senda exógena de paro, mora contra un suelo de consumo en el umbral de pobreza, ejecución
-estatutaria (Ley 5/2019 art. 24, con el régimen anterior de tres cuotas como interruptor
-para el hold-out), REO bancario y las palancas `CreditCrunch` y `LabourShock`. El objetivo
-tiene dos patas y se comportan distinto: la **mora** pasa contra el ratio de dudosos del BdE
-y está gatillada; las **entregas al acreedor** fallan al nacer y se reportan como fallo en
-lugar de ensanchar la banda — la banda es el dato.
+**El objetivo 15 tiene dos patas y se comportan distinto.** La **mora** (hogares hipotecados
+que dejan de pagar) pasa contra el ratio de dudosos del Banco de España y está gatillada. Las
+**entregas de vivienda al acreedor** fallan desde que nacieron. Que una pata pase y la otra no
+es informativo: el impago existe y muerde en el orden de magnitud correcto, pero el modelo lo
+resuelve casi siempre con una venta voluntaria en lugar de con una ejecución.
+
+**Antes de la fase C esto ni siquiera se podía medir.** El impago no existía —el código
+absorbía cualquier cuota que no cupiera— y poner un fallo registrado sobre un mecanismo
+ausente habría sido decorado. La fase C metió riesgo de renta sobre una senda de paro, mora
+contra un suelo de consumo en el umbral de pobreza, ejecución por la Ley 5/2019, vivienda
+adjudicada al banco, y las condiciones de contorno de la barra lateral.
+
+**Los tres gráficos de abajo son salidas del modelo, no ajustes.** Nadie fija el yield, ni el
+alquiler por zona, ni quién se muda: son consecuencia de las decisiones de los agentes, y por
+eso sirven para juzgar si las reglas de comportamiento están bien.
 """
 
 
@@ -857,14 +935,21 @@ lugar de ensanchar la banda — la banda es el dato.
 # 2026-09-15. On screen because a slider invites reading every number as an estimate, and half
 # of them are not.
 REPORTING_CONTRACT = """
-**Qué se puede leer como cifra y qué sólo como signo.** Ninguna cantidad se reporta como
-magnitud si un parámetro sin fuente explica más del 25% de su varianza (1.792 evaluaciones de
-Sobol, `model-spec §13.2`).
+**Qué se puede leer como cifra y qué sólo como signo.** La regla es simple: si un parámetro
+sin fuente explica más de una cuarta parte de la variación de un número, ese número se
+reporta como dirección («sube», «baja») y nunca como cantidad («sube un 7%»). Sale de 1.792
+evaluaciones que reparten la varianza entre parámetros (`model-spec §13.2`).
 
-- **Magnitudes** — precio y precio sobre renta, transacciones, terminaciones, morosidad,
-  tiempo de venta y pujas por anuncio. Van con su banda: el precio sobre renta es 8,13 y
-  7,2–9,1 sobre los rangos que la evidencia admite.
+- **Se pueden leer como cantidad** — precio y precio sobre renta, transacciones, viviendas
+  terminadas, morosidad, tiempo de venta y pujas por anuncio. Van con su banda: el precio
+  sobre renta es 8,13, y 7,2–9,1 recorriendo los rangos que la evidencia admite.
 - **Sólo dirección** — todo el lado del alquiler (nivel de renta, vacancia tensionada,
-  sobrecarga), la tasa de propiedad, el ratio de precios entre zonas, la cuota al contado y
-  el margen de negociación. De estos lee el signo y el recuento de semillas, nunca el tamaño.
+  sobrecarga), la tasa de propiedad, la relación de precios entre zonas, la cuota de compras
+  al contado y el margen de negociación. De éstos lee el sentido y en cuántas semillas se
+  repite, nunca el tamaño.
+- **Ni cantidad ni dirección: las políticas de oferta sobre el alquiler.** Medido el
+  18-09-2026: construir a saturación llena de pisos vacíos la zona (+4,3 puntos de vacancia
+  tensionada, en las diez semillas) y deja la renta pedida donde estaba (entre −197 y +92
+  €/mes según la semilla). El único canal que llevaría la oferta al alquiler está topado en
+  −2,5%. La vacancia sí se puede leer como dirección; la renta, ni eso.
 """
