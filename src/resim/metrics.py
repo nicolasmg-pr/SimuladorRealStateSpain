@@ -8,6 +8,8 @@ Counts are model-scale; SCALE re-inflates to national figures where useful.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -270,13 +272,15 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     # only: the 27–33% target is the Eurostat "tenant, rent at market price" series, and
     # social tenants pay an administered fraction of market rent — folding them in
     # understates the indicator by ~2pp at a realistic size of the parque social.
+    # carries the household id as well as the income: the composition control below needs to
+    # know WHICH households these are, not only what they earn
     tenancies = [
-        (state.stock.units[h.unit_id], h.income)
+        (state.stock.units[h.unit_id], h.income, h.id)
         for h in hhs
         if h.status is HouseholdStatus.TENANT and h.unit_id is not None
     ]
-    burdens_all = [u.rent * 12.0 / max(inc, 1.0) for u, inc in tenancies]
-    burdens_market = [u.rent * 12.0 / max(inc, 1.0) for u, inc in tenancies if not u.is_public]
+    burdens_all = [u.rent * 12.0 / max(inc, 1.0) for u, inc, _ in tenancies]
+    burdens_market = [u.rent * 12.0 / max(inc, 1.0) for u, inc, _ in tenancies if not u.is_public]
     row["rent_burden_mean"] = float(np.mean(burdens_all)) if burdens_all else 0.0
     row["rent_overburden_share"] = (
         float(np.mean([b > 0.40 for b in burdens_market])) if burdens_market else 0.0
@@ -291,6 +295,42 @@ def snapshot(state: WorldState, trades=(), rentals=()) -> dict:
     row["rent_overburden_share_all"] = (
         float(np.mean([b > 0.40 for b in burdens_all])) if burdens_all else 0.0
     )
+
+    # COMPOSITION CONTROL (2026-09-18). `rent_overburden_share` above is computed over whoever
+    # is a market tenant at this tick, and that population is one of the things a housing
+    # policy moves: a rent cap changes who gets to sign, a public programme moves the poorest
+    # tenants onto administered rents and out of the market denominator. So a rise in the
+    # headline can be real worsening, or it can be the average being taken over different
+    # households. The two are not distinguishable from the headline alone, and the UI was
+    # reporting the difference as a causal arrow.
+    #
+    # The control is a FOUNDING COHORT: households that existed at tick 0 (ids are handed out
+    # sequentially from 0, so the founding set is exactly `id < n_households` — asserted in
+    # tests/test_metrics.py). They age, move and change tenure like everyone else, but no
+    # policy can add to them, so the entry margin is closed. Two readings:
+    #
+    #   `rent_overburden_share_founding` — the same >40% line on that closed population.
+    #   `tenant_entry_share`             — how much of the current market-tenant population is
+    #                                      NOT founding. This is the dial: if a scenario moves
+    #                                      it away from the baseline, the headline's denominator
+    #                                      has changed and the headline is not a clean read.
+    #
+    # Neither is a fix for the headline. They are the evidence that says whether it can be
+    # read, which is the thing that was missing. See model-spec §9a and docs/validation.md.
+    founding_cutoff = state.config.population.n_households
+    founding_market = [
+        u.rent * 12.0 / max(inc, 1.0)
+        for u, inc, hid in tenancies
+        if not u.is_public and hid < founding_cutoff
+    ]
+    row["rent_overburden_share_founding"] = (
+        float(np.mean([b > 0.40 for b in founding_market])) if founding_market else float("nan")
+    )
+    row["rent_burden_median_founding"] = (
+        float(np.median(founding_market)) if founding_market else float("nan")
+    )
+    n_market = sum(1 for u, _, _ in tenancies if not u.is_public)
+    row["tenant_entry_share"] = 1.0 - len(founding_market) / n_market if n_market else float("nan")
 
     # insider/outsider wedge (model-spec §9 target 5): sitting rents move only by the
     # update cap, so all price discovery happens at rotation.
@@ -500,3 +540,79 @@ def compare(baseline: pd.DataFrame, scenario: pd.DataFrame) -> pd.DataFrame:
     common = baseline.columns.intersection(scenario.columns)
     idx = baseline.index.intersection(scenario.index)
     return scenario.loc[idx, common] - baseline.loc[idx, common]
+
+
+# --- SEED POOLING (2026-09-18) -------------------------------------------------------------
+#
+# Why this is here and not in the UI. A single seed's delta is not an estimate of anything: at
+# saturation-scale supply the tensioned rent response runs from −197 to +92 €/month across ten
+# seeds with a mean of −15, and the rent-cap panel's own zone deltas change sign between seeds.
+# The app was drawing those as one-decimal arrows with no interval, which is a claim the run
+# cannot support. `docs/validation.md` has averaged over seeds from the start and the "🏛️
+# Contraste oficial" tab had an opt-in checkbox for it; everywhere else took the first seed.
+#
+# These two functions are the whole fix, and they live in metrics.py because CLAUDE.md says
+# every indicator is defined once, here — a median across seeds is an indicator, and the UI
+# computing it inline is exactly the drift that rule exists to stop.
+
+
+def pool(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    """Element-wise MEDIAN across same-shaped run frames — the path to plot.
+
+    Median, not mean: these are runs of a model with fat-tailed price paths, and one seed that
+    happens to catch a boom should not drag the line it is pooled into. Columns and index are
+    intersected, so a frame missing a column drops that column rather than producing NaN.
+    """
+    if not frames:
+        raise ValueError("pool() needs at least one frame")
+    if len(frames) == 1:
+        return frames[0]
+    columns = frames[0].columns
+    index = frames[0].index
+    for f in frames[1:]:
+        columns = columns.intersection(f.columns)
+        index = index.intersection(f.index)
+    stack = np.stack([f.loc[index, columns].to_numpy(dtype=float) for f in frames])
+    # An all-NaN cell pools to NaN, which is the right answer: some columns are NaN by
+    # construction on ticks with no observation (`rent_new_free_*` where no free contract was
+    # signed, `median_ticks_to_sale` where nothing sold). numpy warns about it once per column
+    # and the warning says nothing the NaN does not. Silenced here, and nowhere wider.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="All-NaN slice encountered")
+        pooled = np.nanmedian(stack, axis=0)
+    return pd.DataFrame(pooled, index=index, columns=columns)
+
+
+def seed_spread(frames: list[pd.DataFrame], column: str, tail: int = 20) -> tuple[float, float]:
+    """(median, half-range) of `column`'s tail mean across seeds.
+
+    The half-range — (max − min)/2 — rather than a standard deviation, because with three or
+    five seeds an sd is a worse summary than the spread itself and reads as more precise than
+    it is. A delta whose magnitude is below this is not distinguishable from which seed was
+    drawn, and the UI greys it out rather than drawing an arrow.
+    """
+    values = [float(f[column].tail(tail).mean()) for f in frames if column in f.columns]
+    if not values:
+        return float("nan"), float("nan")
+    return float(np.median(values)), (max(values) - min(values)) / 2.0
+
+
+def pooled_delta(
+    baselines: list[pd.DataFrame], scenarios: list[pd.DataFrame], column: str, tail: int = 20
+) -> tuple[float, float]:
+    """(median delta, half-range of the delta) for `column`, paired seed by seed.
+
+    Paired: seed k's scenario is differenced against seed k's baseline before pooling, so the
+    common seed noise cancels instead of being counted twice. Returns NaN when the column is
+    missing on either side.
+    """
+    if not baselines or len(baselines) != len(scenarios):
+        return float("nan"), float("nan")
+    deltas = [
+        float(s[column].tail(tail).mean()) - float(b[column].tail(tail).mean())
+        for b, s in zip(baselines, scenarios, strict=True)
+        if column in b.columns and column in s.columns
+    ]
+    if not deltas:
+        return float("nan"), float("nan")
+    return float(np.median(deltas)), (max(deltas) - min(deltas)) / 2.0

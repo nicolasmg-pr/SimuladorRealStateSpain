@@ -47,6 +47,11 @@ COMPARE_INDICATORS: dict[str, tuple[str, str, str]] = {
 }
 
 
+# The settled tail every number in docs/validation.md is quoted on. The UI used the LAST TICK
+# until 2026-09-18, which is one draw of a noisy path rather than a level.
+TAIL_WINDOW = 20
+
+
 def _config(seed: int, ticks: int, momentum: float) -> SimConfig:
     import dataclasses
 
@@ -75,6 +80,30 @@ def run(seed: int, ticks: int, lever: str, lever_params: dict, momentum: float):
     if lever == "ninguna":
         return baseline_frame, None
     return baseline_frame, run_scenario(seed, ticks, lever, lever_params, momentum)
+
+
+# Seeds are consecutive from the sidebar's seed. Consecutive rather than drawn: the user can
+# reproduce any single one of them by typing it into the seed box, which a random pool would
+# not allow, and `SimConfig.baseline` seeds a fresh Generator per run so neighbouring seeds
+# are as independent as distant ones.
+def seed_pool(seed: int, n_seeds: int) -> list[int]:
+    return [int(seed) + k for k in range(int(n_seeds))]
+
+
+def run_many(seed: int, n_seeds: int, ticks: int, lever: str, lever_params: dict, momentum: float):
+    """One (baseline, scenario) frame pair per seed, plus the pooled medians to plot.
+
+    Returns `(baselines, scenarios, pooled_baseline, pooled_scenario)`; the scenario entries
+    are None when no lever is selected. Each underlying run is `@st.cache_data`-memoised, so
+    raising the seed count re-uses everything already computed and only pays for the new ones.
+    """
+    seeds = seed_pool(seed, n_seeds)
+    baselines = [run_baseline(s, ticks, momentum) for s in seeds]
+    pooled_baseline = metrics.pool(baselines)
+    if lever == "ninguna":
+        return baselines, [], pooled_baseline, None
+    scenarios = [run_scenario(s, ticks, lever, lever_params, momentum) for s in seeds]
+    return baselines, scenarios, pooled_baseline, metrics.pool(scenarios)
 
 
 def chart_block(
@@ -110,56 +139,151 @@ def chart_block(
         st.dataframe(charts.data_table(frame, columns), width="stretch")
 
 
-def kpi_row(frame, baseline_frame) -> None:
-    """Headline indicators at the end of the run, with delta vs baseline if any."""
-    last = frame.iloc[-1]
-    base_last = baseline_frame.iloc[-1] if baseline_frame is not None else None
+def kpi_row(frame, baseline_frame, baselines=(), scenarios=()) -> None:
+    """Headline indicators, pooled over seeds, with the seed spread attached to every delta.
 
-    def pp_delta(col: str) -> str | None:
-        if base_last is None:
-            return None
-        return f"{(last[col] - base_last[col]) * 100:+.1f} pp vs base"
+    Two changes on 2026-09-18, both for the same reason: a single seed's delta is not an
+    estimate. The LEVEL is the pooled median's settled tail rather than one seed's last tick —
+    the basis docs/validation.md has always used, and the one the diagnostics panel quotes. The
+    DELTA carries its half-range across seeds, and is greyed to "≈ 0" when it is smaller than
+    that: an arrow the seed draw could flip is not a finding, and drawing it as green or red is
+    the app asserting something the run does not support.
+
+    `baselines`/`scenarios` are the per-seed frames. With fewer than two seeds there is no
+    spread to quote, so the delta is shown bare and labelled as one seed.
+    """
+    tail = frame.tail(TAIL_WINDOW)
+    pooled = len(baselines) > 1
+
+    def delta_text(col: str, *, scale: float, unit: str, fmt: str) -> tuple[str | None, str]:
+        """(text, colour) for one metric's delta. Colour 'off' greys it out."""
+        if baseline_frame is None:
+            return None, "normal"
+        if not scenarios:
+            return None, "normal"
+        if not pooled:
+            plain = (
+                frame[col].tail(TAIL_WINDOW).mean() - baseline_frame[col].tail(TAIL_WINDOW).mean()
+            ) * scale
+            return f"{plain:{fmt}} {unit} (1 semilla)", "normal"
+        median, half_range = metrics.pooled_delta(
+            list(baselines), list(scenarios), col, tail=TAIL_WINDOW
+        )
+        median, half_range = median * scale, half_range * scale
+        if not abs(median) > half_range:
+            return f"≈ 0 {unit} · ±{half_range:{fmt.replace('+', '')}} entre semillas", "off"
+        return f"{median:{fmt}} ± {half_range:{fmt.replace('+', '')}} {unit}", "normal"
+
+    def metric(slot, label, col, *, value_fmt, scale, unit, fmt, inverse=False, help_key=None):
+        text, colour = delta_text(col, scale=scale, unit=unit, fmt=fmt)
+        slot.metric(
+            label,
+            f"{tail[col].mean():{value_fmt}}",
+            delta=text,
+            delta_color=("off" if colour == "off" else ("inverse" if inverse else "normal")),
+            help=texts.KPI_HELP[help_key or col],
+        )
 
     cols = st.columns(5)
-    cols[0].metric(
+    metric(
+        cols[0],
         "Tasa de propiedad",
-        f"{last['ownership_rate']:.1%}",
-        delta=pp_delta("ownership_rate"),
-        help=texts.KPI_HELP["ownership_rate"],
+        "ownership_rate",
+        value_fmt=".1%",
+        scale=100.0,
+        unit="pp",
+        fmt="+.1f",
     )
-    cols[1].metric(
+    metric(
+        cols[1],
         "Precio / renta disponible",
-        f"{last['price_to_income']:.1f}",
-        delta=(
-            None
-            if base_last is None
-            else f"{last['price_to_income'] - base_last['price_to_income']:+.2f} vs base"
-        ),
-        delta_color="inverse",
-        help=texts.KPI_HELP["price_to_income"],
+        "price_to_income",
+        value_fmt=".1f",
+        scale=1.0,
+        unit="",
+        fmt="+.2f",
+        inverse=True,
     )
-    cols[2].metric(
+    metric(
+        cols[2],
         "Sobrecarga de alquiler (>40%)",
-        f"{last['rent_overburden_share']:.1%}",
-        delta=pp_delta("rent_overburden_share"),
-        delta_color="inverse",
-        help=texts.KPI_HELP["rent_overburden_share"],
+        "rent_overburden_share",
+        value_fmt=".1%",
+        scale=100.0,
+        unit="pp",
+        fmt="+.1f",
+        inverse=True,
     )
-    cols[3].metric(
+    metric(
+        cols[3],
         "Accesibilidad de compra",
-        f"{last['buyer_access']:.1%}",
-        delta=pp_delta("buyer_access"),
-        help=texts.KPI_HELP["buyer_access"],
+        "buyer_access",
+        value_fmt=".1%",
+        scale=100.0,
+        unit="pp",
+        fmt="+.1f",
     )
-    cols[4].metric(
+    metric(
+        cols[4],
         "Vivienda vacía",
-        f"{last['vacancy_rate']:.1%}",
-        delta=pp_delta("vacancy_rate"),
-        delta_color="inverse",
-        help=texts.KPI_HELP["vacancy_rate"],
+        "vacancy_rate",
+        value_fmt=".1%",
+        scale=100.0,
+        unit="pp",
+        fmt="+.1f",
+        inverse=True,
     )
-    if base_last is not None:
-        st.caption("Las flechas comparan el final del escenario con la base sin política.")
+
+    if baseline_frame is not None and scenarios:
+        if pooled:
+            st.caption(
+                f"Nivel: mediana de {len(baselines)} semillas sobre los últimos "
+                f"{TAIL_WINDOW} trimestres. La flecha es la mediana de la diferencia frente a "
+                "la base, emparejada semilla a semilla, y ± es la semi-amplitud entre "
+                "semillas. **Gris «≈ 0» = la diferencia es menor que esa amplitud**: cambiar "
+                "de semilla le cambia el signo, así que no hay nada que leer."
+            )
+        else:
+            st.warning(
+                "Una sola semilla: las flechas no llevan intervalo y varias de estas "
+                "magnitudes cambian de signo entre semillas. Sube «Semillas a promediar» "
+                "en la barra lateral antes de leer ninguna de ellas.",
+                icon="🎲",
+            )
+        _composition_note(frame, baseline_frame)
+
+
+def _composition_note(frame, baseline_frame) -> None:
+    """Say when the sobrecarga arrow is measuring a different population, not a worse one.
+
+    `rent_overburden_share` averages over whoever is a MARKET tenant this tick, and a policy
+    moves that population: a cap changes who signs, a public programme moves the poorest
+    tenants onto administered rents and out of the denominator entirely. `tenant_entry_share`
+    (metrics, 2026-09-18) is how much of the population is not from the founding cohort; when
+    the scenario moves it away from the baseline, the two averages are over different people
+    and the difference between them is not a burden change. The founding-cohort reading is
+    shown alongside because it is the one whose denominator the policy cannot touch.
+    """
+    entry_scen = float(frame["tenant_entry_share"].tail(TAIL_WINDOW).mean())
+    entry_base = float(baseline_frame["tenant_entry_share"].tail(TAIL_WINDOW).mean())
+    shift = entry_scen - entry_base
+    if abs(shift) < 0.01:
+        return
+    founding_scen = float(frame["rent_overburden_share_founding"].tail(TAIL_WINDOW).mean())
+    founding_base = float(baseline_frame["rent_overburden_share_founding"].tail(TAIL_WINDOW).mean())
+    st.info(
+        "**La flecha de sobrecarga mezcla dos cosas.** Esta política cambia *quién* es "
+        f"inquilino de mercado: la proporción de inquilinos que no venían del inicio se mueve "
+        f"{shift * 100:+.1f} pp respecto a la base. Parte de la flecha de arriba es esa "
+        "recomposición, no que los mismos hogares paguen más o menos.\n\n"
+        "Sobre la **cohorte fundacional** —los hogares que ya existían en el trimestre 0, un "
+        "grupo al que ninguna política puede añadir— la sobrecarga pasa de "
+        f"**{founding_base:.1%}** a **{founding_scen:.1%}** "
+        f"({(founding_scen - founding_base) * 100:+.1f} pp). Ese denominador la política no lo "
+        "toca. No es una corrección de la cifra de arriba: es lo que permite decidir si se "
+        "puede leer. Detalle en docs/validation.md.",
+        icon="🧮",
+    )
 
 
 def actor_reactions(lever: str) -> None:
@@ -171,7 +295,9 @@ def actor_reactions(lever: str) -> None:
             st.markdown(reaction)
 
 
-def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> None:
+def explore_tab(
+    lever: str, params: dict, baseline_frame, scenario_frame, baselines=(), scenarios=()
+) -> None:
     frame = scenario_frame if scenario_frame is not None else baseline_frame
     policy_start = params.get("start_tick") if scenario_frame is not None else None
     # The same indicators WITHOUT the policy, drawn dashed underneath so the reader sees what
@@ -191,7 +317,12 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         actor_reactions(lever)
         st.divider()
 
-    kpi_row(frame, baseline_frame if scenario_frame is not None else None)
+    kpi_row(
+        frame,
+        baseline_frame if scenario_frame is not None else None,
+        baselines=baselines,
+        scenarios=scenarios,
+    )
 
     st.subheader("Precios por zona (€, índice ajustado por calidad)")
     chart_block(
@@ -293,12 +424,21 @@ def explore_tab(lever: str, params: dict, baseline_frame, scenario_frame) -> Non
         )
 
 
-def compare_tab(seed: int, ticks: int, momentum: float) -> None:
+def compare_tab(seed: int, ticks: int, momentum: float, n_seeds: int) -> None:
     st.subheader("Comparar políticas")
     st.caption(
-        "Cada política se simula por separado sobre la misma base, con sus "
-        "parámetros por defecto (los puntos medios de la evidencia) y empezando en "
-        "el trimestre 8. El gráfico muestra la diferencia frente a no hacer nada."
+        "Cada política se simula por separado sobre la misma base, con sus parámetros por "
+        "defecto y empezando en el trimestre 8. El gráfico muestra la diferencia frente a no "
+        "hacer nada, como mediana de las semillas."
+    )
+    # "los puntos medios de la evidencia" stood here until 2026-09-18, three screens after the
+    # ❓ tab explains that for a disputed parameter the midpoint does not exist — a dataclass
+    # default is a default, not a central estimate, and calling it one turned the comparison
+    # table into a claim about the evidence. See docs/assumptions.md.
+    st.caption(
+        "⚠️ Los valores por defecto de cada política son **valores por defecto**, no el centro "
+        "de la evidencia: para los parámetros en disputa no existe tal centro. Para recorrer "
+        "el rango de uno de ellos, usa la pestaña «Explorar»."
     )
     selected = st.multiselect(
         "Políticas a comparar",
@@ -312,12 +452,13 @@ def compare_tab(seed: int, ticks: int, momentum: float) -> None:
 
     column, y_title, y_format = COMPARE_INDICATORS[indicator]
     deltas = {}
-    final_rows = {}
+    per_seed: dict[str, tuple[list, list]] = {}
     for lever in selected:
-        baseline_frame, scenario_frame = run(seed, ticks, lever, {}, momentum)
-        diff = metrics.compare(baseline_frame, scenario_frame)
-        deltas[lever] = diff[column]
-        final_rows[lever] = diff.iloc[-1]
+        baselines, scenarios, pooled_base, pooled_scen = run_many(
+            seed, n_seeds, ticks, lever, {}, momentum
+        )
+        deltas[lever] = metrics.compare(pooled_base, pooled_scen)[column]
+        per_seed[lever] = (baselines, scenarios)
 
     import pandas as pd
 
@@ -333,23 +474,28 @@ def compare_tab(seed: int, ticks: int, momentum: float) -> None:
         y_format=y_format,
     )
 
-    st.subheader("Resumen al final de la simulación")
-    st.caption("Diferencia frente a la base en el último trimestre, por política.")
+    st.subheader("Resumen del tramo final")
+    st.caption(
+        f"Mediana de la diferencia frente a la base sobre los últimos {TAIL_WINDOW} "
+        f"trimestres, emparejada semilla a semilla ({n_seeds} semillas). **«≈ 0» significa "
+        "que la diferencia es menor que la amplitud entre semillas**: en esa celda la "
+        "política y el azar son indistinguibles, y el número que había antes ahí era ruido "
+        "con un decimal. Redondeo: alquiler al euro, precio al millar, pp a un decimal."
+    )
+    # ROUNDING (2026-09-18). Rent to the euro, price to the thousand, shares to 0.1pp. The
+    # table printed "+7.022 €" against a seed spread of thousands — five significant figures
+    # on a quantity whose second one is noise.
+    summary_columns = [
+        ("Δ alquiler tensionada (€/mes)", "rent_tensioned", 1.0, "+,.0f"),
+        ("Δ precio tensionada (miles €)", "price_tensioned", 1e-3, "+,.0f"),
+        ("Δ nuevos contratos", "new_leases", 1.0, "+,.0f"),
+        ("Δ buscando vivienda (pp)", "seeker_share", 100.0, "+.1f"),
+        ("Δ sobrecarga alquiler (pp)", "rent_overburden_share", 100.0, "+.1f"),
+    ]
     summary = pd.DataFrame(
         {
-            "Δ alquiler tensionada (€/mes)": {
-                k: f"{v['rent_tensioned']:+,.0f}" for k, v in final_rows.items()
-            },
-            "Δ precio tensionada (€)": {
-                k: f"{v['price_tensioned']:+,.0f}" for k, v in final_rows.items()
-            },
-            "Δ nuevos contratos": {k: f"{v['new_leases']:+,.0f}" for k, v in final_rows.items()},
-            "Δ buscando vivienda (pp)": {
-                k: f"{v['seeker_share'] * 100:+.1f}" for k, v in final_rows.items()
-            },
-            "Δ sobrecarga alquiler (pp)": {
-                k: f"{v['rent_overburden_share'] * 100:+.1f}" for k, v in final_rows.items()
-            },
+            label: {lever: _pooled_cell(*per_seed[lever], column, scale, fmt) for lever in selected}
+            for label, column, scale, fmt in summary_columns
         }
     )
     st.dataframe(summary, width="stretch")
@@ -360,28 +506,45 @@ def compare_tab(seed: int, ticks: int, momentum: float) -> None:
     )
 
 
-def bde_tab(seed: int, ticks: int, momentum: float, lever: str, params: dict) -> None:
+def _pooled_cell(baselines, scenarios, column: str, scale: float, fmt: str) -> str:
+    """One summary cell: the pooled delta, or «≈ 0» when the seed spread swallows it."""
+    median, half_range = metrics.pooled_delta(baselines, scenarios, column, tail=TAIL_WINDOW)
+    median, half_range = median * scale, half_range * scale
+    if median != median:  # NaN
+        return "—"
+    if len(baselines) < 2:
+        return f"{median:{fmt}} (1 semilla)"
+    if not abs(median) > half_range:
+        return f"≈ 0 (±{half_range:{fmt.replace('+', '')}})"
+    return f"{median:{fmt}} ± {half_range:{fmt.replace('+', '')}}"
+
+
+def bde_tab(
+    seed: int, ticks: int, momentum: float, lever: str, params: dict, n_seeds: int = 1
+) -> None:
     """Model output against the official published figures (BdE, INE/EPF via Funcas 104)."""
     st.subheader("Contraste con las cifras oficiales publicadas")
     st.markdown(texts.BDE_INTRO)
 
     scenario_label = "base (sin política)" if lever == "ninguna" else lever
-    c1, c2 = st.columns([2, 3])
-    with c1:
-        pooled = st.checkbox(
-            "Promediar 3 semillas",
-            value=False,
-            help="Varias de estas magnitudes tienen más dispersión entre semillas que la "
-            "banda publicada: la formación de hogares es un sorteo de Poisson y una "
-            "ventana de 5 años oscila ±10.000 viviendas/año a escala nacional. Con una "
-            "sola semilla puedes ver un desajuste que es puro azar. Más lento.",
-        )
-    with c2:
-        st.caption(
-            f"Escenario contrastado: **{scenario_label}** · semilla {seed} · {ticks} trimestres"
+    # The opt-in "Promediar 3 semillas" checkbox that used to live here is GONE (2026-09-18).
+    # It was the only place in the app that averaged, which put the honest machinery in the one
+    # tab where conclusions are NOT drawn; the sidebar's "Semillas a promediar" now governs
+    # every tab at once, so this one no longer has a private answer to the question.
+    st.caption(
+        f"Escenario contrastado: **{scenario_label}** · semillas "
+        f"{', '.join(str(x) for x in seed_pool(seed, n_seeds))} · {ticks} trimestres"
+    )
+    if n_seeds < 2:
+        st.warning(
+            "Con una sola semilla varias de estas magnitudes tienen más dispersión que la "
+            "banda publicada — la formación de hogares es un sorteo de Poisson y una ventana "
+            "de 5 años oscila ±10.000 viviendas/año a escala nacional. Un desajuste que veas "
+            "aquí puede ser puro azar. Sube «Semillas a promediar» en la barra lateral.",
+            icon="🎲",
         )
 
-    seeds = [seed, seed + 1, seed + 2] if pooled else [seed]
+    seeds = seed_pool(seed, n_seeds)
     frames = []
     for s in seeds:
         base_frame, scen_frame = run(s, ticks, lever, params, momentum)
@@ -477,9 +640,11 @@ def diagnostics_tab(baseline_frame, scenario_frame, params: dict, lever: str) ->
     st.caption(
         "**Criterio** es la banda tal y como la enuncia el dosier; la evaluación usa la "
         "banda de `tests/test_validation.py`, que la ensancha 0,5 pp por lado para ruido "
-        "de semilla. **Encaja** es dónde cae *esta* semilla; **Estado** es cómo está "
-        "registrado el objetivo en `docs/validation.md`. Responden a preguntas distintas y "
-        "pueden discrepar."
+        "de semilla. **Encaja** es dónde cae **la mediana de las semillas que estés "
+        "promediando** (desde 2026-09-18 este panel ya no evalúa una sola semilla, salvo que "
+        "pongas el deslizador en 1); **Estado** es cómo está registrado el objetivo en "
+        "`docs/validation.md`, que se cita sobre su propia base de semillas. Responden a "
+        "preguntas distintas y pueden discrepar."
     )
 
     st.subheader("Qué significa cada fila")
@@ -568,6 +733,33 @@ def main() -> None:
         )
         ticks = st.slider("Trimestres", 20, 80, 60)
         st.caption(f"≈ **{ticks / 4:.0f} años** de simulación ({ticks} trimestres)")
+        # NO CALENDAR (2026-09-18). The model has no start date: tick 1 is not 2026Q1, and
+        # nothing in it is dated. Readers were mapping 60 quarters onto 2026–2041 anyway,
+        # which turns a conditional path into a forecast with years attached. Said once, here,
+        # where the horizon is chosen. Euros are constant at the calibration base for the same
+        # reason — there is no inflation path to deflate by.
+        st.caption(
+            "⚠️ Sin calendario: el trimestre 1 **no** es 2026T1 y ninguna cifra lleva fecha. "
+            "Es un horizonte, no un pronóstico fechado. Los euros son constantes en la base "
+            "de calibración, no nominales de un año concreto."
+        )
+        # DEFAULT 3, not 1 (2026-09-18). Several headline deltas change SIGN between seeds —
+        # measured, ten seeds: the tensioned rent response to saturated public housing runs
+        # −197 to +92 €/month around a mean of −15. Running one seed and drawing the result as
+        # a coloured arrow was the app asserting a finding the run does not contain. The
+        # averaging machinery already existed behind a checkbox in the 🏛️ tab; it now applies
+        # where the conclusions are actually read. Cost is linear: 3 seeds is 3 runs.
+        n_seeds = st.slider(
+            "Semillas a promediar",
+            1,
+            10,
+            3,
+            help="Cada semilla es un mundo distinto con las mismas reglas. Las flechas y la "
+            "tabla comparativa muestran la MEDIANA entre semillas y la amplitud entre ellas; "
+            "cuando la diferencia es menor que esa amplitud se marca «≈ 0» en gris, porque "
+            "cambiar de semilla le cambiaría el signo. Con 1 semilla no hay intervalo que "
+            "mostrar y la app te lo advierte. Más lento de forma lineal.",
+        )
 
         st.header("Parámetros en disputa")
         momentum = st.slider(
@@ -587,7 +779,9 @@ def main() -> None:
         )
         params = lever_params(lever)
 
-    baseline_frame, scenario_frame = run(seed, ticks, lever, params, momentum)
+    baselines, scenarios, baseline_frame, scenario_frame = run_many(
+        seed, n_seeds, ticks, lever, params, momentum
+    )
 
     tab_explore, tab_compare, tab_bde, tab_diag, tab_help = st.tabs(
         [
@@ -599,11 +793,13 @@ def main() -> None:
         ]
     )
     with tab_explore:
-        explore_tab(lever, params, baseline_frame, scenario_frame)
+        explore_tab(
+            lever, params, baseline_frame, scenario_frame, baselines=baselines, scenarios=scenarios
+        )
     with tab_compare:
-        compare_tab(seed, ticks, momentum)
+        compare_tab(seed, ticks, momentum, n_seeds)
     with tab_bde:
-        bde_tab(seed, ticks, momentum, lever, params)
+        bde_tab(seed, ticks, momentum, lever, params, n_seeds)
     with tab_diag:
         diagnostics_tab(baseline_frame, scenario_frame, params, lever)
     with tab_help:
@@ -618,6 +814,7 @@ def main() -> None:
             params=params,
             baseline_frame=baseline_frame,
             scenario_frame=scenario_frame,
+            n_seeds=n_seeds,
         ),
         lever=lever,
     )
