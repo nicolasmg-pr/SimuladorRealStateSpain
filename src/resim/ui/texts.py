@@ -623,14 +623,17 @@ Regla del proyecto: cuando los estudios serios no se ponen de acuerdo, el modelo
 **no elige un bando**. El desacuerdo se convierte en un deslizador y tú exploras
 ambos mundos. El ejemplo estrella: tres estudios sobre el tope de alquiler catalán,
 con los mismos datos, concluyen desde «no se retiró oferta» hasta «−10% de
-contratos». Ese deslizador (elasticidad 0–2) recorre ese rango en la pata de **oferta**.
+contratos». Desde §7.2b ese deslizador ya no es una elasticidad de conducta, sino el
+**coste de salida** de cada casero: la parte que vende por agencia, 0,40–0,85.
 
-Y aquí va la letra pequeña, que es del propio modelo: en la re-ejecución del 15-09-2026, bajo
-la ley que esos tres estudios evalúan (Ley 11/2020, el índice ata a **todos** los caseros),
-la pata de **renta** sale plana a lo largo del dial — la mueve el nivel del tope, no el
-parámetro de conducta. Es decir, el dial ya no recorre el desacuerdo de los tres estudios
-donde más importa, así que **el tamaño de cualquier efecto del tope sobre la renta no es
-citable**; el signo sí (`docs/experiments/rent-cap.md`).
+Y aquí va la letra pequeña, que es del propio modelo, actualizada el 18-09-2026 tras §5b.3.
+Bajo la ley que esos tres estudios evalúan (Ley 11/2020, el índice ata a **todos** los
+caseros), la pata de **renta** sale plana a lo largo del dial — la mueve el nivel del tope,
+no el parámetro de conducta: −6,84% en los cinco puntos del barrido, dentro de las tres
+evaluaciones que coinciden en el precio. Así que el tamaño **de la renta** sí es citable, y
+lo que el dial ya no recorre es el desacuerdo sobre la **oferta**: el modelo da −7,24% de
+contratos, dentro del vano que admite la evidencia y por debajo de todo lo que mide Monràs.
+**Esa magnitud no es citable**; su signo sí (`docs/experiments/rent-cap.md`).
 
 ### Límites que conviene recordar
 
