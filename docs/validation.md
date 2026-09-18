@@ -3957,6 +3957,37 @@ thing §13.2 exists to prevent.
 failure is `test_rent_cap_reproduces_the_monras_co_movement`'s price leg, its cause is measured to
 machine precision, and the next step is evidence work rather than code.
 
+## Eight routes to the last failing gate, all built and measured (2026-09-17)
+
+`test_rent_cap_reproduces_the_monras_co_movement` is the one gate still red. Everything below was
+**implemented and run**, not reasoned about, and every reverted branch is recorded so the next pass
+starts from the map rather than the beginning.
+
+| # | route | result | verdict |
+|---|---|---|---|
+| 1 | outside-option comparison in the reservation rent | bit-for-bit identical; the branch fires 344/807 times but the existing `min(ask, cap)` already listed those units at the cap | **no-op** |
+| 2 | register both gates as strict xfails | suite 0 failed, model unchanged | **tracking, not repair** — reverted |
+| 3 | **IRPF on the realised gain in the exit cost** | leases −47.5% → **−17.0%**, ratio 4.272 → **0.809**, G1 passes | **SHIPPED** |
+| 4 | reference-index EWMA weight 0.1 → 0.4 (derived from the index's 12-month window) | rent −10.9%, leases −8.4% — both legs fail | reverted |
+| 5 | reference tracks the index at the declared 5% | rent **−6.8%**, in band; leases −7.2%, out | reverted (2 failed) |
+| 6 | disperse the hurdle across landlords (`hurdle_draw` over `small_landlord_premium_range`) | `cap/r_req` cv **1.05e-16 → 3.2e-02** — the point mass breaks — ratio 0.809 → **1.253** | reverted (suite worse) |
+| 7 | 6 + 5 together | leases **−10.7%**, in band and passing; rent −9.2%, 2.2pp out; **suite 4 failed** — it moves `required_rent` on the baseline too, breaking the boom yield-compression and rate-shock gates | reverted |
+| 8 | match the evaluation window to Monràs's ~2 years | ticks 21–28 give leases **+5.8%**; 21–32 give +0.7%. The shipped 24–40 window is the best of the three | **refuted** |
+
+**What routes 6 and 7 establish, and it is the useful part.** §7.2b's stated requirement — *"any
+repair must break the scale-invariance of `cap / r_req` inside a zone"* — is met by dispersing the
+hurdle, and the co-movement ratio moves the right way for the right reason. But `required_rent` is
+not a rent-cap object: it prices every landlord's reservation in every scenario, so dispersing it
+moves the boom yield compression and the rate-shock channel with it. **The repair the cap needs is
+in a quantity the cap does not own.** That is why it cannot be taken in isolation, and it is a
+sharper statement of the blocker than "the premium has no sourced spread".
+
+**Where it stops.** The shipped state is route 3 only: **1 failed / 180 passed / 8 xfailed**, from
+6 / 175 / 8. Rent reads −20.6% against a −3% to −7% band, the quantity leg and the co-movement are
+both inside theirs, and G1 passes. Closing the last leg requires dispersing `small_landlord_premium`
+**and** re-deriving the baseline moments that quantity anchors — the boom compression, the yield
+ladder, the rate shock — which is a phase, and one that needs the premium's spread sourced first.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
