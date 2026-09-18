@@ -4009,6 +4009,48 @@ both inside theirs, and G1 passes. Closing the last leg requires dispersing `sma
 **and** re-deriving the baseline moments that quantity anchors — the boom compression, the yield
 ladder, the rate shock — which is a phase, and one that needs the premium's spread sourced first.
 
+## The gap, stated as tightly as it can be: 0.37pp (2026-09-17)
+
+Two more routes after the map, and they close the search.
+
+**Route 9 — coverage and measurement basis.** The hypothesis was that the gate reads a zone
+aggregate mixing capped and uncapped units while Monràs compares declared municipalities.
+**Refuted by inspection**: `cap_coverage` defaults to **1.0** in the rent-cap experiment, so the
+zone aggregate *is* the declared segment. There is no dilution to correct.
+
+**Route 10 — the index at its declared discount, with the quantity leg calibrated inside its
+sourced range.** This is the only combination that separates the two legs, and it gets closer than
+anything else.
+
+With `reference_rent` tracking the index at the declared 5% instead of drifting to a realised
+20.7%, the price leg lands and **stays there**: rent **−6.84%**, inside the −3% to −7% band, at
+every intermediation share. The price leg is decoupled. Sweeping `intermediation_share` across its
+sourced regional range then moves only the quantity leg:
+
+| `intermediation_share` | rent | new leases | ratio |
+|---|---|---|---|
+| **0.40** (bottom of the sourced range) | −6.84% | **−8.63%** | 1.27 |
+| 0.50 | −6.84% | −8.14% | 1.20 |
+| 0.64 (shipped) | −6.84% | −7.24% | 1.06 |
+| 0.75 | −6.84% | −5.84% | 0.85 |
+| 0.85 (top) | −6.84% | −6.53% | 0.95 |
+| **the gate** | −3% to −7% | **< −9%** | — |
+
+**At the extreme edge of the sourced evidence the quantity leg reaches −8.63% against a threshold
+of −9%. The gap is 0.37pp.** That is the tightest statement of what is missing, and it is reached
+only by pushing a parameter to the end of its range, which is calibration to the target rather
+than a repair.
+
+**And the combination is not shippable anyway**: it takes the suite to **2 failed**, trading
+monràs's price leg for its quantity leg and breaking G3, whose front-loading signal dissolves when
+a 5% bite leaves too few withdrawals to taper.
+
+**Ten routes, and the search is closed.** The shipped state remains route 3 alone —
+**1 failed / 180 passed / 8 xfailed**, from 6 / 175 / 8. What stands between the model and zero is
+0.37pp of lease response at the edge of the sourced evidence, and the only lever that would move it
+without touching the price leg is `small_landlord_premium`'s dispersion — pinned at the top of its
+range by the boom-compression gate, and with no sourced spread to draw from.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
