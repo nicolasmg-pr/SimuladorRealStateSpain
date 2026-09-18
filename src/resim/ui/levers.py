@@ -127,19 +127,38 @@ def lever_params(lever: str) -> dict:
                 icon="⚠️",
             )
         else:
-            st.error(
-                "**Este régimen no está medido — aquí no se reporta ni la dirección.** Lo que "
-                "cambió el 2026-09-18 es el motivo, no la conclusión: las pruebas del régimen "
-                "calibrado (F1–F3, Ley 11/2020) están **verdes**, así que la prueba fuera de "
-                "muestra de la Ley 12/2023 (§7.2, F4) ya no está bloqueada — simplemente **no se "
-                "ha corrido**. El protocolo de §7.2 es explícito: este régimen no pasa de «no "
-                "reportable» a «dirección» hasta que F4 caiga dentro del vano (model-spec §13.7). "
-                "Y la ley topa a otra población: al particular lo ata su propio contrato anterior "
-                "más el IRAV, no el índice, y los particulares tienen el 85–92% del parque. Las "
-                "cifras que este escenario haya publicado antes (artefacto `rent-cap-state-law`, "
-                "docs/claims.md) son **anteriores a §5b.3** y no se han vuelto a medir. Nada de "
-                "este panel es un resultado.",
-                icon="⛔",
+            # F4 RAN 2026-09-18, once, and did not fire. §7.2's "Reporting consequence" says in
+            # as many words that this warning is then rewritten "to say what may be read rather
+            # than only what may not" — so it is. But the consequence is discharged LEG BY LEG,
+            # because that is how F4 passed: the lease leg carries a sign (t = −3.59, 8/10 seeds)
+            # and the rent leg lands on the span's zero end (|mean| < 1 se, 4/10 seeds positive),
+            # which is Pérez García's endpoint reproduced and not a measured fall. Pre-registered
+            # at 4c4eb58 before the run at 21a5623; record in the prereg file and in
+            # docs/validation.md ("F4, the one shot, taken"). The UI computes none of it.
+            st.info(
+                "**Bajo la ley vigente se puede leer una dirección, y sólo en los contratos.** La "
+                "prueba fuera de muestra de este régimen (§7.2, F4) se corrió **una vez**, el "
+                "2026-09-18, con el vano y el diseño registrados por escrito **antes** de "
+                "ejecutarla. No disparó: el tope **no** sube las rentas — lo que este escenario "
+                "publicaba antes (+16,6%) era un artefacto anterior a §7.2b y §5b.3. Diez "
+                "semillas, parámetros de serie: nuevos contratos **−8,06%** (t = −3,59, "
+                "negativo en 8 de 10 semillas), dentro del vano que va de +1.374 contratos "
+                "[registro, O-HB nº 4] a −13% de arrendamientos [Pérez García]. Eso es una "
+                "**dirección**: el tope contrae los contratos nuevos.",
+                icon="🧭",
+            )
+            st.warning(
+                "**Y no se puede leer nada más: ni el tamaño, ni el efecto sobre la renta.** La "
+                "renta de los contratos marca −0,79%, indistinguible de cero (error típico 1,59pp,"
+                " cuatro de las diez semillas en positivo). Eso reproduce el extremo «efecto ≈0» "
+                "del vano y **no** es la medida de una caída: aquí no hay dirección que reportar, "
+                "sólo la ausencia de la subida que F4 buscaba. **Ninguna cifra de este panel es "
+                "una cantidad citable** — la categoría se fijó en «dirección, nunca magnitud» "
+                "antes de conocer los números. Recuerda además que la ley topa a otra población: "
+                "al particular lo ata su propio contrato anterior más el IRAV, no el índice, y "
+                "los particulares tienen el 85–92% del parque. Registro completo en "
+                "docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md.",
+                icon="⚠️",
             )
         # RETIRED (2026-09-16, §7.2b). Was two sliders: `selling_cost_share` ("Coste de vender
         # (fracción del precio)", 0.01-0.07) and `holding_years` ("Horizonte de la decisión

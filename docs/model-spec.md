@@ -879,6 +879,23 @@ rewriting §7.2 in response to its failure under Ley 12/2023 **spends that evide
 model and becomes a diagnostic. F4 is therefore run **once**, after the three Ley 11/2020 tests
 are green, and its result is registered before anything is touched.
 
+> **RUN 2026-09-18 — F4 DOES NOT FIRE.** Pre-registered at commit `4c4eb58` before the run
+> (`docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md`), executed at `21a5623`, ten seeds,
+> shipped parameters, no sweep. **There is no rise.** Tensioned contract rent reads **−0.79%**
+> (sd 5.03pp, se 1.59pp, t = −0.50, 6/10 seeds negative) and new leases **−8.06%** (se 2.24pp,
+> t = −3.59, 8/10 negative), against a span running from the register (+1,374 contracts, −2.7%
+> real rent) to Pérez García (−13% tenancies, rent ≈0). Both legs land inside it. The +16.6%
+> rent rise this statute produced pre-§7.2b is gone.
+>
+> **The rent leg lands inside the span by sitting on its zero end**, not by measuring a fall:
+> |mean| < 1 se with four seeds positive, which reproduces Pérez García's endpoint and nothing
+> stronger. By G1's ten-seed sign standard it would not clear; F4 does not ask that of it, and
+> the record says so rather than borrowing the lease leg's significance for it. The co-movement
+> ratio is **not reported** — dividing by a denominator indistinguishable from zero gives 10.6,
+> which is an artefact, not a statistic.
+>
+> **The evidence is not spent.** §7.2 was not rewritten in response, because it did not fail.
+
 #### What §7.2 does not touch
 
 Deliberately, so that a failure can be attributed: `cap_level` and its two statutes; the
@@ -892,6 +909,15 @@ If F1–F3 pass and F4 lands inside the span, the rent cap under Ley 12/2023 mov
 reportable** to **direction** under §13.2 — not to magnitude, which the variance rule would
 refuse while `holding_years` and `selling_cost_share` remain guesses. The warning in
 `ui/levers.py` is then rewritten to say what may be read rather than only what may not.
+
+> **DISCHARGED 2026-09-18, and narrower than the sentence above promises.** F1–F3 are green
+> (§5b.3) and F4 landed inside the span, so the condition is met — but it is met **leg by leg**,
+> and the consequence has to be too. **New leases move to direction**: −8.06%, t = −3.59, eight
+> of ten seeds. **Contract rent does not**: −0.79% is indistinguishable from zero, so there is no
+> direction to report, and what F4 establishes about that leg is the *absence of the rise* it was
+> written to detect — a refuted failure mode, not a finding. `ui/levers.py` is rewritten
+> accordingly: it now says what may be read (the lease direction), what may not (any magnitude,
+> either leg), and what the rent leg is (no measurable effect, not a measured zero).
 
 > **SUPERSEDED (2026-09-16).** F1 passed at exactly one corner of the declared ranges while three
 > inverted the sign, F3 did not fire, and F4 was never run because this section gates it on the
@@ -1161,6 +1187,12 @@ guess awaiting a parameter fit: G2's own corner shows re-fitting `intermediation
 its sourced band cannot close it. The Ley 12/2023 out-of-sample test (§7.2's F4) is still not
 run — it remains gated on the Ley 11/2020 tests being green, and one of the four, G1, is red.
 `ui/levers.py`'s warning is unchanged by this section.
+
+> **BOTH SENTENCES ABOVE ARE OVERTAKEN (2026-09-18), and the paragraph is left standing as the
+> record of what this section knew.** §5b.3 turned G1 green (co-movement 1.061, rent −6.84%), so
+> the registered magnitude error it describes is closed and the gate holding F4 is open. F4 was
+> then run, once, and did not fire — see §7.2's own RUN note and `docs/validation.md`, "F4, the
+> one shot, taken". `ui/levers.py` **is** rewritten, by §7.2's "Reporting consequence".
 
 #### UI
 

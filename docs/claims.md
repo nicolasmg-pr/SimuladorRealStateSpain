@@ -228,6 +228,15 @@ index binds *every* landlord:
 | rent overburden | −4.3% | −1.0% | 10/10 |
 | tensioned price | −10.4% | −11.1% | 10/10 |
 
+> **STALE FROM 2026-09-18, and flagged rather than silently left.** The table above and the
+> first caveat below predate §5b.3, which fixed a factor-four spec–code disagreement in the
+> reference index. At the declared discount the cap cuts contract rents **−6.84%** (inside all
+> three evaluations) with leases **−7.24%**, and G1's co-movement reads **1.061** inside its
+> 0.07–3.2 span — where these rows read −20.6% and a failing gate. The rows are not rewritten
+> here because they come from scenario artefacts that have to be re-run, which is a modelling
+> job; the current figures are in `docs/validation.md` ("Zero failures", 2026-09-18) and
+> `model-spec §5b.3`. **Read those, not these.**
+
 **Two caveats, and the second is new on 2026-09-15.**
 
 *The size still overshoots.* −23.5% against Barcelona's measured ≈−5%, and
@@ -238,16 +247,32 @@ index and −20% on average for the state one. The model's cap is simply harder 
 Monràs evaluated, and the rest of the distance is compliance, composition, and contracts that
 were already below the index — none of which the model separates. Read the sign, not the size.
 
-*Spain's current law is a different instrument, and the model cannot yet report it.* §5b now
-carries both statutes: Ley 11/2020 binds the index on everyone, Ley 12/2023 binds it on grandes
-tenedores and holds everyone else to their own previous contract plus IRAV — or to nothing at
-all, where no contract exists in the last five years. Individuals hold 85–92% of the Spanish
-rental stock, so the difference is most of the market. Run under the current law the model
-produces **rents +16.6% (10/10)** with new leases −16.1%: the withdrawal channel with almost no
-cap holding rents down. **That number is not reportable and is not a prediction** — the exit
-hazard behind it was identified when the index bound every landlord, and nothing has
-re-identified it for a regime where it binds one landlord in ten. It is in the artefact as
-`rent-cap-state-law` so that the gap is visible rather than hidden.
+*Spain's current law is a different instrument, and as of 2026-09-18 the model reports its
+quantity leg — in direction only.* §5b carries both statutes: Ley 11/2020 binds the index on
+everyone, Ley 12/2023 binds it on grandes tenedores and holds everyone else to their own previous
+contract plus IRAV — or to nothing at all, where no contract exists in the last five years.
+Individuals hold 85–92% of the Spanish rental stock, so the difference is most of the market.
+
+**The +16.6% rent rise this claim used to report here is gone**, and the sentence that called it
+not reportable did its job: it was a pre-§7.2b, pre-§5b.3 artefact of an exit hazard identified in
+the other regime. §7.2's F4 — the out-of-sample test, deferred since 2026-09-16 on its own
+protocol, pre-registered at commit `4c4eb58` and run once at `21a5623` — reads ten seeds at the
+shipped parameters:
+
+| | pooled | se | t | seeds negative | span |
+|---|---|---|---|---|---|
+| tensioned contract rent | **−0.79%** | 1.59pp | −0.50 | 6/10 | ≈0 [Pérez García] to −2.7% real [O-HB no. 4] |
+| new leases, tensioned | **−8.06%** | 2.24pp | −3.59 | 8/10 | +1,374 contracts [O-HB no. 4] to −13% tenancies [Pérez García] |
+
+**What F4 establishes: the cap contracts new leases under the statute in force — direction only —
+and has no measurable effect on contract rents.** (The section's own verdict, on the Ley 11/2020
+evidence this claim is about, is at the foot of the section and is unchanged by F4.) Both legs
+land inside the span, but they land differently:
+the lease leg carries a sign at t = −3.59, while the rent leg lands on the span's **zero end**
+with four of ten seeds positive, which reproduces Pérez García's endpoint and is not a measurement
+of a fall. **No magnitude is claimed on either leg**, as pre-registered before the run. Full
+record: `docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md`, artefact
+`runs/f4-ley12-2023-seeds1-10-a5db64c429.csv`.
 
 **Verdict: supported in direction, and the model overshoots the size.** Its cap covers the
 whole tensioned zone where Spain's covers ≈42% of it, and the measured −15% against Barcelona's

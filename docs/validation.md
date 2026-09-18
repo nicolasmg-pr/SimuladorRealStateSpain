@@ -4155,6 +4155,46 @@ Monràs measures. That is inside the evidence, not a match to it. The price leg 
 literature agrees on and the leg the model now reproduces. G1's co-movement reads **1.061** against
 a 0.07–3.2 span.
 
+## F4, the one shot, taken — Ley 12/2023 out of sample (2026-09-18)
+
+**§7.2's F4 has been run, once, and it does not fire.** It had been deferred since 2026-09-16 on
+§7.2's own protocol — not until F1–F3 are green — and §5b.3 turned them green that morning. The
+span, the design and the reporting category were fixed in writing at commit `4c4eb58` before the
+run, which happened at `21a5623`; both are in
+`docs/prereg/2026-09-18-f4-ley-12-2023-out-of-sample.md`. Ten seeds, shipped parameters, no sweep,
+measured with the same helper every Ley 11/2020 figure in this file is measured with.
+
+| | pooled | sd | se | t | seeds negative | span it is read against |
+|---|---|---|---|---|---|---|
+| tensioned contract rent | **−0.79%** | 5.03pp | 1.59pp | −0.50 | 6/10 | ≈0 [Pérez García] to −2.7% real [O-HB no. 4] |
+| new leases, tensioned | **−8.06%** | 7.10pp | 2.24pp | −3.59 | 8/10 | +1,374 contracts [O-HB no. 4] to −13% tenancies [Pérez García] |
+
+**What F4 was written about is a rise, and there is no rise.** The +16.6% this statute produced
+the last time it was read (`rent-cap-state-law`, pre-§7.2b and pre-§5b.3) is gone. Both legs land
+inside the span.
+
+**Read it leg by leg, because it passes leg by leg.** The rent leg lands inside the span by
+sitting on its **zero end**: |mean| < 1 se, t = −0.50, four of the ten seeds positive. That
+reproduces Pérez García's endpoint and nothing stronger — the model does not measure a −2.7% fall
+under this statute, it measures nothing distinguishable from no effect. Against the standard this
+project applies next door (G1: the correct sign at *every* one of ten seeds, Ley 11/2020) this leg
+would not clear, and F4's text does not ask it to. The lease leg is the one carrying a sign:
+−8.06% at t = −3.59, inside the span and nowhere near its −13% edge.
+
+**Consequence, narrower than §7.2's "Reporting consequence" sentence promises.** New leases under
+Ley 12/2023 move from *not reportable* to **direction**. Contract rent does not acquire a
+direction — there is none to report — and what it acquires instead is a refuted failure mode.
+Neither leg acquires a **magnitude**, exactly as pre-registered, and that was settled before the
+numbers existed.
+
+**Not reported: the co-movement ratio.** It computes to 10.6 here, which is what dividing by a
+denominator indistinguishable from zero does. Recorded so that nobody recomputes it and reports
+it as a finding.
+
+**The evidence is not spent.** §7.2 was not rewritten in response to this run, because it did not
+fail. Ley 12/2023 remains available to validate this model — unlike 2008–13 (§13.11), and that
+distinction is the whole reason F4 was run once, after a gate, against a span fixed beforehand.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
