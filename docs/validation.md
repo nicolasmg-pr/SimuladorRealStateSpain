@@ -4051,6 +4051,59 @@ a 5% bite leaves too few withdrawals to taper.
 without touching the price leg is `small_landlord_premium`'s dispersion — pinned at the top of its
 range by the boom-compression gate, and with no sourced spread to draw from.
 
+## The decision the last failure comes down to (2026-09-17)
+
+Eleven routes measured. The search ends not at a missing mechanism but at a **choice between two
+states**, and the choice is a modelling judgement rather than a repair.
+
+### The evidence, separated
+
+The three registered Catalan evaluations **agree on price and disagree on supply**:
+
+| study | rent effect | supply effect |
+|---|---|---|
+| Jofre-Monseny, Martínez-Mazza & Segú (2023, RSUE) | **−4/−6%** | **none** |
+| Kholodilin, López, Rey Blanco & González Arbués (2022, DIW) | **−6/−7%** asking | **no listings effect** |
+| Generalitat / MIVAU year-1 assessment | **−3.7/−6.4%** | — |
+| Monràs & García-Montalvo | −5% | **−10% to −20% contracts** |
+
+`docs/sources.md` flags the split explicitly — *"(supply disagreement)"* on the Jofre-Monseny row.
+**The price effect is not disputed. The supply effect is, and two of the three independent studies
+find none at all.**
+
+### The two states
+
+**A — shipped.** `reference_rent` keeps its EWMA at weight 0.1. Rent **−20.6%**, leases −17.0%.
+The price leg is **3–5× every registered estimate**; the quantity leg sits inside Monràs's band.
+Suite **1 failed** (monràs, on price).
+
+**B — the index at its declared discount.** `cap_reference_discount` declares 5%, range 0–10%,
+and the EWMA delivers a realised **−20.7%**: a spec–code disagreement measured to five seeds.
+Fixed, rent reads **−6.84%** — inside all three price estimates — and leases −7.24%, which sits
+*between* Monràs's −10/−20% and the two studies finding nothing. Suite **2 failed**: monràs on its
+quantity threshold, and **G3**.
+
+**G3's failure under B is real, not noise.** Pooled over ten seeds it reads **373 against 392** —
+back-loaded. The mechanism is coherent: §7.2b's front-loading assumes a fixed bite, and a cap
+indexed at IRAV against a growing market has a bite that **widens** over the term, so selling later
+becomes rational. Under a correctly-set index, **§7.2b's Piece B timing claim is falsified**.
+
+### Why this is a judgement and not a repair
+
+State B fixes a measured spec–code bug and brings the price leg inside every source that reports
+it. It costs a declared falsification firing — which is what falsifications are for — and it leaves
+the quantity leg asserting Monràs's point against two studies that find no supply effect, which
+CLAUDE.md's own bias rule (*"disputed estimates become parameter ranges, never resolved point
+values"*) says a gate should not do.
+
+State A keeps the suite at one failure and keeps a price response three to five times every
+published estimate.
+
+**Neither reaches zero.** A has one failure and a wrong price leg; B has two failures and a right
+one. **Shipped: A**, because changing it is a modelling decision about which of two disagreeing
+literatures the model is calibrated against, and that belongs to whoever owns the model rather than
+to whoever is clearing a test list.
+
 ## Known gaps
 
 - Boom-time rent growth (target 7r) — structural, see F4–F6 above and `model-spec` §10.
