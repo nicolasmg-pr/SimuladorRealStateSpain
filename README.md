@@ -6,8 +6,9 @@ transactions, and policy interventions can be applied to see what actually moves
 
 **Status: the redesign's seven phases are done** (precision contract, bug fixes,
 profitability block, insolvency, price formation, recalibration, claims ledger). The model
-runs, is calibrated on 2014–2025 moments, has been tested once out of sample against 2008–13,
-and reports **directions, not price forecasts** — see the reporting contract below.
+runs, is calibrated on 2014–2025 moments, has been tested out of sample twice — the sealed
+2008–13 episode and the rent-cap statute in force — and quotes a number only where the variance
+rule allows one, **never a dated forecast** — see the reporting contract below.
 
 New here, or explaining this to someone else? Open
 **[presentation/simulador-por-dentro.html](presentation/simulador-por-dentro.html)** — 22
@@ -66,14 +67,29 @@ docs/
 
 ## What the model may and may not claim
 
-After the phase-E sensitivity analysis the variance rule (`model-spec §13.9`) leaves exactly
-two quantities reportable as magnitudes — the ownership rate and the arrears share. Everything
-else, the price level included, is reported as a **direction**: which lever moves what, in
-which sign, in which zone. Point forecasts are outside the contract by design.
+The variance rule (`model-spec §13.2`) decides it, not taste: no quantity is quoted as a
+number if an unsourced parameter explains more than 25% of its variance in the Sobol
+decomposition. After the phase-G re-run (1,792 evaluations) and the sourcing work of §5c.8
+that leaves:
 
-Nothing is reported on fewer than ten seeds, no result is quoted without the seed count, and
-the 2008–13 hold-out is spent: it was run once, three of six pre-registered predictions passed,
-and no parameter may be changed on its evidence again.
+- **magnitudes**, each conditional on its sourced bands — the price level and price-to-income,
+  transactions, completions, arrears, time to sale, bids per listing.
+- **direction only** — the whole rent side (rent level, tensioned vacancy, overburden), the
+  ownership rate, the zone price ratio, the cash-purchase share and the negotiation margin.
+  Read the sign and the seed count, never the size.
+- **neither** — the rent leg of any supply lever. Building at saturation fills the zone with
+  empty dwellings and leaves the posted ask where it was, because the one channel from supply
+  to the ask is clipped at −2.5% (`docs/validation.md`, 2026-09-18).
+
+Point forecasts are outside the contract by design: the model has no calendar, so tick 60 is
+"≈15 years of a Spain-like market", not 2041.
+
+Nothing is reported on fewer than ten seeds and no result is quoted without the seed count.
+Two out-of-sample tests have been taken, each exactly once and each pre-registered before it
+ran: the 2008–13 hold-out (2026-09-14 — three of six predictions passed, and no parameter may
+be changed on its evidence again) and Ley 12/2023, the rent-cap statute in force (2026-09-18 —
+the failure condition was a rise in tensioned rent; the model produced −0.79%, indistinguishable
+from zero, so the prediction held and the evidence is not spent).
 
 ## Before changing model code
 

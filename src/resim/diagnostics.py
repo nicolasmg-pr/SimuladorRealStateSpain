@@ -9,10 +9,11 @@ hand-maintained table in `docs/validation.md`.
 
 Three separate things, deliberately kept apart:
 
-  - `tests/test_validation.py` — the gate. Strict xfails, 3 seeds, `build_scenario`.
-    It decides whether a target passes; nothing here does.
-  - this module — the same criteria, evaluated on **one** frame for display. Diagnostic,
-    never a gate.
+  - `tests/test_validation.py` — the gate. Strict xfails, ten seeds (`SEEDS`, since the
+    phase-E rule that nothing is reported on fewer), `build_scenario`. It decides whether
+    a target passes; nothing here does.
+  - this module — the same criteria, evaluated on the frame it is handed, for display.
+    Diagnostic, never a gate.
   - `benchmarks.py` — national headline numbers against official published figures.
     Different question (is the level right?), different sources, different table.
 
@@ -22,9 +23,11 @@ re-derived.** If the two ever disagree, the test is right and this file is the b
 which widens it for seed noise (±0.5pp on the zone yields, the same tolerance convention
 as the other zone targets).
 
-**One seed is not the gate's basis.** The suite averages 3 seeds; the app runs whatever
-seed the sidebar is set to. A row that reads ✅ here on one seed can still be a registered
-xfail, and `registered` is what says so. The UI states this.
+**This is not the gate's basis, whatever it is measured on.** The suite pools ten seeds;
+the app hands this module `metrics.pool` over the sidebar's seed pool — three by default
+since 2026-09-18, and a single seed only if the reader drags the slider to 1. A row that
+reads ✅ on the pool in front of you can still be a registered xfail, and `registered` is
+what says so. The UI states this.
 """
 
 from __future__ import annotations
