@@ -9,6 +9,11 @@ profitability block, insolvency, price formation, recalibration, claims ledger).
 runs, is calibrated on 2014–2025 moments, has been tested once out of sample against 2008–13,
 and reports **directions, not price forecasts** — see the reporting contract below.
 
+New here, or explaining this to someone else? Open
+**[presentation/simulador-por-dentro.html](presentation/simulador-por-dentro.html)** — 22
+slides, plain Spanish, no prerequisites: how the model works, how it is built, and the
+systems-engineering practices behind it.
+
 Start here: **[docs/claims.md](docs/claims.md)** — public claims about Spanish housing, each
 quoted and attributed, against what the model can actually say about them. That file is what
 the rest of the repository exists to produce.
@@ -46,6 +51,7 @@ src/resim/
 ├── market/        # housing stock, matching, price formation
 └── ui/            # Streamlit app
 tests/             # outside the package
+presentation/      # one Spanish slide deck explaining the model to non-specialists
 docs/
 ├── claims.md            # public claims vs the model — the output
 ├── model-spec.md        # every model decision, written before it was coded

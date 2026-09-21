@@ -1,0 +1,863 @@
+<title>El simulador por dentro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+:root {
+  --ground: #edf0ef;
+  --surface: #ffffff;
+  --surface-2: #e4e9e8;
+  --ink: #132430;
+  --ink-2: #47585f;
+  --ink-3: #74848a;
+  --line: #cdd6d5;
+  --line-strong: #9fadad;
+  --azulejo: #175b8a;
+  --azulejo-soft: #dce8f1;
+  --ocre: #9d5f22;
+  --ocre-soft: #f1e5d6;
+  --verde: #2b6b50;
+  --rojo: #a2333f;
+  --shadow: 0 1px 0 rgba(19, 36, 48, .06), 0 12px 32px -24px rgba(19, 36, 48, .5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0d1720;
+    --surface: #141f29;
+    --surface-2: #1b2833;
+    --ink: #e7eef1;
+    --ink-2: #a9bac2;
+    --ink-3: #7d8f98;
+    --line: #27353f;
+    --line-strong: #3c4d58;
+    --azulejo: #79b4dd;
+    --azulejo-soft: #16303f;
+    --ocre: #d69a5e;
+    --ocre-soft: #2e2417;
+    --verde: #6fb894;
+    --rojo: #dd8189;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 14px 34px -26px rgba(0, 0, 0, .9);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0d1720;
+  --surface: #141f29;
+  --surface-2: #1b2833;
+  --ink: #e7eef1;
+  --ink-2: #a9bac2;
+  --ink-3: #7d8f98;
+  --line: #27353f;
+  --line-strong: #3c4d58;
+  --azulejo: #79b4dd;
+  --azulejo-soft: #16303f;
+  --ocre: #d69a5e;
+  --ocre-soft: #2e2417;
+  --verde: #6fb894;
+  --rojo: #dd8189;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 14px 34px -26px rgba(0, 0, 0, .9);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck { scroll-behavior: auto; }
+}
+
+.slide {
+  scroll-snap-align: start;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 28px;
+  align-content: start;
+  padding-block: clamp(36px, 6vh, 72px) clamp(56px, 8vh, 96px);
+  padding-inline: clamp(18px, 4vw, 64px);
+  border-bottom: 1px solid var(--line);
+}
+
+.rail {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 2px solid var(--line-strong);
+}
+.rail b { color: var(--ink-2); font-weight: 500; letter-spacing: .1em; }
+.rail .part-1 { color: var(--azulejo); }
+.rail .part-2 { color: var(--ocre); }
+.rail .part-3 { color: var(--verde); }
+
+.body { max-width: 74ch; display: flex; flex-direction: column; gap: 18px; }
+
+h1 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-size: clamp(38px, 6.4vw, 74px);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+h2 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-size: clamp(25px, 3.6vw, 40px);
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+h3 {
+  font-size: 13px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin: 0;
+}
+p { margin: 0; max-width: 66ch; color: var(--ink-2); }
+p.lead { font-size: clamp(17px, 2vw, 21px); color: var(--ink); line-height: 1.5; }
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--azulejo); }
+
+.kicker {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ——— example block: the recurring object of this deck ——— */
+.ej {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ocre);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.ej .tag {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ocre);
+  padding-top: 3px;
+  white-space: nowrap;
+}
+.ej p { color: var(--ink); }
+.ej p + p { margin-top: 8px; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.cols.tight { gap: 12px; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.panel h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.panel p { font-size: 14.5px; }
+.panel.yes { border-top: 3px solid var(--verde); }
+.panel.no { border-top: 3px solid var(--rojo); }
+
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+  white-space: nowrap;
+}
+td { color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+/* ——— the quarter, as an ordered sequence (order carries meaning) ——— */
+ol.pasos { list-style: none; counter-reset: paso; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+ol.pasos li {
+  counter-increment: paso;
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+ol.pasos li::before {
+  content: counter(paso);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--azulejo);
+  padding-top: 3px;
+}
+ol.pasos li b { color: var(--ink); font-weight: 600; }
+ol.pasos li.mark { background: var(--azulejo-soft); }
+
+/* ——— chain: source to screen ——— */
+.cadena { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.cadena .eslabon {
+  flex: 1 1 150px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--azulejo);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cadena .eslabon .n {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cadena .eslabon b { font-size: 14.5px; }
+.cadena .eslabon span { font-size: 13px; color: var(--ink-2); }
+
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 7px; color: var(--ink-2); font-size: 15px; }
+ul.plain li strong { color: var(--ink); }
+ul.plain li code, p code, td code, .ej code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .88em;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  color: var(--ink);
+}
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.stat { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.stat .v { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: clamp(20px, 2.6vw, 26px); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 13px; color: var(--ink-2); }
+
+.mundos { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; align-items: stretch; }
+.mundo { border: 1px solid var(--line); background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.mundo .t { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.mundo.a { border-left: 3px solid var(--line-strong); }
+.mundo.b { border-left: 3px solid var(--azulejo); }
+.mundo.d { border-left: 3px solid var(--ocre); background: var(--ocre-soft); }
+.mundo p { font-size: 14px; }
+
+.footnote { font-size: 12.5px; color: var(--ink-3); font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+/* ——— navigation ——— */
+.hud {
+  position: fixed;
+  right: clamp(12px, 3vw, 28px);
+  bottom: clamp(12px, 3vh, 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+.hud button {
+  font: inherit;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.hud button:hover { color: var(--ink); border-color: var(--line-strong); }
+.hud button:focus-visible, a:focus-visible { outline: 2px solid var(--azulejo); outline-offset: 2px; }
+.hud .count { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; padding-inline: 4px; }
+
+.progress { position: fixed; top: 0; left: 0; height: 2px; background: var(--azulejo); width: 0; z-index: 11; transition: width .2s linear; }
+@media (prefers-reduced-motion: reduce) { .progress { transition: none; } }
+
+@media (max-width: 720px) {
+  .slide { grid-template-columns: minmax(0, 1fr); gap: 18px; min-height: auto; padding-block: 40px 56px; }
+  .rail { flex-direction: row; gap: 14px; flex-wrap: wrap; }
+  .deck { scroll-snap-type: none; }
+}
+@media print {
+  .deck { height: auto; overflow: visible; }
+  .slide { min-height: auto; page-break-after: always; border-bottom: 0; }
+  .hud, .progress { display: none; }
+}
+</style>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck" tabindex="-1">
+
+  <!-- 1 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b>Portada</b><span>18·09·2026</span></div>
+    <div class="body">
+      <p class="kicker">Simulador del mercado de vivienda español</p>
+      <h1>El simulador por dentro</h1>
+      <p class="lead">Cómo funciona el modelo, cómo está construido y sobre qué ingeniería se apoya. Sin fórmulas, con ejemplos.</p>
+      <div class="stat-row">
+        <div class="stat"><span class="v">3</span><span class="k">partes: el modelo · la construcción · la ingeniería</span></div>
+        <div class="stat"><span class="v">22</span><span class="k">diapositivas</span></div>
+        <div class="stat"><span class="v">~12 min</span><span class="k">de lectura</span></div>
+      </div>
+      <p class="footnote">Avanza con → o espacio · retrocede con ← · también se puede bajar con la rueda</p>
+    </div>
+  </section>
+
+  <!-- 2 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>02 / 22</span></div>
+    <div class="body">
+      <h2>La pregunta que hay detrás</h2>
+      <p class="lead">«Si el gobierno hace <em>esto</em>, ¿qué pasa con los precios, con los alquileres y con quién puede vivir dónde?»</p>
+      <p>Es una pregunta que no se puede responder mirando lo que pasó, porque cuando una ley entra en vigor cambian a la vez otras diez cosas: los tipos de interés, el empleo, la construcción, quién se muda. Separar el efecto de la ley del resto es, en la práctica, imposible.</p>
+      <div class="ej">
+        <span class="tag">Ejemplo</span>
+        <div>
+          <p>Cataluña topó los alquileres en 2020. Tres equipos de investigadores analizaron <strong>los mismos datos</strong> y llegaron a conclusiones distintas: desde «no se retiró ni un piso del mercado» hasta «cayeron un 10% los contratos nuevos».</p>
+          <p>No es mala fe: es que nadie pudo ver la Cataluña sin tope de alquiler para compararla.</p>
+        </div>
+      </div>
+      <p><strong>Este simulador existe para eso:</strong> para poder ver los dos mundos.</p>
+    </div>
+  </section>
+
+  <!-- 3 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>03 / 22</span></div>
+    <div class="body">
+      <h2>Un laboratorio, no una bola de cristal</h2>
+      <div class="cols">
+        <div class="panel yes">
+          <h4>Lo que sí hace</h4>
+          <p>Comparar dos mundos idénticos en los que sólo cambia la política, y medir la diferencia.</p>
+          <p>Poner número y sentido a un mecanismo: quién gana, quién pierde, por qué canal.</p>
+          <p>Decir en voz alta lo que no sabe.</p>
+        </div>
+        <div class="panel no">
+          <h4>Lo que no hace</h4>
+          <p>Decir el precio del metro cuadrado en Madrid en 2029. No hay calendario dentro: el trimestre 1 no es 2026T1.</p>
+          <p>Sustituir el debate político. Dice qué mueve una palanca, no si merece la pena moverla.</p>
+        </div>
+      </div>
+      <div class="ej">
+        <span class="tag">La forma</span>
+        <div><p>La salida nunca es «el precio subirá un 7%». Es <strong>«si el mundo se parece al supuesto A, pasa X; si se parece al supuesto B, pasa Y»</strong> — y los dos supuestos están escritos, con su fuente.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>04 / 22</span></div>
+    <div class="body">
+      <h2>Quién vive dentro</h2>
+      <p>Diez mil agentes con dinero, deudas y una decisión que tomar cada tres meses. Nadie fija los precios: el precio es lo que queda cuando todas esas decisiones chocan.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Actor</th><th>Decide cada trimestre</th><th>Ejemplo de decisión</th></tr></thead>
+          <tbody>
+            <tr><td>Hogar propietario</td><td>Quedarse, mudarse, vender</td><td>«Mi piso vale más que mi hipoteca y cambio de ciudad: vendo»</td></tr>
+            <tr><td>Inquilino o buscador</td><td>Seguir alquilado, mudarse, comprar</td><td>«Con mis ahorros llego a la entrada: pido hipoteca»</td></tr>
+            <tr><td>Pequeño casero</td><td>Renta, vender, retirar el piso</td><td>«Con el tope gano menos alquilando que vendiendo»</td></tr>
+            <tr><td>Gran inversor</td><td>Comprar o vender cartera</td><td>«Fuera del metro el alquiler renta un 7%: compro allí»</td></tr>
+            <tr><td>Promotor</td><td>Empezar obra nueva</td><td>«El precio de venta cubre suelo y obra con margen: arranco»</td></tr>
+            <tr><td>Banco</td><td>Conceder o denegar, ejecutar</td><td>«La cuota se llevaría el 45% de su renta: denegada»</td></tr>
+            <tr><td>Gobierno</td><td>Aplica la política elegida</td><td>Tope de alquiler, vivienda pública, impuestos, suelo…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="footnote">Cada actor tiene su propio dossier documental, con las fuentes de las que sale cada regla de comportamiento: docs/actors/</p>
+    </div>
+  </section>
+
+  <!-- 5 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>05 / 22</span></div>
+    <div class="body">
+      <h2>Un trimestre, en nueve pasos</h2>
+      <p>El orden importa tanto como las reglas, así que está escrito en un solo sitio del código y se ejecuta siempre igual.</p>
+      <ol class="pasos">
+        <li><b>Macro y política</b> — entra la ley elegida; se actualizan el euríbor y el índice de alquiler.</li>
+        <li><b>Demografía</b> — se forman hogares nuevos, otros se disuelven, y hay quien se muda de zona.</li>
+        <li><b>Expectativas</b> — cada uno mira cómo fueron los últimos trimestres y se hace una idea de lo que viene.</li>
+        <li><b>Decisiones</b> — hogares, caseros, inversores y promotores dicen qué quieren hacer. Todavía no pasa nada.</li>
+        <li class="mark"><b>Filtro del banco</b> — se comprueba quién puede pagar de verdad. Querer comprar no es poder comprar.</li>
+        <li><b>Mercado</b> — primero las ventas, luego los alquileres. Aquí se forman los precios.</li>
+        <li><b>Liquidación</b> — cambian de manos las llaves, el dinero y las hipotecas.</li>
+        <li><b>Obra</b> — llegan las viviendas empezadas hace dos años; arrancan las nuevas.</li>
+        <li><b>Impagos y foto final</b> — se aplica el paro, se cobran o no las cuotas, y se anota la fila de indicadores.</li>
+      </ol>
+      <div class="ej">
+        <span class="tag">Por qué ese orden</span>
+        <div><p>El banco decide <strong>antes</strong> que el mercado. Por eso en el modelo, cuando suben los tipos, primero se hunde el número de operaciones y sólo después se mueve el precio — que es exactamente lo que pasó en España en 2022–23: hipotecas −18%, precios +4%.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>06 / 22</span></div>
+    <div class="body">
+      <h2>De dónde sale el precio</h2>
+      <p>De una subasta pequeña, repetida miles de veces. El vendedor publica con un margen; los compradores que el banco ha aprobado pujan; se cierra arriba del todo. Nadie escribe el precio en ningún sitio: sale de ahí.</p>
+      <div class="ej">
+        <span class="tag">Ejemplo</span>
+        <div>
+          <p>Un piso sale anunciado a <strong>200.000 €</strong>. Aparecen dos compradores aprobados: uno llega a 205.000, el otro a 191.000. Se cierra en algo por encima del segundo, no en lo que podía pagar el primero.</p>
+          <p>Esa pequeña diferencia entre lo anunciado y lo firmado es medible en la realidad, y sirve para comprobar que la subasta está bien hecha: el modelo da un <strong>5,2%</strong> de margen medio de negociación, contra un <strong>6,2%</strong> observado (Cátedra Tecnocasa-UPF).</p>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><span class="v">2,2</span><span class="k">pujas por anuncio vendido</span></div>
+        <div class="stat"><span class="v">≈53%</span><span class="k">se vende en el mismo trimestre (dato real, y el modelo dentro de banda)</span></div>
+        <div class="stat"><span class="v">8,0%</span><span class="k">de dispersión entre pisos parecidos</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>07 / 22</span></div>
+    <div class="body">
+      <h2>Tres Españas, y una regla de tres</h2>
+      <div class="cols tight">
+        <div class="panel"><h4>Metro tensionado</h4><p>Madrid, Barcelona y costa caliente. Aquí muerden casi todas las políticas.</p></div>
+        <div class="panel"><h4>Ciudad secundaria</h4><p>Valladolid, Zaragoza, Murcia.</p></div>
+        <div class="panel"><h4>Rural</h4><p>Soria, Teruel, Cuenca. La España vaciada.</p></div>
+      </div>
+      <p>Se puede uno mudar entre ellas, y eso importa: una política que abarata el metro trae gente al metro, y parte del efecto se escapa por ahí.</p>
+      <div class="ej">
+        <span class="tag">La escala</span>
+        <div>
+          <p>Un hogar del modelo equivale a <strong>2.000 hogares reales</strong> (10.000 agentes ≈ 19,9 millones de hogares españoles), y cada paso son tres meses. Así se traduce a cifras oficiales:</p>
+          <p><code>12 viviendas terminadas en un trimestre × 2.000 × 4 trimestres ≈ 96.000 al año</code> — que es el orden de magnitud del dato real (92.000).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-1">Parte 1</b><span>El modelo</span><span>08 / 22</span></div>
+    <div class="body">
+      <h2>Mundos gemelos y tiradas de dados</h2>
+      <p>Cada escenario se ejecuta dos veces: una con la política y otra sin ella, con <strong>exactamente la misma suerte</strong>. La diferencia entre los dos no puede ser otra cosa que la política.</p>
+      <div class="mundos">
+        <div class="mundo a"><span class="t">Mundo A · base</span><p>Mismos hogares, mismos paros, mismas herencias. Sin política.</p></div>
+        <div class="mundo b"><span class="t">Mundo B · escenario</span><p>Todo idéntico, más la ley.</p></div>
+        <div class="mundo d"><span class="t">B − A</span><p>El efecto de la ley, limpio de todo lo demás.</p></div>
+      </div>
+      <p>La «suerte» de un mundo se llama <strong>semilla</strong>: quién se queda en paro, quién hereda, a quién le toca el piso bueno. Y una sola semilla engaña.</p>
+      <div class="ej">
+        <span class="tag">Por qué se promedian</span>
+        <div><p>Un programa de vivienda pública a saturación mueve el alquiler del metro entre <strong>−197 y +92 €/mes</strong> según la semilla. Con una sola, la pantalla habría dibujado una flecha verde enorme o una roja enorme, y las dos habrían sido ruido. Por eso la app corre varios mundos y, cuando el efecto es menor que la distancia entre ellos, lo pinta <strong>«≈ 0» en gris</strong>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-2">Parte 2</b><span>La construcción</span><span>09 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Parte 2</p>
+      <h2>Cómo está construido</h2>
+      <p class="lead">Un modelo que nadie puede auditar no vale nada, por muy bien que acierte. Casi todas las decisiones de arquitectura de aquí existen para que se pueda auditar.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Pieza</th><th>De qué se ocupa</th><th>Regla que no se rompe</th></tr></thead>
+          <tbody>
+            <tr><td>engine.py</td><td>El reloj: los nueve pasos del trimestre</td><td>El orden se escribe una vez, y sólo aquí</td></tr>
+            <tr><td>agents/</td><td>Cómo decide cada actor</td><td>Leen el mundo, no lo tocan: devuelven intenciones</td></tr>
+            <tr><td>market/clearing.py</td><td>Casar compradores y vendedores</td><td>Es el único que escribe quién posee qué</td></tr>
+            <tr><td>metrics.py</td><td>Los indicadores</td><td>Cada indicador se define una vez; la pantalla nunca calcula</td></tr>
+            <tr><td>config.py</td><td>Cómo funciona el mundo</td><td>Parámetros con unidad y fuente</td></tr>
+            <tr><td>scenario.py</td><td>Qué le hacemos al mundo</td><td>Nunca se mezcla con lo anterior</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ej">
+        <span class="tag">Por qué separar</span>
+        <div><p>«Los tipos de interés están al 3%» es <strong>cómo es el mundo</strong>. «A partir del trimestre 8 se topan los alquileres» es <strong>lo que le hacemos</strong>. Si las dos cosas viven en el mismo sitio, al final nadie sabe si un resultado salió de la ley o de un supuesto que alguien tocó de paso.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-2">Parte 2</b><span>La construcción</span><span>10 / 22</span></div>
+    <div class="body">
+      <h2>Una regla, de la fuente a la pantalla</h2>
+      <p>Ninguna regla de comportamiento entra en el código por intuición. Éste es el camino completo de una sola: <em>«¿a cuánto pone el casero el alquiler?»</em></p>
+      <div class="cadena">
+        <div class="eslabon"><span class="n">1 · Fuente</span><b>Dos fuentes independientes</b><span>Y de distinto signo político: nunca una sola familia de informes.</span></div>
+        <div class="eslabon"><span class="n">2 · Dossier</span><b>Ficha del actor</b><span>Se apunta lo que dice cada una, incluido el desacuerdo.</span></div>
+        <div class="eslabon"><span class="n">3 · Parámetro</span><b>Un rango, no un número</b><span>Si las fuentes discrepan, el desacuerdo se conserva.</span></div>
+        <div class="eslabon"><span class="n">4 · Especificación</span><b>Escrito antes de programar</b><span>La regla, en castellano, con su justificación.</span></div>
+        <div class="eslabon"><span class="n">5 · Código</span><b>Implementación</b><span>Una función pequeña que hace lo que dice la ficha.</span></div>
+        <div class="eslabon"><span class="n">6 · Test</span><b>Un test que vigila</b><span>Si alguien cambia la regla sin querer, salta.</span></div>
+        <div class="eslabon"><span class="n">7 · Pantalla</span><b>Visible con su fuente</b><span>El deslizador enseña el rango y de dónde sale.</span></div>
+      </div>
+      <div class="ej">
+        <span class="tag">El resultado visible</span>
+        <div><p>Por eso la barra lateral tiene deslizadores «en disputa». El del tope de alquiler no es un capricho: es literalmente el desacuerdo entre aquellos tres estudios catalanes, convertido en algo que puedes mover con el ratón para ver los dos mundos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-2">Parte 2</b><span>La construcción</span><span>11 / 22</span></div>
+    <div class="body">
+      <h2>La documentación es parte del producto</h2>
+      <p>En este proyecto pesa más el texto que el código, y es a propósito: el código dice <em>qué</em> hace el modelo; los documentos dicen <em>por qué</em>, y son lo único que permite discutirlo.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Documento</th><th>Qué contiene</th></tr></thead>
+          <tbody>
+            <tr><td>sources.md</td><td>Registro de cada documento usado: institución, sesgo declarado, fecha. Sin una fila aquí, una fuente no entra.</td></tr>
+            <tr><td>model-spec.md</td><td>Todas las decisiones del modelo, escritas antes de programarlas.</td></tr>
+            <tr><td>actors/</td><td>Siete dossiers, uno por actor, con sus reglas de decisión observadas.</td></tr>
+            <tr><td>policies/</td><td>Qué dice la evidencia de cada política, antes de simularla.</td></tr>
+            <tr><td>validation.md</td><td>Diario de qué reproduce el modelo y qué no, con fecha.</td></tr>
+            <tr><td>claims.md</td><td>Once afirmaciones del debate público, contrastadas contra el modelo, con veredicto.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ej">
+        <span class="tag">Ejemplo de veredicto</span>
+        <div><p>«La vivienda siempre sube»: <strong>contradicha</strong> por el propio modelo. «La vivienda pública baja los alquileres»: <strong>apoyada para el alquiler y el acceso, pero no para el precio de compra</strong>, que en el modelo sube ligeramente en las diez semillas. Un veredicto sólo puede ser uno de cuatro: apoyada, contradicha, condicional o indecidible.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>La ingeniería</span><span>12 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Parte 3</p>
+      <h2>Qué es eso de MBSE</h2>
+      <p class="lead"><strong>Ingeniería de sistemas basada en modelos.</strong> Es como se construyen los sistemas complicados —un avión, un satélite, una red eléctrica— cuando nadie puede tenerlos enteros en la cabeza.</p>
+      <p>La idea central es de sentido común: en lugar de que la verdad del proyecto viva repartida en correos, presentaciones y en la cabeza de quien lo programó, <strong>hay un modelo único que manda</strong>, y todo lo demás —código, pruebas, pantallas, informes— se deriva de él y se comprueba contra él.</p>
+      <div class="ej">
+        <span class="tag">Analogía</span>
+        <div><p>Una casa no se construye a partir de la memoria del arquitecto: se construye a partir de un <strong>plano</strong>. Si la obra y el plano discrepan, alguien tiene que pararse y decidir cuál de los dos está mal. MBSE es aplicar eso a sistemas que no se pueden tocar con la mano.</p></div>
+      </div>
+      <p>Las siete diapositivas siguientes son los siete principios que este simulador toma de ahí, cada uno con lo que significa aquí dentro.</p>
+    </div>
+  </section>
+
+  <!-- 13 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 1</span><span>13 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 1 · Fuente única de verdad</p>
+      <h2>La especificación se escribe antes que el código</h2>
+      <p>Toda decisión del modelo se escribe primero en el documento de especificación, con su justificación y su fuente. Sólo después se programa.</p>
+      <div class="ej">
+        <span class="tag">La regla literal del proyecto</span>
+        <div><p>«El código que no coincide con la especificación es un fallo <strong>en uno de los dos</strong>.» Nadie decide de antemano cuál: hay que mirar, decidir y corregir el que esté mal.</p></div>
+      </div>
+      <p>Suena burocrático y hace justo lo contrario de estorbar: evita la situación en la que un modelo hace algo raro y la única explicación disponible es «pues así está programado». Aquí siempre hay un párrafo anterior al código que dice qué se pretendía y por qué.</p>
+      <div class="ej">
+        <span class="tag">Caso real</span>
+        <div><p>La pestaña de ayuda de la app afirmó durante tres fases que la base reproducía todos los objetivos de validación, cuando ya no era cierto: era una frase escrita a mano que nada comprobaba. Hoy esa lista <strong>se genera desde el registro de objetivos</strong>, y hay un test que falla si alguien vuelve a teclearla.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 2</span><span>14 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 2 · Trazabilidad</p>
+      <h2>De cualquier número de la pantalla se puede tirar del hilo</h2>
+      <p>En ingeniería de sistemas se le llama <em>hilo digital</em>: cada requisito se puede seguir hasta la pieza que lo cumple y hasta la prueba que lo demuestra. Aquí el hilo va en los dos sentidos.</p>
+      <div class="cadena">
+        <div class="eslabon"><span class="n">Origen</span><b>Fila en sources.md</b><span>Institución, fecha, sesgo declarado</span></div>
+        <div class="eslabon"><span class="n">Traducción</span><b>Parámetro con unidad</b><span>Y un rango si hay desacuerdo</span></div>
+        <div class="eslabon"><span class="n">Conducta</span><b>Regla del agente</b><span>Especificada y programada</span></div>
+        <div class="eslabon"><span class="n">Prueba</span><b>Objetivo de validación</b><span>Con su banda publicada</span></div>
+        <div class="eslabon"><span class="n">Vista</span><b>Indicador en pantalla</b><span>Con su fuente al lado</span></div>
+      </div>
+      <div class="ej">
+        <span class="tag">Ejemplo</span>
+        <div><p>Ves en la pantalla que el 27% de los inquilinos dedica más del 40% de sus ingresos al alquiler. Puedes preguntar: ¿de dónde sale ese 40%? ¿A quién incluye —también a la vivienda social?— ¿contra qué dato europeo se valida? Las tres respuestas están escritas, y la definición del indicador vive en un solo archivo, así que no hay dos versiones del mismo número.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 3</span><span>15 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 3 · Verificación y validación</p>
+      <h2>Dos preguntas que se confunden siempre</h2>
+      <div class="cols">
+        <div class="panel">
+          <h4>Verificación · ¿lo hemos construido bien?</h4>
+          <p>¿Hace el código lo que dice la especificación? Se comprueba con pruebas internas: que no aparezcan viviendas de la nada, que nadie tenga dos casas asignadas, que el orden del trimestre sea el escrito.</p>
+        </div>
+        <div class="panel">
+          <h4>Validación · ¿hemos construido lo correcto?</h4>
+          <p>¿Se parece a España? Se comprueba contra datos oficiales: tasa de propiedad, precio sobre renta, esfuerzo del alquiler, morosidad, tiempo de venta…</p>
+        </div>
+      </div>
+      <p>Y hay una <strong>puerta</strong>: si la base no reproduce los objetivos de validación, no se reporta ningún resultado de política. Primero se demuestra que el mundo simulado se parece al real; después se le hacen preguntas.</p>
+      <div class="ej">
+        <span class="tag">El examen más duro: la prueba sellada</span>
+        <div><p>El episodio 2008–13 se apartó <strong>antes</strong> de calibrar nada, como un examen cerrado con llave, para poder preguntarle al modelo por una crisis que nunca había visto. Se abrió una sola vez. Un examen así sólo se puede usar una vez: si lo repites tras ajustar el modelo, ya no estás midiendo si acierta, estás midiendo si has aprendido las respuestas.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 3b</span><span>16 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 3b · Predicción registrada</p>
+      <h2>Escribir la apuesta antes de mirar el resultado</h2>
+      <p>Cuando ya no quedan exámenes sellados, queda otra cosa: <strong>registrar la predicción por escrito, con fecha, antes de ejecutarla</strong>. Es la práctica del preregistro, y cierra la puerta a la tentación de explicar cualquier resultado <em>a posteriori</em>.</p>
+      <div class="mundos">
+        <div class="mundo a"><span class="t">Antes</span><p>Se escribe qué se espera, qué contaría como fallo y con qué criterio exacto se juzga. Se firma y se cierra.</p></div>
+        <div class="mundo b"><span class="t">Después</span><p>Se ejecuta <strong>una vez</strong>. El resultado se apunta tal cual, acierte o falle.</p></div>
+        <div class="mundo d"><span class="t">Lo que se gana</span><p>Un resultado que significa algo, porque el criterio no se pudo mover después.</p></div>
+      </div>
+      <div class="ej">
+        <span class="tag">Ejemplo</span>
+        <div>
+          <p>Antes de simular la ley de alquiler hoy vigente (Ley 12/2023), se escribió y se firmó qué contaría como fallo: <strong>que el modelo hiciera subir el alquiler</strong>. Se eligió ese criterio porque la vez anterior que se leyó esa ley, el modelo daba <strong>+16,6%</strong>.</p>
+          <p>Se ejecutó una vez, en diez mundos. El alquiler sale en <strong>−0,79%</strong>, indistinguible de cero — no sube. Los contratos nuevos caen un <strong>8%</strong>, en ocho de los diez mundos. La predicción se sostuvo, y lo único citable es <em>el sentido</em> de esa caída de contratos, nunca su tamaño: eso también estaba escrito de antemano.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 4</span><span>17 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 4 · Gestión de configuración</p>
+      <h2>Cualquier resultado se puede volver a producir, igual</h2>
+      <p>Un número que no se puede reproducir no es un resultado, es una anécdota. En ingeniería de sistemas esto se llama gestión de configuración: saber exactamente <em>qué versión de qué</em> produjo cada cifra.</p>
+      <ul class="plain">
+        <li><strong>Todo el azar viene de una sola semilla</strong>, que se pasa desde el motor hacia abajo. No hay ni un sorteo suelto en ningún módulo.</li>
+        <li><strong>Mismo número, misma máquina, misma respuesta.</strong> Escribes la semilla 42 y obtienes el mundo 42, hoy y dentro de un año.</li>
+        <li><strong>Los cálculos caros se guardan con su semilla y su configuración en el nombre del archivo</strong>, para que nadie compare sin querer dos cosas distintas.</li>
+        <li><strong>Cada hallazgo se fecha</strong> — y cuando uno se corrige, se escribe también la corrección, no se borra el anterior.</li>
+      </ul>
+      <div class="ej">
+        <span class="tag">Caso real</span>
+        <div><p>Una explicación de por qué la oferta no abarataba el alquiler se apoyó en <strong>el último trimestre de una sola semilla</strong>. Al medirlo en diez semillas resultó falsa, y la entrada del diario quedó corregida, con el error a la vista. La lección quedó escrita: <em>el último trimestre de una semilla no es una medición</em>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 5</span><span>18 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 5 · Incertidumbre</p>
+      <h2>Saber qué parte del resultado es conocimiento y qué parte es suposición</h2>
+      <p>Cada parámetro del modelo tiene una procedencia: medido, discutido o supuesto. Para saber cuánto pesa cada uno se hace un <strong>análisis de sensibilidad</strong>: se mueve todo dentro de sus rangos, miles de veces, y se mira qué es lo que realmente mueve cada resultado.</p>
+      <div class="stat-row">
+        <div class="stat"><span class="v">1.792</span><span class="k">ejecuciones para repartir la variación entre parámetros</span></div>
+        <div class="stat"><span class="v">25%</span><span class="k">el umbral: si un parámetro sin fuente explica más de esto, el número no se cita como cantidad</span></div>
+        <div class="stat"><span class="v">10</span><span class="k">semillas mínimas antes de reportar nada</span></div>
+      </div>
+      <p>De ahí sale la regla más importante de todo el proyecto, y es una regla de <em>honestidad</em>, no de cálculo:</p>
+      <div class="cols">
+        <div class="panel yes"><h4>Se puede leer como cantidad</h4><p>Precio y precio sobre renta, compraventas, viviendas terminadas, morosidad, tiempo de venta, pujas por anuncio.</p></div>
+        <div class="panel no"><h4>Sólo como dirección</h4><p>Todo el lado del alquiler, la tasa de propiedad, la relación de precios entre zonas. Lee el sentido, nunca el tamaño.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 6</span><span>19 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 6 · Vistas</p>
+      <h2>Un modelo, cuatro maneras de mirarlo</h2>
+      <p>En ingeniería de sistemas, cada interlocutor recibe una <em>vista</em> del mismo modelo, no un modelo distinto. Las cuatro pestañas de la aplicación son exactamente eso, y se distinguen por la pregunta que responden.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Vista</th><th>Para quién</th><th>Pregunta que responde</th></tr></thead>
+          <tbody>
+            <tr><td>Explorar una política</td><td>Quien quiere entender una medida</td><td>¿Qué mueve esta ley, y por qué canal?</td></tr>
+            <tr><td>Comparar políticas</td><td>Quien tiene que elegir</td><td>¿Cuál de todas mueve más lo que me importa?</td></tr>
+            <tr><td>Contraste oficial</td><td>Quien desconfía, con razón</td><td>¿Se parecen los niveles del modelo a los datos publicados?</td></tr>
+            <tr><td>Diagnóstico</td><td>Quien va a citar esto</td><td>¿En qué se equivoca el modelo hoy?</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ej">
+        <span class="tag">Detalle que importa</span>
+        <div><p>Las cuatro vistas leen <strong>los mismos indicadores, definidos en un solo archivo</strong>. Ninguna pantalla calcula un número por su cuenta. Es la diferencia entre cuatro vistas de un modelo y cuatro informes que no cuadran entre sí.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b class="part-3">Parte 3</b><span>Principio 7</span><span>20 / 22</span></div>
+    <div class="body">
+      <p class="kicker">Principio 7 · Defectos abiertos</p>
+      <h2>Los fallos conocidos se clavan en la pared</h2>
+      <p>Cuando el modelo no reproduce algo, hay dos salidas: ensanchar la banda hasta que entre, o registrar el fallo. Aquí se registra — y además se deja una prueba automática que <strong>espera que falle</strong>, de modo que si algún día pasa, también avisa.</p>
+      <div class="cols tight">
+        <div class="panel no">
+          <h4>Al metro no entra nadie</h4>
+          <p>El saldo migratorio sale bien, pero por el motivo equivocado. Es como decir que un bar pierde clientela porque no entra nadie, cuando lo que pasa es que entran cien y salen ciento treinta. Falta modelar <em>dónde está el empleo</em>.</p>
+        </div>
+        <div class="panel no">
+          <h4>Casi nadie pierde la casa</h4>
+          <p>2 entregas al banco por cada 10.000 hipotecas, contra 10–16 reales. En el modelo, quien no puede pagar siempre vende a tiempo; en la realidad no, si debes más de lo que vale el piso.</p>
+        </div>
+        <div class="panel no">
+          <h4>Construir no abarata el alquiler</h4>
+          <p>Dentro del modelo, la vivienda nueva se convierte en pisos vacíos y no en renta más barata, porque el único canal que une oferta y alquiler está topado. Es un límite del modelo, no un hallazgo sobre España.</p>
+        </div>
+      </div>
+      <div class="ej">
+        <span class="tag">La frase que lo resume</span>
+        <div><p><strong>La banda es el dato.</strong> Bajar el listón hasta que el modelo apruebe convierte la medición en decoración.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b>Uso</b><span>21 / 22</span></div>
+    <div class="body">
+      <h2>Cómo se usa, en un minuto</h2>
+      <ol class="pasos">
+        <li><b>Elige una política</b> en la barra lateral — o ninguna, para ver el mundo base.</li>
+        <li><b>Deja las semillas en 3 o súbelas</b>. Más semillas, menos ruido; el coste es tiempo.</li>
+        <li><b>Mueve los deslizadores en disputa</b> y mira si tu conclusión sobrevive. Si cambia de sentido, la conclusión era del deslizador, no de la política.</li>
+        <li><b>Desconfía de toda flecha gris «≈ 0»</b>: significa que otra tirada de dados la habría dibujado al revés.</li>
+        <li><b>Antes de citar un número</b>, pasa por la pestaña de diagnóstico y comprueba si ese indicador se puede leer como cantidad o sólo como dirección.</li>
+      </ol>
+      <div class="ej">
+        <span class="tag">Prueba de fuego</span>
+        <div><p>Si un resultado te gusta mucho, cambia la semilla y vuelve a mirarlo. Es la comprobación más barata que existe, y la que más conclusiones ha tumbado en este proyecto.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22 ——————————————————————————————————————————— -->
+  <section class="slide">
+    <div class="rail"><b>Cierre</b><span>22 / 22</span></div>
+    <div class="body">
+      <h2>Qué se lleva uno de aquí</h2>
+      <p class="lead">No un pronóstico. Un mecanismo explicado, medido, y con sus límites escritos al lado.</p>
+      <ul class="plain">
+        <li><strong>Los precios no se imponen: emergen</strong> de decisiones pequeñas, y el orden en que se toman cambia el resultado.</li>
+        <li><strong>El desacuerdo entre estudios no se resuelve a la fuerza</strong>: se convierte en un deslizador y se recorren los dos mundos.</li>
+        <li><strong>La ingeniería de sistemas aporta lo aburrido y decisivo</strong>: especificación antes que código, trazabilidad, verificación frente a validación, reproducibilidad, incertidumbre medida y defectos a la vista.</li>
+        <li><strong>Un modelo se juzga por cómo está hecho</strong>, no por si su número de la semana que viene acierta.</li>
+      </ul>
+      <div class="ej">
+        <span class="tag">Glosario mínimo</span>
+        <div>
+          <p><strong>Semilla</strong>: la suerte de un mundo simulado. <strong>Trimestre</strong>: un paso del reloj. <strong>Banda</strong>: el rango que dice el dato oficial. <strong>Puerta</strong>: comprobación que hay que pasar antes de reportar nada. <strong>Fallo registrado</strong>: defecto conocido, con prueba que lo vigila. <strong>Dirección</strong>: sabemos el sentido, no el tamaño.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <button id="prev" type="button" aria-label="Diapositiva anterior">←</button>
+  <span class="count" id="count">1 / 22</span>
+  <button id="next" type="button" aria-label="Diapositiva siguiente">→</button>
+</div>
+
+<script>
+(function () {
+  var deck = document.getElementById('deck');
+  var slides = Array.prototype.slice.call(deck.querySelectorAll('.slide'));
+  var count = document.getElementById('count');
+  var progress = document.getElementById('progress');
+  var current = 0;
+
+  function refresh() {
+    var top = deck.scrollTop;
+    var best = 0, bestDist = Infinity;
+    slides.forEach(function (s, i) {
+      var d = Math.abs(s.offsetTop - top);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    current = best;
+    count.textContent = (current + 1) + ' / ' + slides.length;
+    progress.style.width = ((current) / (slides.length - 1) * 100) + '%';
+  }
+
+  function go(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    deck.scrollTo({ top: slides[current].offsetTop, behavior: 'smooth' });
+    count.textContent = (current + 1) + ' / ' + slides.length;
+    progress.style.width = ((current) / (slides.length - 1) * 100) + '%';
+  }
+
+  document.getElementById('next').addEventListener('click', function () { go(current + 1); });
+  document.getElementById('prev').addEventListener('click', function () { go(current - 1); });
+
+  deck.addEventListener('scroll', function () {
+    window.clearTimeout(deck._t);
+    deck._t = window.setTimeout(refresh, 80);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(current + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+  });
+
+  refresh();
+})();
+</script>
